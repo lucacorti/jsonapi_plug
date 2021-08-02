@@ -1,5 +1,9 @@
 defmodule JSONAPI.Document.ErrorObject do
-  @moduledoc "JSON:API Error Object"
+  @moduledoc """
+  JSON:API Error Object
+
+  See https://jsonapi.org/format/#error-objects
+  """
 
   @type t :: %__MODULE__{
           id: String.t() | nil,

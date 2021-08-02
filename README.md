@@ -4,7 +4,7 @@ A project that will render your data models into [JSONAPI Documents](http://json
 
 ## JSONAPI Support
 
-This library implements [version 1.1](https://jsonapi.org/format/1.1/)
+This library implements [version 1.0](https://jsonapi.org/format/1.0/)
 of the JSON:API spec.
 
 - [x] Basic [JSONAPI Document](http://jsonapi.org/format/#document-top-level) encoding
@@ -21,7 +21,7 @@ of the JSON:API spec.
 ## Documentation
 
 * [Full docs here](https://hexdocs.pm/jsonapi)
-* [JSON API Spec (v1.1)](https://jsonapi.org/format/1.1/)
+* [JSON API Spec (v1.0)](https://jsonapi.org/format/1.0/)
 
 ## Badges
 
@@ -109,8 +109,7 @@ Please see its documentation for details.
 ## Camelized or Dasherized Fields
 
 JSONAPI has recommended in the past the use of dashes (`-`) in place of underscore (`_`) as a
-word separator for document member keys. However, as of [JSON API Spec (v1.1)](https://jsonapi.org/format/1.1/), it is now recommended that member names
-are camelCased. This library provides various configuration options for maximum flexibility including serializing outgoing parameters and deserializing incoming paramenters.
+word separator for document member keys. However, as of [JSON API Spec (v1.1)](https://jsonapi.org/format/1.1/), it is now recommended that member names are camelCased. This library provides various configuration options for maximum flexibility including serializing outgoing parameters and deserializing incoming paramenters.
 
 Transforming fields requires two steps:
 

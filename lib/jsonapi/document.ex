@@ -1,6 +1,8 @@
 defmodule JSONAPI.Document do
   @moduledoc """
   JSON:API Document
+
+  See https://jsonapi.org/format/#document-structure
   """
 
   alias JSONAPI.{

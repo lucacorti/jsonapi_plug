@@ -1,5 +1,9 @@
 defmodule JSONAPI.Document.RelationshipObject do
-  @moduledoc "JSON:API Relationship Object"
+  @moduledoc """
+  JSON:API Relationship Object
+
+  See https://jsonapi.org/format/#document-resource-object-relationships
+  """
 
   alias JSONAPI.{Document, Resource, View}
   alias Plug.Conn
