@@ -1,8 +1,16 @@
 defmodule JSONAPI.DocumentTest do
   use ExUnit.Case, async: false
 
+  alias JSONAPI.{
+    Config,
+    Document,
+    Document.RelationshipObject,
+    Document.ResourceObject,
+    QueryParser,
+    View
+  }
+
   alias JSONAPI.SupportTest.{Comment, Company, Industry, Post, Tag, User}
-  alias JSONAPI.{Config, Document, QueryParser, View}
 
   defmodule PostView do
     use JSONAPI.View, resource: Post
@@ -33,7 +41,7 @@ defmodule JSONAPI.DocumentTest do
     @behaviour JSONAPI.Paginator
 
     @impl true
-    def paginate(resources, view, conn, page, options) do
+    def paginate(view, resources, conn, page, options) do
       number =
         page
         |> Map.get("page", "0")
@@ -208,7 +216,7 @@ defmodule JSONAPI.DocumentTest do
   end
 
   test "serialize only includes meta if provided" do
-    assert %Document{data: %Document.Resource{meta: %{meta_text: "meta_Hello"}}} =
+    assert %Document{data: %ResourceObject{meta: %{meta_text: "meta_Hello"}}} =
              Document.serialize(PostView, %Post{id: 1, text: "Hello"}, nil)
 
     assert %Document{meta: nil} = Document.serialize(CommentView, %Comment{id: 1}, nil)
@@ -228,7 +236,7 @@ defmodule JSONAPI.DocumentTest do
 
     assert %Document{
              data:
-               %Document.Resource{
+               %ResourceObject{
                  id: id,
                  type: type,
                  attributes: attributes,
@@ -277,7 +285,7 @@ defmodule JSONAPI.DocumentTest do
     assert Enum.count(data) == 3
     assert Enum.count(included) == 4
 
-    Enum.each(data, fn %Document.Resource{
+    Enum.each(data, fn %ResourceObject{
                          id: id,
                          type: type,
                          attributes: attributes,
@@ -304,7 +312,7 @@ defmodule JSONAPI.DocumentTest do
     }
 
     %Document{
-      data: %Document.Resource{
+      data: %ResourceObject{
         id: id,
         type: type,
         attributes: attributes,
@@ -323,7 +331,7 @@ defmodule JSONAPI.DocumentTest do
     assert links[:self] == PostView.url_for(post, nil)
     assert map_size(relationships) == 2
 
-    assert %Document.Resource.Relationship{data: []} = relationships[:best_comments]
+    assert %RelationshipObject{data: []} = relationships[:best_comments]
 
     assert Enum.count(included) == 1
   end
@@ -338,7 +346,7 @@ defmodule JSONAPI.DocumentTest do
     }
 
     assert %Document{
-             data: %Document.Resource{
+             data: %ResourceObject{
                id: id,
                type: type,
                attributes: attributes,
@@ -369,9 +377,9 @@ defmodule JSONAPI.DocumentTest do
     }
 
     assert %Document{
-             data: %Document.Resource{
+             data: %ResourceObject{
                relationships: %{
-                 author: %Document.Resource.Relationship{
+                 author: %RelationshipObject{
                    links: %{self: "/my-type/1/relationships/author"}
                  }
                }
@@ -406,7 +414,7 @@ defmodule JSONAPI.DocumentTest do
       }
       |> Plug.Conn.fetch_query_params()
 
-    assert %Document{data: %Document.Resource{relationships: relationships}, included: included} =
+    assert %Document{data: %ResourceObject{relationships: relationships}, included: included} =
              Document.serialize(PostView, post, conn)
 
     assert relationships.author.links.self ==
@@ -536,7 +544,7 @@ defmodule JSONAPI.DocumentTest do
       }
 
       assert %Document{
-               data: %Document.Resource{
+               data: %ResourceObject{
                  attributes: attributes,
                  relationships: relationships
                },
@@ -547,17 +555,17 @@ defmodule JSONAPI.DocumentTest do
       assert attributes["insertedAt"] == post.inserted_at
 
       Enum.each(included, fn
-        %Document.Resource{type: "user", id: "2", attributes: attributes} ->
+        %ResourceObject{type: "user", id: "2", attributes: attributes} ->
           assert "bonds" = attributes["lastName"]
 
-        %Document.Resource{type: "user", id: "4", attributes: attributes} ->
+        %ResourceObject{type: "user", id: "4", attributes: attributes} ->
           assert "bronds" = attributes["lastName"]
 
         _ ->
           assert true
       end)
 
-      assert %Document.Resource.Relationship{
+      assert %RelationshipObject{
                data: [%{id: "5"} | _],
                links: %{self: "/my-type/1/relationships/bestComments"}
              } = relationships["bestComments"]
@@ -593,7 +601,7 @@ defmodule JSONAPI.DocumentTest do
       }
 
       assert %Document{
-               data: %Document.Resource{attributes: attributes, relationships: relationships},
+               data: %ResourceObject{attributes: attributes, relationships: relationships},
                included: included
              } = Document.serialize(PostView, post, nil)
 
@@ -601,17 +609,17 @@ defmodule JSONAPI.DocumentTest do
       assert attributes["inserted-at"] == post.inserted_at
 
       Enum.each(included, fn
-        %Document.Resource{type: "user", id: "2", attributes: attributes} ->
+        %ResourceObject{type: "user", id: "2", attributes: attributes} ->
           assert "bonds" = attributes["last-name"]
 
-        %Document.Resource{type: "user", id: "4", attributes: attributes} ->
+        %ResourceObject{type: "user", id: "4", attributes: attributes} ->
           assert "bronds" = attributes["last-name"]
 
         _ ->
           assert true
       end)
 
-      assert %Document.Resource.Relationship{
+      assert %RelationshipObject{
                data: [%{id: "5"} | _],
                links: %{self: "/my-type/1/relationships/best-comments"}
              } = relationships["best-comments"]

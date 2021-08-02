@@ -1,25 +1,21 @@
-defmodule JSONAPI.Document.Resource do
-  @moduledoc """
-  JSONAPI Resource
-  """
-  alias JSONAPI.Document
-  alias JSONAPI.Document.Resource.Relationship
-  alias JSONAPI.{Resource, Utils, View}
+defmodule JSONAPI.Document.ResourceObject do
+  @moduledoc "JSON:API Resource Object"
+
+  alias JSONAPI.{Document, Document.RelationshipObject, Resource, Utils, View}
   alias Plug.Conn
 
-  @type attribute :: String.t()
+  @type attribute :: atom()
 
   @type value :: String.t() | integer() | float() | [value()] | %{attribute() => value()}
 
   @type t :: %__MODULE__{
           id: Resource.id(),
           type: Resource.type(),
-          attributes: %{String.t() => attribute() | %{String.t() => value()}},
-          relationships: %{String.t() => [Relationship.t()]},
+          attributes: %{attribute() => value()} | nil,
+          relationships: %{attribute() => [RelationshipObject.t()]} | nil,
           links: Document.links()
         }
 
-  @derive Jason.Encoder
   defstruct id: nil, type: nil, attributes: nil, relationships: %{}, links: nil, meta: nil
 
   @spec serialize(
@@ -42,11 +38,15 @@ defmodule JSONAPI.Document.Resource do
   def serialize(view, resource, conn, query_includes, options) do
     valid_includes = get_includes(view, query_includes)
 
+    attributes =
+      view
+      |> View.attributes(resource, conn)
+      |> transform_fields()
+
     %__MODULE__{
       id: view.id(resource),
       type: view.type(),
-      attributes: transform_fields(view.attributes(resource, conn)),
-      relationships: %{}
+      attributes: attributes
     }
     |> add_links(resource, view, conn, nil, options)
     |> add_meta(view.meta(resource, conn))
@@ -87,15 +87,11 @@ defmodule JSONAPI.Document.Resource do
       end
 
     rel_data = Map.get(resource, key)
-
-    # Build the relationship url
     rel_key = transform_fields(key)
     rel_url = View.url_for_relationship(view, resource, rel_key, conn)
 
-    # Build the relationship
-    relationship = Relationship.serialize(rel_view, rel_data, rel_url, conn)
+    relationship = RelationshipObject.serialize(rel_view, rel_data, rel_url, conn)
     relationships = Map.put(relationships, rel_key, relationship)
-
     resource = %__MODULE__{document | relationships: relationships}
 
     valid_include_view = include_view(valid_includes, key)

@@ -148,10 +148,6 @@ defmodule JSONAPI.QueryParserTest do
     assert get_view_for_type(MyView, "comment") == JSONAPI.QueryParserTest.CommentView
   end
 
-  test "DEPRECATED: get_view_for_type/2 using relationship name as key" do
-    assert get_view_for_type(MyView, "comments") == JSONAPI.QueryParserTest.CommentView
-  end
-
   test "parse_pagination/2 turns a fields map into a map of pagination values" do
     config = struct(Config, view: MyView)
     assert parse_pagination(config, config.page).page == %{}

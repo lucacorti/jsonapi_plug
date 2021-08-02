@@ -1,5 +1,5 @@
-defmodule JSONAPI.Document.Error do
-  @moduledoc "JSONAPI Error detail"
+defmodule JSONAPI.Document.ErrorObject do
+  @moduledoc "JSON:API Error Object"
 
   @type t :: %__MODULE__{
           id: String.t() | nil,

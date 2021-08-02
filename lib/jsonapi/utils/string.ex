@@ -190,44 +190,40 @@ defmodule JSONAPI.Utils.String do
       %{"fooAttributes" => [%{"fooBar" => [1, 2]}]}
 
   """
-  @spec expand_fields(map, function) :: map
+  @spec expand_fields(String.t() | atom() | tuple() | map() | list(), function()) :: tuple
   def expand_fields(%{__struct__: _} = value, _fun), do: value
 
   def expand_fields(map, fun) when is_map(map) do
     Enum.into(map, %{}, &expand_fields(&1, fun))
   end
 
-  @spec expand_fields(list, function) :: list
   def expand_fields(values, fun) when is_list(values) do
     Enum.map(values, &expand_fields(&1, fun))
   end
 
-  @spec expand_fields(tuple, function) :: tuple
   def expand_fields({key, value}, fun) when is_map(value) do
     {fun.(key), expand_fields(value, fun)}
   end
 
-  def expand_fields({key, value}, fun) when is_list(value) do
-    {fun.(key), maybe_expand_fields(value, fun)}
+  def expand_fields({key, values}, fun) when is_list(values) do
+    {
+      fun.(key),
+      Enum.map(values, fn
+        string when is_binary(string) -> string
+        value -> expand_fields(value, fun)
+      end)
+    }
   end
 
   def expand_fields({key, value}, fun) do
     {fun.(key), value}
   end
 
-  @spec expand_fields(String.t() | atom(), function) :: String.t()
   def expand_fields(value, fun) when is_binary(value) or is_atom(value) do
     fun.(value)
   end
 
   def expand_fields(value, _fun) do
     value
-  end
-
-  defp maybe_expand_fields(values, fun) when is_list(values) do
-    Enum.map(values, fn
-      string when is_binary(string) -> string
-      value -> expand_fields(value, fun)
-    end)
   end
 end

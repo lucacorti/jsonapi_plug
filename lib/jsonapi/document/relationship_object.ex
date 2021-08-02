@@ -1,7 +1,5 @@
-defmodule JSONAPI.Document.Resource.Relationship do
-  @moduledoc """
-  JSONAPI Relationship
-  """
+defmodule JSONAPI.Document.RelationshipObject do
+  @moduledoc "JSON:API Relationship Object"
 
   alias JSONAPI.{Document, Resource, View}
   alias Plug.Conn
@@ -14,7 +12,6 @@ defmodule JSONAPI.Document.Resource.Relationship do
           meta: Document.meta() | nil
         }
 
-  @derive Jason.Encoder
   defstruct data: nil, links: nil, meta: nil
 
   @spec serialize(View.t(), Resource.t() | [Resource.t()], String.t(), Conn.t() | nil) :: t()

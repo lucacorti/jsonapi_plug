@@ -123,19 +123,15 @@ defmodule JSONAPI.View do
 
   @type t :: module()
   @type options :: keyword()
+  @type data :: Resource.t() | [Resource.t()] | nil
 
-  @callback attributes(Resource.t(), Conn.t() | nil) :: [Resource.attribute()]
   @callback id(Resource.t()) :: Resource.id() | nil
   @callback fields :: [Resource.attribute()]
-  @callback links(Resource.t(), Conn.t() | nil) :: Document.links() | nil
-  @callback meta(Resource.t(), Conn.t() | nil) :: Document.meta() | nil
-  @callback namespace() :: String.t()
-  @callback pagination_links(Resource.t(), Conn.t(), Paginator.page(), Paginator.options()) ::
-              Paginator.links()
+  @callback links(Resource.t(), Conn.t() | nil) :: Document.links()
+  @callback meta(Resource.t(), Conn.t() | nil) :: Document.meta()
+  @callback namespace :: String.t()
   @callback path :: String.t()
-  @callback relationships :: [
-              {Resource.attribute(), Resource.t() | {Resource.t(), :include}}
-            ]
+  @callback relationships :: [{Resource.attribute(), Resource.t() | {Resource.t(), :include}}]
   @callback type :: Resource.type()
   @callback url_for(Resource.t(), Conn.t() | nil) :: String.t()
 
@@ -159,21 +155,6 @@ defmodule JSONAPI.View do
       def id(resource), do: Resource.id(resource)
 
       @impl View
-      def attributes(resource, conn) do
-        __MODULE__
-        |> View.visible_fields(conn)
-        |> Enum.reduce(%{}, fn field, intermediate_map ->
-          value =
-            case function_exported?(__MODULE__, field, 2) do
-              true -> apply(__MODULE__, field, [resource, conn])
-              false -> Map.get(resource, field)
-            end
-
-          Map.put(intermediate_map, field, value)
-        end)
-      end
-
-      @impl View
       def fields, do: Resource.attributes(struct(unquote(resource)))
 
       @impl View
@@ -187,23 +168,6 @@ defmodule JSONAPI.View do
         def namespace, do: @namespace
       else
         def namespace, do: Application.get_env(:jsonapi, :namespace, "")
-      end
-
-      @impl View
-      if @paginator do
-        def pagination_links(resource, conn, page, options),
-          do: View.pagination_links(__MODULE__, resource, conn, page, @paginator, options)
-      else
-        def pagination_links(resource, conn, page, options),
-          do:
-            View.pagination_links(
-              __MODULE__,
-              resource,
-              conn,
-              page,
-              Application.get_env(:jsonapi, :paginator),
-              options
-            )
       end
 
       @impl View
@@ -233,6 +197,22 @@ defmodule JSONAPI.View do
       def show(model, conn, _params, meta \\ nil, options \\ []),
         do: Document.serialize(__MODULE__, model, conn, meta, options)
 
+      if @paginator do
+        def pagination_links(resource, conn, page, options),
+          do: View.pagination_links(__MODULE__, resource, conn, page, @paginator, options)
+      else
+        def pagination_links(resource, conn, page, options),
+          do:
+            View.pagination_links(
+              __MODULE__,
+              resource,
+              conn,
+              page,
+              Application.get_env(:jsonapi, :paginator),
+              options
+            )
+      end
+
       if Code.ensure_loaded?(Phoenix) do
 
         def render("show.json", %{data: resource, conn: conn, meta: meta}),
@@ -254,17 +234,32 @@ defmodule JSONAPI.View do
     end
   end
 
+  @spec attributes(t(), Resource.t(), Conn.t() | nil) :: [Resource.attribute()]
+  def attributes(view, resource, conn) do
+    view
+    |> visible_fields(conn)
+    |> Enum.reduce(%{}, fn field, intermediate_map ->
+      value =
+        case function_exported?(view, field, 2) do
+          true -> apply(view, field, [resource, conn])
+          false -> Map.get(resource, field)
+        end
+
+      Map.put(intermediate_map, field, value)
+    end)
+  end
+
   @spec pagination_links(
           t(),
-          Resource.t() | [Resource.t()] | nil,
+          [Resource.t()],
           Conn.t() | nil,
-          Paginator.page(),
+          Paginator.params(),
           Paginator.t(),
           options()
-        ) :: Paginator.links()
-  def pagination_links(view, resource, conn, page, paginator, options) do
+        ) :: Document.links()
+  def pagination_links(view, resources, conn, page, paginator, options) do
     if Code.ensure_loaded?(paginator) && function_exported?(paginator, :paginate, 5) do
-      paginator.paginate(resource, view, conn, page, options)
+      paginator.paginate(view, resources, conn, page, options)
     else
       %{}
     end
@@ -303,15 +298,15 @@ defmodule JSONAPI.View do
 
   @spec url_for_pagination(
           t(),
-          Resource.t() | [Resource.t()] | nil,
-          Conn.query_params(),
-          Paginator.params()
+          data(),
+          Conn.t() | nil,
+          Paginator.params() | nil
         ) ::
-          String.t()
+          String.t() | nil
   def url_for_pagination(
         view,
-        resource,
-        %{query_params: query_params} = conn,
+        resources,
+        %Conn{query_params: query_params} = conn,
         nil = _pagination_params
       ) do
     query =
@@ -319,13 +314,18 @@ defmodule JSONAPI.View do
       |> to_list_of_query_string_components()
       |> URI.encode_query()
 
-    prepare_url(view, query, resource, conn)
+    prepare_url(view, query, resources, conn)
   end
 
-  def url_for_pagination(view, resource, %{query_params: query_params} = conn, pagination_params) do
+  def url_for_pagination(
+        view,
+        resources,
+        %Conn{query_params: query_params} = conn,
+        pagination_params
+      ) do
     query_params = Map.put(query_params, "page", pagination_params)
 
-    url_for_pagination(view, resource, %{conn | query_params: query_params}, nil)
+    url_for_pagination(view, resources, %Conn{conn | query_params: query_params}, nil)
   end
 
   @spec visible_fields(t(), Conn.t() | nil) :: list(atom)

@@ -223,6 +223,6 @@ defmodule JSONAPI.ViewTest do
     config = %JSONAPI.Config{fields: %{PostView.type() => [:body]}}
     conn = %Plug.Conn{assigns: %{jsonapi_query: config}}
 
-    assert %{body: "Chunky"} == PostView.attributes(post, conn)
+    assert %{body: "Chunky"} == View.attributes(PostView, post, conn)
   end
 end

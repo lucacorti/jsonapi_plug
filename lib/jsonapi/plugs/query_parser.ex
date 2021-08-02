@@ -72,8 +72,7 @@ defmodule JSONAPI.QueryParser do
 
   @behaviour Plug
 
-  alias JSONAPI.{Config, Deprecation}
-  alias JSONAPI.Exceptions.InvalidQuery
+  alias JSONAPI.{Config, Exceptions.InvalidQuery}
   alias Plug.Conn
 
   import JSONAPI.Utils.String, only: [underscore: 1]
@@ -259,26 +258,15 @@ defmodule JSONAPI.QueryParser do
   @spec get_view_for_type(module(), String.t()) :: module() | no_return()
   def get_view_for_type(view, type) do
     case Enum.find(view.relationships(), fn relationship ->
-           is_field_valid_for_relationship(relationship, type)
+           is_field_valid_for_relationship?(relationship, type)
          end) do
       {_, view} -> view
       nil -> raise_invalid_field_names(type, view.type())
     end
   end
 
-  @spec is_field_valid_for_relationship({atom(), module()}, String.t()) :: boolean()
-  defp is_field_valid_for_relationship({key, view}, expected_type) do
-    cond do
-      view.type == expected_type ->
-        true
-
-      Atom.to_string(key) == expected_type ->
-        Deprecation.warn(:query_parser_fields)
-        true
-
-      true ->
-        false
-    end
+  defp is_field_valid_for_relationship?({_key, view}, expected_type) do
+    view.type == expected_type
   end
 
   @spec raise_invalid_include_query(param :: String.t(), resource_type :: String.t()) ::

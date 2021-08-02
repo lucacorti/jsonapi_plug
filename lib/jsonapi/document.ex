@@ -1,25 +1,30 @@
 defmodule JSONAPI.Document do
   @moduledoc """
-  JSONAPI Document
+  JSON:API Document
   """
-  alias JSONAPI.Document.{Error, Resource}
-  alias JSONAPI.View
+
+  alias JSONAPI.{
+    Config,
+    Document.ErrorObject,
+    Document.LinksObject,
+    Document.ResourceObject,
+    Resource,
+    View
+  }
+
   alias Plug.Conn
 
-  @type meta ::
-          String.t() | integer() | float() | [meta()] | %{String.t() => meta()}
-
-  @type links :: %{String.t() => String.t()}
+  @type meta :: String.t() | integer() | float() | [meta()] | %{String.t() => meta()} | nil
+  @type links :: LinksObject.t() | nil
 
   @type t :: %__MODULE__{
-          data: Resource.t() | [Resource.t()] | nil,
-          errors: [Error.t()] | nil,
-          included: [Resource.t()] | nil,
-          links: links() | nil,
-          meta: meta() | nil
+          data: ResourceObject.t() | [ResourceObject.t()] | nil,
+          errors: [ErrorObject.t()] | nil,
+          included: [ResourceObject.t()] | nil,
+          links: links(),
+          meta: meta()
         }
-
-  defstruct data: nil, errors: nil, included: nil, links: nil, meta: nil
+  defstruct [:data, :errors, :included, :links, :meta]
 
   @doc """
   Takes a view, resource and a optional plug connection and returns a fully JSONAPI Serialized document.
@@ -30,7 +35,7 @@ defmodule JSONAPI.Document do
   """
   @spec serialize(
           View.t(),
-          JSONAPI.Resource.t() | [JSONAPI.Resource.t()] | nil,
+          Resource.t() | [Resource.t()] | nil,
           Conn.t() | nil,
           meta() | nil,
           View.options()
@@ -43,18 +48,24 @@ defmodule JSONAPI.Document do
     |> add_links(resource, view, conn, nil, options)
   end
 
-  def serialize(view, resource, %Conn{assigns: %{jsonapi_query: config}} = conn, meta, options) do
+  def serialize(
+        view,
+        resource,
+        %Conn{assigns: %{jsonapi_query: %Config{} = config}} = conn,
+        meta,
+        options
+      ) do
     {to_include, serialized_data} =
-      Resource.serialize(view, resource, conn, config.include, options)
+      ResourceObject.serialize(view, resource, conn, config.include || [], options)
 
     %__MODULE__{data: serialized_data}
     |> add_included(to_include)
     |> add_meta(meta)
-    |> add_links(resource, view, conn, config.page, options)
+    |> add_links(resource, view, conn, config.page || %{}, options)
   end
 
   def serialize(view, resource, conn, meta, options) do
-    {to_include, serialized_data} = Resource.serialize(view, resource, conn, [], options)
+    {to_include, serialized_data} = ResourceObject.serialize(view, resource, conn, [], options)
 
     %__MODULE__{data: serialized_data}
     |> add_included(to_include)
@@ -98,24 +109,26 @@ defmodule JSONAPI.Document do
     do: %__MODULE__{document | meta: meta}
 
   defp add_meta(document, _meta), do: document
+end
 
-  defimpl Jason.Encoder do
-    alias JSONAPI.Document
-
-    def encode(%Document{included: []} = document, options) do
-      encode(%Document{document | included: nil}, options)
-    end
-
-    def encode(document, options) do
-      document
-      |> Map.from_struct()
-      |> Enum.reject(fn
-        {_key, nil} -> true
-        {_key, []} -> true
-        _ -> false
-      end)
-      |> Enum.into(%{})
-      |> Jason.Encode.map(options)
-    end
+defimpl Jason.Encoder,
+  for: [
+    JSONAPI.Document,
+    JSONAPI.Document.ErrorObject,
+    JSONAPI.Document.LinksObject,
+    JSONAPI.Document.ResourceObject,
+    JSONAPI.Document.RelationshipObject
+  ] do
+  def encode(document, options) do
+    document
+    |> Map.from_struct()
+    |> Enum.reject(fn
+      {_key, nil} -> true
+      {_key, []} -> true
+      # {_key, %{} = map} when map_size(map) == 0 -> true
+      _ -> false
+    end)
+    |> Enum.into(%{})
+    |> Jason.Encode.map(options)
   end
 end
