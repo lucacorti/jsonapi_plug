@@ -1,11 +1,4 @@
 defmodule JSONAPI.QueryParser do
-  @behaviour Plug
-  alias JSONAPI.{Config, Deprecation}
-  alias JSONAPI.Exceptions.InvalidQuery
-  alias Plug.Conn
-  import JSONAPI.Utils.IncludeTree
-  import JSONAPI.Utils.String, only: [underscore: 1]
-
   @moduledoc """
   Implements a fully JSONAPI V1 spec for parsing a complex query string and
   returning Elixir datastructures. The purpose is to validate and encode incoming
@@ -76,6 +69,14 @@ defmodule JSONAPI.QueryParser do
 
   For more details please see `JSONAPI.UnderscoreParameters`.
   """
+
+  @behaviour Plug
+
+  alias JSONAPI.{Config, Deprecation}
+  alias JSONAPI.Exceptions.InvalidQuery
+  alias Plug.Conn
+
+  import JSONAPI.Utils.String, only: [underscore: 1]
 
   @impl Plug
   def init(opts) do
@@ -307,5 +308,37 @@ defmodule JSONAPI.QueryParser do
       end
 
     struct(struct, processed_map)
+  end
+
+  @spec put_as_tree(term(), term(), term()) :: term()
+  def put_as_tree(acc, items, val) do
+    [head | tail] = Enum.reverse(items)
+    build_tree(Keyword.put(acc, head, val), tail)
+  end
+
+  defp build_tree(acc, []), do: acc
+
+  defp build_tree(acc, [head | tail]) do
+    build_tree(Keyword.put([], head, acc), tail)
+  end
+
+  defp member_of_tree?([], _thing), do: true
+  defp member_of_tree?(_thing, []), do: false
+
+  defp member_of_tree?([path | tail], include) when is_list(include) do
+    if Keyword.has_key?(include, path) do
+      member_of_tree?(tail, get_base_relationships(include[path]))
+    else
+      false
+    end
+  end
+
+  defp get_base_relationships({view, :include}), do: get_base_relationships(view)
+
+  defp get_base_relationships(view) do
+    Enum.map(view.relationships(), fn
+      {view, :include} -> view
+      view -> view
+    end)
   end
 end

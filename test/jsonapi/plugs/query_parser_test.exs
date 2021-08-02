@@ -1,15 +1,21 @@
 defmodule JSONAPI.QueryParserTest do
   use ExUnit.Case
+
   import JSONAPI.QueryParser
-  alias JSONAPI.Exceptions.InvalidQuery
+
   alias JSONAPI.Config
+  alias JSONAPI.Exceptions.InvalidQuery
 
   defmodule MyView do
-    use JSONAPI.View
+    use JSONAPI.View, resource: Post
 
+    @impl JSONAPI.View
     def fields, do: [:id, :text, :body]
-    def type, do: "mytype"
 
+    @impl JSONAPI.View
+    def type, do: "my-type"
+
+    @impl JSONAPI.View
     def relationships do
       [
         author: JSONAPI.QueryParserTest.UserView,
@@ -20,18 +26,28 @@ defmodule JSONAPI.QueryParserTest do
   end
 
   defmodule UserView do
-    use JSONAPI.View
+    use JSONAPI.View, resource: User
 
+    @impl JSONAPI.View
     def fields, do: [:id, :username]
+
+    @impl JSONAPI.View
     def type, do: "user"
+
+    @impl JSONAPI.View
     def relationships, do: [top_posts: MyView]
   end
 
   defmodule CommentView do
-    use JSONAPI.View
+    use JSONAPI.View, resource: Comment
 
+    @impl JSONAPI.View
     def fields, do: [:id, :text]
+
+    @impl JSONAPI.View
     def type, do: "comment"
+
+    @impl JSONAPI.View
     def relationships, do: [user: JSONAPI.QueryParserTest.UserView]
   end
 
@@ -56,7 +72,7 @@ defmodule JSONAPI.QueryParserTest do
   test "parse_sort/2 raises on invalid sorts" do
     config = struct(Config, opts: [], view: MyView)
 
-    assert_raise InvalidQuery, "invalid sort, name for type mytype", fn ->
+    assert_raise InvalidQuery, "invalid sort, name for type my-type", fn ->
       parse_sort(config, "name")
     end
   end
@@ -70,7 +86,7 @@ defmodule JSONAPI.QueryParserTest do
   test "parse_filter/2 raises on invalid filters" do
     config = struct(Config, opts: [], view: MyView)
 
-    assert_raise InvalidQuery, "invalid filter, noop for type mytype", fn ->
+    assert_raise InvalidQuery, "invalid filter, noop for type my-type", fn ->
       parse_filter(config, %{"noop" => "jason"})
     end
   end
@@ -89,26 +105,26 @@ defmodule JSONAPI.QueryParserTest do
   test "parse_include/2 errors with invalid includes" do
     config = struct(Config, view: MyView)
 
-    assert_raise InvalidQuery, "invalid include, user for type mytype", fn ->
+    assert_raise InvalidQuery, "invalid include, user for type my-type", fn ->
       parse_include(config, "user,comments.author")
     end
 
-    assert_raise InvalidQuery, "invalid include, comments.author for type mytype", fn ->
+    assert_raise InvalidQuery, "invalid include, comments.author for type my-type", fn ->
       parse_include(config, "comments.author")
     end
 
-    assert_raise InvalidQuery, "invalid include, comments.author.user for type mytype", fn ->
+    assert_raise InvalidQuery, "invalid include, comments.author.user for type my-type", fn ->
       parse_include(config, "comments.author.user")
     end
 
-    assert_raise InvalidQuery, "invalid include, fake_rel for type mytype", fn ->
+    assert_raise InvalidQuery, "invalid include, fake_rel for type my-type", fn ->
       assert parse_include(config, "fake-rel")
     end
   end
 
   test "parse_fields/2 turns a fields map into a map of validated fields" do
     config = struct(Config, view: MyView)
-    assert parse_fields(config, %{"mytype" => "id,text"}).fields == %{"mytype" => [:id, :text]}
+    assert parse_fields(config, %{"my-type" => "id,text"}).fields == %{"my-type" => [:id, :text]}
   end
 
   test "parse_fields/2 turns an empty fields map into an empty list" do
@@ -119,12 +135,12 @@ defmodule JSONAPI.QueryParserTest do
   test "parse_fields/2 raises on invalid parsing" do
     config = struct(Config, view: MyView)
 
-    assert_raise InvalidQuery, "invalid fields, blag for type mytype", fn ->
-      parse_fields(config, %{"mytype" => "blag"})
+    assert_raise InvalidQuery, "invalid fields, blag for type my-type", fn ->
+      parse_fields(config, %{"my-type" => "blag"})
     end
 
-    assert_raise InvalidQuery, "invalid fields, username for type mytype", fn ->
-      parse_fields(config, %{"mytype" => "username"})
+    assert_raise InvalidQuery, "invalid fields, username for type my-type", fn ->
+      parse_fields(config, %{"my-type" => "username"})
     end
   end
 
@@ -147,8 +163,13 @@ defmodule JSONAPI.QueryParserTest do
   end
 
   test "get_view_for_type/2 raises on invalid fields" do
-    assert_raise InvalidQuery, "invalid fields, cupcake for type mytype", fn ->
+    assert_raise InvalidQuery, "invalid fields, cupcake for type my-type", fn ->
       get_view_for_type(MyView, "cupcake")
     end
+  end
+
+  test "put_as_tree/3 builds the path" do
+    items = [:test, :the, :path]
+    assert put_as_tree([], items, :boo) == [test: [the: [path: :boo]]]
   end
 end

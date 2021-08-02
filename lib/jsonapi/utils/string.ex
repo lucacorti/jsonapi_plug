@@ -3,8 +3,6 @@ defmodule JSONAPI.Utils.String do
   String manipulation helpers.
   """
 
-  @allowed_transformations [:camelize, :dasherize, :underscore]
-
   @doc """
   Replace dashes between words in `value` with underscores
 
@@ -232,41 +230,4 @@ defmodule JSONAPI.Utils.String do
       value -> expand_fields(value, fun)
     end)
   end
-
-  @doc """
-  The configured transformation for the API's fields. JSON:API v1.1 recommends
-  using camlized fields (e.g. "goodDog", versus "good_dog").  However, we don't hold a strong
-  opinion, so feel free to customize it how you would like (e.g. "good-dog", versus "good_dog").
-
-  This library currently supports camelized, dashed and underscored fields.
-
-  ## Configuration examples
-
-  camelCase fields:
-
-  ```
-  config :jsonapi, field_transformation: :camelize
-  ```
-
-  Dashed fields:
-
-  ```
-  config :jsonapi, field_transformation: :dasherize
-  ```
-
-  Underscored fields:
-
-  ```
-  config :jsonapi, field_transformation: :underscore
-  ```
-  """
-  def field_transformation do
-    field_transformation(Application.get_env(:jsonapi, :field_transformation))
-  end
-
-  @doc false
-  def field_transformation(nil), do: nil
-
-  def field_transformation(transformation) when transformation in @allowed_transformations,
-    do: transformation
 end

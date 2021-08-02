@@ -95,7 +95,7 @@ defmodule JSONAPI.ErrorView do
   def send_error(conn, status, error \\ "")
 
   def send_error(conn, status, error) when is_map(error) do
-    json = JSONAPI.json_library().encode!(error)
+    json = Jason.encode!(error)
     send_error(conn, status, json)
   end
 

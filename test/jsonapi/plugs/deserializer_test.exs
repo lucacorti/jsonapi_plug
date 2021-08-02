@@ -13,13 +13,11 @@ defmodule JSONAPI.DeserializerTest do
     end
   end
 
-  @ct JSONAPI.mime_type()
-
   test "Ignores bodyless requests" do
     conn =
       Plug.Test.conn("GET", "/")
-      |> put_req_header("content-type", @ct)
-      |> put_req_header("accept", @ct)
+      |> put_req_header("content-type", JSONAPI.mime_type())
+      |> put_req_header("accept", JSONAPI.mime_type())
 
     result = ExamplePlug.call(conn, [])
     assert result.params == %{}
@@ -30,8 +28,8 @@ defmodule JSONAPI.DeserializerTest do
 
     conn =
       Plug.Test.conn("POST", "/", req_body)
-      |> put_req_header("content-type", @ct)
-      |> put_req_header("accept", @ct)
+      |> put_req_header("content-type", JSONAPI.mime_type())
+      |> put_req_header("accept", JSONAPI.mime_type())
 
     result = ExamplePlug.call(conn, [])
     assert result.params == %{"some-nonsense" => "yup"}
@@ -48,8 +46,8 @@ defmodule JSONAPI.DeserializerTest do
 
     conn =
       Plug.Test.conn("POST", "/", req_body)
-      |> put_req_header("content-type", @ct)
-      |> put_req_header("accept", @ct)
+      |> put_req_header("content-type", JSONAPI.mime_type())
+      |> put_req_header("accept", JSONAPI.mime_type())
 
     result = ExamplePlug.call(conn, [])
 
@@ -86,8 +84,8 @@ defmodule JSONAPI.DeserializerTest do
 
     conn =
       Plug.Test.conn("POST", "/", req_body)
-      |> put_req_header("content-type", @ct)
-      |> put_req_header("accept", @ct)
+      |> put_req_header("content-type", JSONAPI.mime_type())
+      |> put_req_header("accept", JSONAPI.mime_type())
 
     result = ExamplePlug.call(conn, [])
     assert result.params["some-nonsense"] == true
@@ -136,8 +134,8 @@ defmodule JSONAPI.DeserializerTest do
 
       conn =
         Plug.Test.conn("POST", "/", req_body)
-        |> put_req_header("content-type", @ct)
-        |> put_req_header("accept", @ct)
+        |> put_req_header("content-type", JSONAPI.mime_type())
+        |> put_req_header("accept", JSONAPI.mime_type())
 
       result = ExampleUnderscorePlug.call(conn, [])
       assert result.params["some_nonsense"] == true
@@ -193,13 +191,285 @@ defmodule JSONAPI.DeserializerTest do
 
       conn =
         Plug.Test.conn("POST", "/", req_body)
-        |> put_req_header("content-type", @ct)
-        |> put_req_header("accept", @ct)
+        |> put_req_header("content-type", JSONAPI.mime_type())
+        |> put_req_header("accept", JSONAPI.mime_type())
 
       result = ExampleCamelCasePlug.call(conn, [])
       assert result.params["someNonsense"] == true
       assert result.params["someMap"]["nested_key"] == true
       assert result.params["bazId"] == "2"
     end
+  end
+
+  test "converts attributes and relationships to flattened data structure" do
+    incoming = %{
+      "data" => %{
+        "id" => "1",
+        "type" => "user",
+        "attributes" => %{
+          "foo-bar" => true
+        },
+        "relationships" => %{
+          "baz" => %{
+            "data" => %{
+              "id" => "2",
+              "type" => "baz"
+            }
+          },
+          "boo" => %{
+            "data" => nil
+          }
+        }
+      }
+    }
+
+    result = JSONAPI.Deserializer.process(incoming)
+
+    assert result == %{
+             "id" => "1",
+             "type" => "user",
+             "foo-bar" => true,
+             "baz-id" => "2",
+             "boo-id" => nil
+           }
+  end
+
+  test "converts to many relationship" do
+    incoming = %{
+      "data" => %{
+        "id" => "1",
+        "type" => "user",
+        "attributes" => %{
+          "foo-bar" => true
+        },
+        "relationships" => %{
+          "baz" => %{
+            "data" => [
+              %{"id" => "2", "type" => "baz"},
+              %{"id" => "3", "type" => "baz"}
+            ]
+          }
+        }
+      }
+    }
+
+    result = JSONAPI.Deserializer.process(incoming)
+
+    assert result == %{
+             "id" => "1",
+             "type" => "user",
+             "foo-bar" => true,
+             "baz-id" => ["2", "3"]
+           }
+  end
+
+  test "converts polymorphic" do
+    incoming = %{
+      "data" => %{
+        "id" => "1",
+        "type" => "user",
+        "attributes" => %{
+          "foo-bar" => true
+        },
+        "relationships" => %{
+          "baz" => %{
+            "data" => [
+              %{"id" => "2", "type" => "baz"},
+              %{"id" => "3", "type" => "yooper"}
+            ]
+          }
+        }
+      }
+    }
+
+    result = JSONAPI.Deserializer.process(incoming)
+
+    assert result == %{
+             "id" => "1",
+             "type" => "user",
+             "foo-bar" => true,
+             "baz-id" => "2",
+             "yooper-id" => "3"
+           }
+  end
+
+  test "processes single includes" do
+    incoming = %{
+      "data" => %{
+        "id" => "1",
+        "type" => "user",
+        "attributes" => %{
+          "name" => "Jerome"
+        }
+      },
+      "included" => [
+        %{
+          "data" => %{
+            "attributes" => %{
+              "name" => "Tara"
+            },
+            "id" => "234",
+            "type" => "friend"
+          }
+        }
+      ]
+    }
+
+    result = JSONAPI.Deserializer.process(incoming)
+
+    assert result == %{
+             "friend" => [
+               %{
+                 "name" => "Tara",
+                 "id" => "234",
+                 "type" => "friend"
+               }
+             ],
+             "id" => "1",
+             "type" => "user",
+             "name" => "Jerome"
+           }
+  end
+
+  test "processes has many includes" do
+    incoming = %{
+      "data" => %{
+        "id" => "1",
+        "type" => "user",
+        "attributes" => %{
+          "name" => "Jerome"
+        }
+      },
+      "included" => [
+        %{
+          "data" => %{
+            "id" => "234",
+            "type" => "friend",
+            "attributes" => %{
+              "name" => "Tara"
+            },
+            "relationships" => %{
+              "baz" => %{
+                "data" => %{
+                  "id" => "2",
+                  "type" => "baz"
+                }
+              },
+              "boo" => %{
+                "data" => nil
+              }
+            }
+          }
+        },
+        %{
+          "data" => %{
+            "attributes" => %{
+              "name" => "Wild Bill"
+            },
+            "id" => "0012",
+            "type" => "friend"
+          }
+        },
+        %{
+          "data" => %{
+            "attributes" => %{
+              "title" => "Sr"
+            },
+            "id" => "456",
+            "type" => "organization"
+          }
+        }
+      ]
+    }
+
+    result = JSONAPI.Deserializer.process(incoming)
+
+    assert result == %{
+             "friend" => [
+               %{
+                 "name" => "Wild Bill",
+                 "id" => "0012",
+                 "type" => "friend"
+               },
+               %{
+                 "name" => "Tara",
+                 "id" => "234",
+                 "type" => "friend",
+                 "baz-id" => "2",
+                 "boo-id" => nil
+               }
+             ],
+             "organization" => [
+               %{
+                 "title" => "Sr",
+                 "id" => "456",
+                 "type" => "organization"
+               }
+             ],
+             "id" => "1",
+             "type" => "user",
+             "name" => "Jerome"
+           }
+  end
+
+  test "processes simple array of data" do
+    incoming = %{
+      "data" => [
+        %{"id" => "1", "type" => "user"},
+        %{"id" => "2", "type" => "user"}
+      ]
+    }
+
+    result = JSONAPI.Deserializer.process(incoming)
+
+    assert result == [
+             %{"id" => "1", "type" => "user"},
+             %{"id" => "2", "type" => "user"}
+           ]
+  end
+
+  test "processes empty keys" do
+    incoming = %{
+      "data" => %{
+        "id" => "1",
+        "type" => "user",
+        "attributes" => nil
+      },
+      "relationships" => nil,
+      "included" => nil
+    }
+
+    result = JSONAPI.Deserializer.process(incoming)
+
+    assert result == %{
+             "id" => "1",
+             "type" => "user"
+           }
+  end
+
+  test "processes empty data" do
+    incoming = %{
+      "data" => %{
+        "id" => "1",
+        "type" => "user"
+      }
+    }
+
+    result = JSONAPI.Deserializer.process(incoming)
+
+    assert result == %{
+             "id" => "1",
+             "type" => "user"
+           }
+  end
+
+  test "processes nil data" do
+    incoming = %{
+      "data" => nil
+    }
+
+    result = JSONAPI.Deserializer.process(incoming)
+
+    assert result == nil
   end
 end

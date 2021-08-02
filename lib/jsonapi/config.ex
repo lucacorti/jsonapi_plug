@@ -3,15 +3,6 @@ defmodule JSONAPI.Config do
   Configuration struct containing JSON API information for a request
   """
 
-  defstruct data: nil,
-            fields: %{},
-            filter: [],
-            include: [],
-            opts: nil,
-            sort: nil,
-            view: nil,
-            page: %{}
-
   @type t :: %__MODULE__{
           data: nil | map,
           fields: map,
@@ -22,4 +13,12 @@ defmodule JSONAPI.Config do
           view: any,
           page: nil | map
         }
+  defstruct data: nil,
+            fields: %{},
+            filter: [],
+            include: [],
+            opts: nil,
+            sort: nil,
+            view: nil,
+            page: %{}
 end

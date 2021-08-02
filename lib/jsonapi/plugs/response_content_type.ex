@@ -2,23 +2,17 @@ defmodule JSONAPI.ResponseContentType do
   @moduledoc """
   Simply add this plug to your endpoint or your router :api pipeline and it will
   ensure you return the correct response type.
-
-  If you need to override the response type simple set conn.assigns[:override_jsonapi]
-  and this will be skipped.
   """
+
   @behaviour Plug
-  import Plug.Conn
 
-  def init(_opts) do
-  end
+  alias Plug.Conn
 
-  def call(conn, _opts) do
-    register_before_send(conn, fn conn ->
-      if conn.assigns[:override_jsonapi] do
-        conn
-      else
-        put_resp_content_type(conn, JSONAPI.mime_type())
-      end
-    end)
+  @impl Plug
+  def init(opts), do: opts
+
+  @impl Plug
+  def call(%Conn{} = conn, _opts) do
+    Conn.register_before_send(conn, &Conn.put_resp_content_type(&1, JSONAPI.mime_type()))
   end
 end

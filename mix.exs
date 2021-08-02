@@ -46,13 +46,13 @@ defmodule JSONAPI.Mixfile do
 
   defp deps do
     [
-      {:plug, "~> 1.10"},
-      {:jason, "~> 1.0", optional: true},
-      {:ex_doc, "~> 0.20", only: :dev},
+      {:credo, "~> 1.0", only: [:dev, :test], runtime: false},
+      {:dialyxir, "~> 1.0", only: [:dev, :test], runtime: false},
       {:earmark, ">= 0.0.0", only: :dev},
-      {:credo, "~> 1.4", only: [:dev, :test], runtime: false},
-      {:phoenix, "~> 1.3", only: :test},
-      {:dialyxir, "~> 1.1.0", only: [:dev, :test], runtime: false}
+      {:ex_doc, "~> 0.20", only: :dev},
+      {:jason, "~> 1.0"},
+      {:phoenix, "~> 1.0", only: :test},
+      {:plug, "~> 1.0"}
     ]
   end
 

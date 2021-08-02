@@ -50,24 +50,27 @@ proper functions to your view like so.
 defmodule MyApp.PostView do
   use JSONAPI.View, type: "posts"
 
+  @impl JSONAPI.View
   def fields do
     [:text, :body, :excerpt]
   end
 
-  def excerpt(post, _conn) do
-    String.slice(post.body, 0..5)
-  end
-
+  @impl JSONAPI.View
   def meta(data, _conn) do
     # this will add meta to each record
     # To add meta as a top level property, pass as argument to render function (shown below)
     %{meta_text: "meta_#{data[:text]}"}
   end
 
+  @impl JSONAPI.View
   def relationships do
     # The post's author will be included by default
     [author: {MyApp.UserView, :include},
      comments: MyApp.CommentView]
+  end
+
+  def excerpt(post, _conn) do
+    String.slice(post.body, 0..5)
   end
 end
 ```
@@ -76,7 +79,7 @@ You can now call `render(conn, MyApp.PostView, "show.json", %{data: my_data, met
 or `"index.json"` normally.
 
 If you'd like to use this without Phoenix simply use the `JSONAPI.View` and call
-`JSONAPI.Serializer.serialize(MyApp.PostView, data, conn, meta)`.
+`JSONAPI.Document.serialize(MyApp.PostView, data, conn, meta)`.
 
 ## Parsing and validating a JSONAPI Request
 
@@ -172,8 +175,6 @@ config :jsonapi,
   scheme: "https",
   namespace: "/api",
   field_transformation: :underscore,
-  remove_links: false,
-  json_library: Jason,
   paginator: nil
 ```
 
@@ -190,9 +191,6 @@ config :jsonapi,
   `"favorite-color": blue`). If your API uses dashed fields, set this value to
   `:dasherize`. If your API uses underscores (e.g. `"favorite_color": "red"`)
   set to `:underscore`.
-- **remove_links**. `links` data can optionally be removed from the payload via
-  setting the configuration above to `true`. Defaults to `false`.
-- **json_library**. Defaults to [Jason](https://hex.pm/packages/jason).
 - **paginator**. Module implementing pagination links generation. Defaults to `nil`.
 
 
@@ -235,8 +233,8 @@ defmodule PageBasedPaginator do
     total_pages = Keyword.get(options, :total_pages, 0)
 
     %{
-      first: view.url_for_pagination(data, conn, Map.put(page, "page", "1")),
-      last: view.url_for_pagination(data, conn, Map.put(page, "page", total_pages)),
+      first: View.url_for_pagination(view, data, conn, Map.put(page, "page", "1")),
+      last: View.url_for_pagination(view, data, conn, Map.put(page, "page", total_pages)),
       next: next_link(data, view, conn, number, size, total_pages),
       prev: previous_link(data, view, conn, number, size)
     }
@@ -244,14 +242,14 @@ defmodule PageBasedPaginator do
 
   defp next_link(data, view, conn, page, size, total_pages)
        when page < total_pages,
-       do: view.url_for_pagination(data, conn, %{size: size, page: page + 1})
+       do: View.url_for_pagination(view, data, conn, %{size: size, page: page + 1})
 
   defp next_link(_data, _view, _conn, _page, _size, _total_pages),
     do: nil
 
   defp previous_link(data, view, conn, page, size)
        when page > 1,
-       do: view.url_for_pagination(data, conn, %{size: size, page: page - 1})
+       do: View.url_for_pagination(view, data, conn, %{size: size, page: page - 1})
 
   defp previous_link(_data, _view, _conn, _page, _size),
     do: nil

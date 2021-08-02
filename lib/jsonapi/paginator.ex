@@ -5,6 +5,8 @@ defmodule JSONAPI.Paginator do
 
   alias Plug.Conn
 
+  @type t :: module()
+
   @type options :: Keyword.t()
 
   @type page :: map()

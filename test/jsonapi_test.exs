@@ -2,20 +2,27 @@ defmodule JSONAPITest do
   use ExUnit.Case
   use Plug.Test
 
-  @default_data %{
+  alias JSONAPI.View
+  alias JSONAPI.SupportTest.{Company, Industry, Post, Tag, User}
+
+  @default_data %Post{
     id: 1,
     text: "Hello",
     body: "Hi",
-    author: %{username: "jason", id: 2},
-    other_user: %{username: "josh", id: 3}
+    author: %User{username: "jason", id: 2},
+    other_user: %User{username: "josh", id: 3}
   }
 
   defmodule PostView do
-    use JSONAPI.View
+    use JSONAPI.View, resource: Post
 
+    @impl JSONAPI.View
     def fields, do: [:text, :body, :excerpt, :first_character]
-    def type, do: "mytype"
 
+    @impl JSONAPI.View
+    def type, do: "my-type"
+
+    @impl JSONAPI.View
     def relationships do
       [author: {JSONAPITest.UserView, :include}, other_user: JSONAPITest.UserView]
     end
@@ -30,48 +37,68 @@ defmodule JSONAPITest do
   end
 
   defmodule UserView do
-    use JSONAPI.View
+    use JSONAPI.View, resource: User
 
+    @impl JSONAPI.View
     def fields, do: [:username]
+
+    @impl JSONAPI.View
     def type, do: "user"
 
+    @impl JSONAPI.View
     def relationships do
       [company: JSONAPITest.CompanyView]
     end
   end
 
   defmodule CompanyView do
-    use JSONAPI.View
+    use JSONAPI.View, resource: Company
 
+    @impl JSONAPI.View
     def fields, do: [:name]
+
+    @impl JSONAPI.View
     def type, do: "company"
 
+    @impl JSONAPI.View
     def relationships do
       [industry: JSONAPITest.IndustryView]
     end
   end
 
   defmodule IndustryView do
-    use JSONAPI.View
+    use JSONAPI.View, resource: Industry
 
+    @impl JSONAPI.View
     def fields, do: [:name]
+
+    @impl JSONAPI.View
     def type, do: "industry"
 
+    @impl JSONAPI.View
     def relationships do
       [tags: JSONAPITest.TagView]
     end
   end
 
   defmodule TagView do
-    use JSONAPI.View
+    use JSONAPI.View, resource: Tag
 
+    @impl JSONAPI.View
     def fields, do: [:name]
+
+    @impl JSONAPI.View
     def type, do: "tag"
+
+    @impl JSONAPI.View
     def relationships, do: []
   end
 
   defmodule MyPostPlug do
     use Plug.Builder
+
+    alias JSONAPI.Document
+    alias Plug.Conn
 
     plug JSONAPI.QueryParser,
       view: JSONAPITest.PostView,
@@ -83,10 +110,10 @@ defmodule JSONAPITest do
     defp passthrough(conn, _) do
       resp =
         PostView
-        |> JSONAPI.Serializer.serialize(conn.assigns[:data], conn, conn.assigns[:meta])
+        |> Document.serialize(conn.assigns[:data], conn, conn.assigns[:meta])
         |> Jason.encode!()
 
-      Plug.Conn.send_resp(conn, 200, resp)
+      Conn.send_resp(conn, 200, resp)
     end
   end
 
@@ -121,7 +148,7 @@ defmodule JSONAPITest do
     assert Map.get(data["attributes"], "body") == "Hi"
     assert Map.get(data["attributes"], "text") == "Hello"
     assert Map.get(data["attributes"], "excerpt") == "He"
-    assert Map.get(data, "type") == "mytype"
+    assert Map.get(data, "type") == "my-type"
     assert Map.get(data, "id") == "1"
 
     relationships = Map.get(data, "relationships")
@@ -159,7 +186,7 @@ defmodule JSONAPITest do
 
     assert Enum.count(data_list) == 1
     [data | _] = data_list
-    assert Map.get(data, "type") == "mytype"
+    assert Map.get(data, "type") == "my-type"
     assert Map.get(data, "id") == "1"
 
     relationships = Map.get(data, "relationships")
@@ -231,26 +258,26 @@ defmodule JSONAPITest do
   end
 
   test "handles deep nested includes properly" do
-    data = [
-      %{
+    posts = [
+      %Post{
         id: 1,
         text: "Hello",
         body: "Hi",
-        author: %{username: "jason", id: 2},
-        other_user: %{
+        author: %User{username: "jason", id: 2},
+        other_user: %User{
           id: 1,
           username: "jim",
           first_name: "Jimmy",
           last_name: "Beam",
-          company: %{
+          company: %Company{
             id: 2,
             name: "acme",
-            industry: %{
+            industry: %Industry{
               id: 4,
               name: "stuff",
               tags: [
-                %{id: 3, name: "a tag"},
-                %{id: 4, name: "another tag"}
+                %Tag{id: 3, name: "a tag"},
+                %Tag{id: 4, name: "another tag"}
               ]
             }
           }
@@ -261,7 +288,7 @@ defmodule JSONAPITest do
     conn =
       :get
       |> conn("/posts?include=other_user.company.industry.tags")
-      |> Plug.Conn.assign(:data, data)
+      |> Plug.Conn.assign(:data, posts)
       |> Plug.Conn.fetch_query_params()
       |> MyPostPlug.call([])
 
@@ -272,7 +299,7 @@ defmodule JSONAPITest do
 
     assert Enum.count(data_list) == 1
     [data | _] = data_list
-    assert Map.get(data, "type") == "mytype"
+    assert Map.get(data, "type") == "my-type"
     assert Map.get(data, "id") == "1"
 
     relationships = Map.get(data, "relationships")
@@ -334,22 +361,22 @@ defmodule JSONAPITest do
     test "handles sparse fields properly" do
       conn =
         :get
-        |> conn("/posts?include=other_user.company&fields[mytype]=text,excerpt,first_character")
+        |> conn("/posts?include=other_user.company&fields[my-type]=text,excerpt,first_character")
         |> Plug.Conn.assign(:data, [@default_data])
         |> Plug.Conn.fetch_query_params()
         |> MyPostPlug.call([])
 
       assert %{
                "data" => [
-                 %{"attributes" => attributes}
+                 %{
+                   "attributes" => %{
+                     "text" => "Hello",
+                     "excerpt" => "He",
+                     "first_character" => "H"
+                   }
+                 }
                ]
              } = Jason.decode!(conn.resp_body)
-
-      assert %{
-               "text" => "Hello",
-               "excerpt" => "He",
-               "first_character" => "H"
-             } == attributes
     end
   end
 
@@ -367,21 +394,21 @@ defmodule JSONAPITest do
     test "handles sparse fields properly" do
       conn =
         :get
-        |> conn("/posts?include=other_user.company&fields[mytype]=text,first-character")
+        |> conn("/posts?include=other_user.company&fields[my-type]=text,first-character")
         |> Plug.Conn.assign(:data, [@default_data])
         |> Plug.Conn.fetch_query_params()
         |> MyPostPlug.call([])
 
       assert %{
                "data" => [
-                 %{"attributes" => attributes}
+                 %{
+                   "attributes" => %{
+                     "text" => "Hello",
+                     "first-character" => "H"
+                   }
+                 }
                ]
              } = Jason.decode!(conn.resp_body)
-
-      assert %{
-               "text" => "Hello",
-               "first-character" => "H"
-             } == attributes
     end
 
     test "handles empty sparse fields properly" do

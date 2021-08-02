@@ -13,15 +13,4 @@ defmodule JSONAPI.ResponseContentTypeTest do
 
     assert get_resp_header(conn, "content-type") == ["#{JSONAPI.mime_type()}; charset=utf-8"]
   end
-
-  test "can be overridden when in play" do
-    conn =
-      :get
-      |> conn("/example", "")
-      |> Plug.Conn.assign(:override_jsonapi, true)
-      |> ResponseContentType.call([])
-      |> send_resp(200, "done")
-
-    refute get_resp_header(conn, "content-type") == ["#{JSONAPI.mime_type()}; charset=utf-8"]
-  end
 end

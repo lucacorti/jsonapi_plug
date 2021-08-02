@@ -1,46 +1,36 @@
 defmodule JSONAPI.ViewTest do
   use ExUnit.Case
 
+  alias JSONAPI.SupportTest.{Comment, Post, User}
+  alias JSONAPI.View
+
   defmodule PostView do
-    use JSONAPI.View, type: "posts", namespace: "/api"
+    use JSONAPI.View, resource: Post, type: "post", path: "posts", namespace: "/api"
 
-    def fields do
-      [:title, :body]
-    end
-
-    def hidden(%{title: "Hidden body"}) do
-      [:body]
-    end
-
-    def hidden(_), do: []
+    @impl JSONAPI.View
+    def fields, do: [:title, :body]
   end
 
   defmodule CommentView do
-    use JSONAPI.View, type: "comments", namespace: "/api"
+    use JSONAPI.View, resource: Comment, type: "comment", path: "comments", namespace: "/api"
 
-    def fields do
-      [:body]
-    end
+    @impl JSONAPI.View
+    def fields, do: [:body]
   end
 
   defmodule UserView do
-    use JSONAPI.View, type: "users"
+    use JSONAPI.View, resource: User, type: "user", path: "users"
 
-    def fields do
-      [:age, :first_name, :last_name, :full_name, :password]
-    end
+    @impl JSONAPI.View
+    def fields, do: [:age, :first_name, :last_name, :full_name, :password]
 
     def full_name(user, _conn) do
       "#{user.first_name} #{user.last_name}"
     end
-
-    def hidden(_data) do
-      [:password]
-    end
   end
 
   defmodule CarView do
-    use JSONAPI.View, type: "cars", namespace: ""
+    use JSONAPI.View, resource: Car, type: "cars", namespace: ""
   end
 
   setup do
@@ -56,7 +46,7 @@ defmodule JSONAPI.ViewTest do
   end
 
   test "type/0 when specified via using macro" do
-    assert PostView.type() == "posts"
+    assert PostView.type() == "post"
   end
 
   describe "namespace/0" do
@@ -87,14 +77,14 @@ defmodule JSONAPI.ViewTest do
     test "url_for/2" do
       assert PostView.url_for(nil, nil) == "/api/posts"
       assert PostView.url_for([], nil) == "/api/posts"
-      assert PostView.url_for(%{id: 1}, nil) == "/api/posts/1"
+      assert PostView.url_for(%Post{id: 1}, nil) == "/api/posts/1"
       assert PostView.url_for([], %Plug.Conn{}) == "http://www.example.com/api/posts"
-      assert PostView.url_for(%{id: 1}, %Plug.Conn{}) == "http://www.example.com/api/posts/1"
+      assert PostView.url_for(%Post{id: 1}, %Plug.Conn{}) == "http://www.example.com/api/posts/1"
 
-      assert PostView.url_for_rel([], "comments", %Plug.Conn{}) ==
+      assert View.url_for_relationship(PostView, [], "comments", %Plug.Conn{}) ==
                "http://www.example.com/api/posts/relationships/comments"
 
-      assert PostView.url_for_rel(%{id: 1}, "comments", %Plug.Conn{}) ==
+      assert View.url_for_relationship(PostView, %Post{id: 1}, "comments", %Plug.Conn{}) ==
                "http://www.example.com/api/posts/1/relationships/comments"
     end
   end
@@ -111,14 +101,16 @@ defmodule JSONAPI.ViewTest do
     end
 
     test "uses configured host instead of that on Conn" do
-      assert PostView.url_for_rel([], "comments", %Plug.Conn{}) ==
+      assert View.url_for_relationship(PostView, [], "comments", %Plug.Conn{}) ==
                "http://www.otherhost.com/api/posts/relationships/comments"
 
-      assert PostView.url_for_rel(%{id: 1}, "comments", %Plug.Conn{}) ==
+      assert View.url_for_relationship(PostView, %Post{id: 1}, "comments", %Plug.Conn{}) ==
                "http://www.otherhost.com/api/posts/1/relationships/comments"
 
-      assert PostView.url_for([], %Plug.Conn{}) == "http://www.otherhost.com/api/posts"
-      assert PostView.url_for(%{id: 1}, %Plug.Conn{}) == "http://www.otherhost.com/api/posts/1"
+      assert View.url_for(PostView, [], %Plug.Conn{}) == "http://www.otherhost.com/api/posts"
+
+      assert View.url_for(PostView, %Post{id: 1}, %Plug.Conn{}) ==
+               "http://www.otherhost.com/api/posts/1"
     end
   end
 
@@ -135,12 +127,12 @@ defmodule JSONAPI.ViewTest do
 
     test "uses configured scheme instead of that on Conn" do
       assert PostView.url_for([], %Plug.Conn{}) == "ftp://www.example.com/api/posts"
-      assert PostView.url_for(%{id: 1}, %Plug.Conn{}) == "ftp://www.example.com/api/posts/1"
+      assert PostView.url_for(%Post{id: 1}, %Plug.Conn{}) == "ftp://www.example.com/api/posts/1"
 
-      assert PostView.url_for_rel([], "comments", %Plug.Conn{}) ==
+      assert View.url_for_relationship(PostView, [], "comments", %Plug.Conn{}) ==
                "ftp://www.example.com/api/posts/relationships/comments"
 
-      assert PostView.url_for_rel(%{id: 1}, "comments", %Plug.Conn{}) ==
+      assert View.url_for_relationship(PostView, %Post{id: 1}, "comments", %Plug.Conn{}) ==
                "ftp://www.example.com/api/posts/1/relationships/comments"
     end
   end
@@ -151,9 +143,10 @@ defmodule JSONAPI.ViewTest do
     end
 
     test "with pagination information", %{conn: conn} do
-      assert PostView.url_for_pagination(nil, conn, %{}) == "http://www.example.com/api/posts"
+      assert View.url_for_pagination(PostView, nil, conn, %{}) ==
+               "http://www.example.com/api/posts"
 
-      assert PostView.url_for_pagination(nil, conn, %{number: 1, size: 10}) ==
+      assert View.url_for_pagination(PostView, nil, conn, %{number: 1, size: 10}) ==
                "http://www.example.com/api/posts?page%5Bnumber%5D=1&page%5Bsize%5D=10"
     end
 
@@ -161,10 +154,10 @@ defmodule JSONAPI.ViewTest do
       conn_with_query_params =
         Kernel.update_in(conn.query_params, &Map.put(&1, "comments", [5, 2]))
 
-      assert PostView.url_for_pagination(nil, conn_with_query_params, %{number: 1, size: 10}) ==
+      assert View.url_for_pagination(PostView, nil, conn_with_query_params, %{number: 1, size: 10}) ==
                "http://www.example.com/api/posts?comments%5B%5D=5&comments%5B%5D=2&page%5Bnumber%5D=1&page%5Bsize%5D=10"
 
-      assert PostView.url_for_pagination(nil, conn_with_query_params, %{}) ==
+      assert View.url_for_pagination(PostView, nil, conn_with_query_params, %{}) ==
                "http://www.example.com/api/posts?comments%5B%5D=5&comments%5B%5D=2"
     end
   end
@@ -174,14 +167,16 @@ defmodule JSONAPI.ViewTest do
   end
 
   test "show renders with data, conn" do
-    data = CommentView.render("show.json", %{data: %{id: 1, body: "hi"}, conn: %Plug.Conn{}})
+    data =
+      CommentView.render("show.json", %{data: %Comment{id: 1, body: "hi"}, conn: %Plug.Conn{}})
+
     assert data.data.attributes.body == "hi"
   end
 
   test "show renders with data, conn, meta" do
     data =
       CommentView.render("show.json", %{
-        data: %{id: 1, body: "hi"},
+        data: %Comment{id: 1, body: "hi"},
         conn: %Plug.Conn{},
         meta: %{total_pages: 100}
       })
@@ -192,7 +187,7 @@ defmodule JSONAPI.ViewTest do
   test "index renders with data, conn" do
     data =
       CommentView.render("index.json", %{
-        data: [%{id: 1, body: "hi"}],
+        data: [%Comment{id: 1, body: "hi"}],
         conn: Plug.Conn.fetch_query_params(%Plug.Conn{})
       })
 
@@ -203,7 +198,7 @@ defmodule JSONAPI.ViewTest do
   test "index renders with data, conn, meta" do
     data =
       CommentView.render("index.json", %{
-        data: [%{id: 1, body: "hi"}],
+        data: [%Comment{id: 1, body: "hi"}],
         conn: Plug.Conn.fetch_query_params(%Plug.Conn{}),
         meta: %{total_pages: 100}
       })
@@ -212,58 +207,22 @@ defmodule JSONAPI.ViewTest do
   end
 
   test "visible_fields/2 returns all field names by default" do
-    data = %{age: 100, first_name: "Jason", last_name: "S", password: "securepw"}
-
-    assert [:age, :first_name, :last_name, :full_name] ==
-             UserView.visible_fields(data, %Plug.Conn{})
-  end
-
-  test "visible_fields/2 removes any hidden field names" do
-    data = %{title: "Hidden body", body: "Something"}
-
-    assert [:title] == PostView.visible_fields(data, %Plug.Conn{})
+    for field <- View.visible_fields(UserView, %Plug.Conn{}),
+        do: assert(field in [:age, :first_name, :last_name, :full_name, :username, :password])
   end
 
   test "visible_fields/2 trims returned field names to only those requested" do
-    data = %{body: "Chunky", title: "Bacon"}
     config = %JSONAPI.Config{fields: %{PostView.type() => [:body]}}
     conn = %Plug.Conn{assigns: %{jsonapi_query: config}}
 
-    assert [:body] == PostView.visible_fields(data, conn)
-  end
-
-  test "attributes/2 does not display hidden fields" do
-    expected_map = %{age: 100, first_name: "Jason", last_name: "S", full_name: "Jason S"}
-
-    assert expected_map ==
-             UserView.attributes(
-               %{age: 100, first_name: "Jason", last_name: "S", password: "securepw"},
-               nil
-             )
-  end
-
-  test "attributes/2 does not display hidden fields based on a condition" do
-    hidden_expected_map = %{title: "Hidden body"}
-    normal_expected_map = %{title: "Other title", body: "Something"}
-
-    assert hidden_expected_map ==
-             PostView.attributes(
-               %{title: "Hidden body", body: "Something"},
-               nil
-             )
-
-    assert normal_expected_map ==
-             PostView.attributes(
-               %{title: "Other title", body: "Something"},
-               nil
-             )
+    assert [:body] == View.visible_fields(PostView, conn)
   end
 
   test "attributes/2 can return only requested fields" do
-    data = %{body: "Chunky", title: "Bacon"}
+    post = %Post{body: "Chunky", title: "Bacon"}
     config = %JSONAPI.Config{fields: %{PostView.type() => [:body]}}
     conn = %Plug.Conn{assigns: %{jsonapi_query: config}}
 
-    assert %{body: "Chunky"} == PostView.attributes(data, conn)
+    assert %{body: "Chunky"} == PostView.attributes(post, conn)
   end
 end
