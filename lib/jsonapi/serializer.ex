@@ -219,7 +219,6 @@ defmodule JSONAPI.Serializer do
     |> Enum.uniq()
   end
 
-  defp assoc_loaded?(nil), do: false
   defp assoc_loaded?(%{__struct__: Ecto.Association.NotLoaded}), do: false
   defp assoc_loaded?(%JSONAPI.Relationships.NotLoaded{}), do: false
   defp assoc_loaded?(_association), do: true
