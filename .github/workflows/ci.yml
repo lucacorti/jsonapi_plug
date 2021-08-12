@@ -11,6 +11,7 @@ jobs:
   test:
     env:
       MIX_ENV: test
+      CACHE_VERSION: 1
     runs-on: ubuntu-latest
     name: Test (OTP ${{matrix.otp}} / Elixir ${{matrix.elixir}})
     strategy:
@@ -50,17 +51,17 @@ jobs:
           cache-name: mix
         with:
           path: ~/.mix
-          key: cache-${{ runner.os }}-${{ env.cache-name }}-${{ matrix.otp }}-${{ matrix.elixir }}
+          key: cache-v${{env.CACHE_VERSION}}-${{ runner.os }}-${{ env.cache-name }}-${{ matrix.otp }}-${{ matrix.elixir }}
           restore-keys: |
-             cache-${{ runner.os }}-${{ env.cache-name }}-
+             cache-v${{env.CACHE_VERSION}}-${{ runner.os }}-${{ env.cache-name }}-
       - uses: actions/cache@v1
         env:
           cache-name: build
         with:
           path: _build
-          key: cache-${{ runner.os }}-${{ env.cache-name }}-${{ matrix.otp }}-${{ matrix.elixir }}
+          key: cache-v${{env.CACHE_VERSION}}-${{ runner.os }}-${{ env.cache-name }}-${{ matrix.otp }}-${{ matrix.elixir }}
           restore-keys: |
-             cache-${{ runner.os }}-${{ env.cache-name }}-
+             cache-v${{env.CACHE_VERSION}}-${{ runner.os }}-${{ env.cache-name }}-
       - run: mix deps.unlock --check-unused
       - run: mix deps.get
       - run: mix compile --warnings-as-errors
