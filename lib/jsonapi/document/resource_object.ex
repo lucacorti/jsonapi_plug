@@ -5,7 +5,7 @@ defmodule JSONAPI.Document.ResourceObject do
   See https://jsonapi.org/format/#document-resource-objects
   """
 
-  alias JSONAPI.{Document, Document.RelationshipObject, Resource, Utils, View}
+  alias JSONAPI.{Config, Document, Document.RelationshipObject, Resource, Utils, View}
   alias Plug.Conn
 
   @type attribute :: atom()
@@ -26,20 +26,28 @@ defmodule JSONAPI.Document.ResourceObject do
           View.t(),
           JSONAPI.Resource.t() | [JSONAPI.Resource.t()] | nil,
           Conn.t() | nil,
-          [attribute()],
           View.options()
         ) :: {[t()], t() | [t()]}
-  def serialize(_view, nil = _resource, _conn, _includes, _options), do: {[], nil}
 
-  def serialize(view, resources, conn, includes, options) when is_list(resources) do
+  def serialize(view, resources, %Conn{assigns: %{jsonapi_query: %Config{} = config}} = conn, options),
+    do: do_serialize(view, resources, conn, config.include || [], options)
+
+  def serialize(view, resources, conn, options),
+    do: do_serialize(view, resources, conn, [], options)
+
+  def do_serialize(_view, nil = _resources, _conn, _includes, _options) do
+    {[], nil}
+  end
+
+  def do_serialize(view, resources, conn, includes, options) when is_list(resources) do
     Enum.map_reduce(resources, [], fn resource, acc ->
-      {to_include, serialized_data} = serialize(view, resource, conn, includes, options)
+      {to_include, serialized_data} = do_serialize(view, resource, conn, includes, options)
 
       {to_include, acc ++ [serialized_data]}
     end)
   end
 
-  def serialize(view, resource, conn, query_includes, options) do
+  def do_serialize(view, resource, conn, query_includes, options) do
     valid_includes = get_includes(view, query_includes)
 
     attributes =
@@ -114,7 +122,7 @@ defmodule JSONAPI.Document.ResourceObject do
         end
 
       {included_relationships, serialized_relationship} =
-        serialize(rel_view, rel_data, conn, rel_query_includes, options)
+        do_serialize(rel_view, rel_data, conn, rel_query_includes, options)
 
       {included_relationships ++ [serialized_relationship], resource}
     else

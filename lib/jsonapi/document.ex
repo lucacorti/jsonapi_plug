@@ -44,35 +44,14 @@ defmodule JSONAPI.Document do
         ) :: t()
   def serialize(view, resource, conn \\ nil, meta \\ nil, options \\ [])
 
-  def serialize(view, nil = resource, conn, meta, options) do
-    %__MODULE__{}
-    |> add_meta(meta)
-    |> add_links(resource, view, conn, %{}, options)
-  end
-
-  def serialize(
-        view,
-        resource,
-        %Conn{assigns: %{jsonapi_query: %Config{} = config}} = conn,
-        meta,
-        options
-      ) do
-    {to_include, serialized_data} =
-      ResourceObject.serialize(view, resource, conn, config.include || [], options)
-
-    %__MODULE__{data: serialized_data}
-    |> add_included(to_include)
-    |> add_meta(meta)
-    |> add_links(resource, view, conn, config.page || %{}, options)
-  end
-
   def serialize(view, resource, conn, meta, options) do
-    {to_include, serialized_data} = ResourceObject.serialize(view, resource, conn, [], options)
+    {to_include, serialized_data} =
+      ResourceObject.serialize(view, resource, conn, options)
 
     %__MODULE__{data: serialized_data}
     |> add_included(to_include)
     |> add_meta(meta)
-    |> add_links(resource, view, conn, %{}, options)
+    |> add_links(resource, view, conn, options)
   end
 
   defp add_included(document, [] = _to_include), do: document
@@ -87,18 +66,17 @@ defmodule JSONAPI.Document do
     %__MODULE__{document | included: included}
   end
 
-  defp add_links(%__MODULE__{} = document, resources, view, conn, page, options)
-       when is_list(resources) do
+  defp add_links(%__MODULE__{} = document, resources, view, %Conn{assigns: %{jsonapi_query: %Config{} = config}} = conn, options) when is_list(resources) do
     links =
       resources
       |> view.links(conn)
-      |> Map.merge(view.pagination_links(resources, conn, page, options))
-      |> Map.merge(%{self: View.url_for_pagination(view, resources, conn, page)})
+      |> Map.merge(view.pagination_links(resources, conn, config.page || %{}, options))
+      |> Map.merge(%{self: View.url_for_pagination(view, resources, conn, config.page || %{})})
 
     %__MODULE__{document | links: links}
   end
 
-  defp add_links(%__MODULE__{} = document, resource, view, conn, _page, _options) do
+  defp add_links(%__MODULE__{} = document, resource, view, conn, _options) do
     links =
       resource
       |> view.links(conn)
