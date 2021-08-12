@@ -18,7 +18,7 @@ defmodule JSONAPI.Document.RelationshipObject do
 
   defstruct [:data, :links, :meta]
 
-  @spec serialize(View.t(), Resource.t() | [Resource.t()], String.t(), Conn.t() | nil) :: t()
+  @spec serialize(View.t(), View.data(), String.t(), Conn.t() | nil) :: t()
   def serialize(rel_view, rel_data, rel_url, conn) do
     %__MODULE__{
       data: serialize_data(rel_view, rel_data),

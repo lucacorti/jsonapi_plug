@@ -10,7 +10,6 @@ defmodule JSONAPI.Document do
     Document.ErrorObject,
     Document.LinksObject,
     Document.ResourceObject,
-    Resource,
     View
   }
 
@@ -38,7 +37,7 @@ defmodule JSONAPI.Document do
   """
   @spec serialize(
           View.t(),
-          Resource.t() | [Resource.t()] | nil,
+          View.data(),
           Conn.t() | nil,
           meta() | nil,
           View.options()
@@ -48,7 +47,7 @@ defmodule JSONAPI.Document do
   def serialize(view, nil = resource, conn, meta, options) do
     %__MODULE__{}
     |> add_meta(meta)
-    |> add_links(resource, view, conn, nil, options)
+    |> add_links(resource, view, conn, %{}, options)
   end
 
   def serialize(
@@ -73,7 +72,7 @@ defmodule JSONAPI.Document do
     %__MODULE__{data: serialized_data}
     |> add_included(to_include)
     |> add_meta(meta)
-    |> add_links(resource, view, conn, nil, options)
+    |> add_links(resource, view, conn, %{}, options)
   end
 
   defp add_included(document, [] = _to_include), do: document

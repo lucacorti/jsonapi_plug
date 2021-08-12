@@ -328,6 +328,16 @@ defmodule JSONAPI.View do
     url_for_pagination(view, resources, %Conn{conn | query_params: query_params}, nil)
   end
 
+  defp prepare_url(view, "" = _query, resource, conn), do: url_for(view, resource, conn)
+
+  defp prepare_url(view, query, resource, conn) do
+    view
+    |> url_for(resource, conn)
+    |> URI.parse()
+    |> struct(query: query)
+    |> URI.to_string()
+  end
+
   @spec visible_fields(t(), Conn.t() | nil) :: list(atom)
   def visible_fields(view, conn) do
     view
@@ -343,16 +353,6 @@ defmodule JSONAPI.View do
     |> MapSet.new()
     |> MapSet.intersection(MapSet.new(requested_fields))
     |> MapSet.to_list()
-  end
-
-  defp prepare_url(view, "" = _query, resource, conn), do: url_for(view, resource, conn)
-
-  defp prepare_url(view, query, resource, conn) do
-    view
-    |> url_for(resource, conn)
-    |> URI.parse()
-    |> struct(query: query)
-    |> URI.to_string()
   end
 
   defp requested_fields_for_type(view, %Conn{
