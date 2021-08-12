@@ -214,7 +214,6 @@ defmodule JSONAPI.View do
       end
 
       if Code.ensure_loaded?(Phoenix) do
-
         def render("show.json", %{data: resource, conn: conn, meta: meta}),
           do: Document.serialize(__MODULE__, resource, conn, meta)
 
