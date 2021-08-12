@@ -265,7 +265,7 @@ defmodule JSONAPI.View do
     end
   end
 
-  @spec url_for(t(), Resource.t(), Conn.t() | nil) :: String.t()
+  @spec url_for(t(), data(), Conn.t() | nil) :: String.t()
   def url_for(view, resource, nil = _conn) when is_nil(resource) or is_list(resource),
     do: URI.to_string(%URI{path: Enum.join([view.namespace(), view.path() || view.type()], "/")})
 
@@ -275,7 +275,7 @@ defmodule JSONAPI.View do
     })
   end
 
-  def url_for(view, resource, %Plug.Conn{} = conn) when is_nil(resource) or is_list(resource) do
+  def url_for(view, resource, %Conn{} = conn) when is_nil(resource) or is_list(resource) do
     URI.to_string(%URI{
       scheme: scheme(conn),
       host: host(conn),
@@ -283,7 +283,7 @@ defmodule JSONAPI.View do
     })
   end
 
-  def url_for(view, resource, %Plug.Conn{} = conn) do
+  def url_for(view, resource, %Conn{} = conn) do
     URI.to_string(%URI{
       scheme: scheme(conn),
       host: host(conn),
@@ -314,7 +314,7 @@ defmodule JSONAPI.View do
       |> to_list_of_query_string_components()
       |> URI.encode_query()
 
-    prepare_url(view, query, resources, conn)
+    prepare_url(view, resources, conn, query)
   end
 
   def url_for_pagination(
@@ -328,11 +328,11 @@ defmodule JSONAPI.View do
     url_for_pagination(view, resources, %Conn{conn | query_params: query_params}, nil)
   end
 
-  defp prepare_url(view, "" = _query, resource, conn), do: url_for(view, resource, conn)
+  defp prepare_url(view, resources, conn, "" = _query), do: url_for(view, resources, conn)
 
-  defp prepare_url(view, query, resource, conn) do
+  defp prepare_url(view, resources, conn, query) do
     view
-    |> url_for(resource, conn)
+    |> url_for(resources, conn)
     |> URI.parse()
     |> struct(query: query)
     |> URI.to_string()

@@ -29,8 +29,13 @@ defmodule JSONAPI.Document.ResourceObject do
           View.options()
         ) :: {[t()], t() | [t()]}
 
-  def serialize(view, resources, %Conn{assigns: %{jsonapi_query: %Config{} = config}} = conn, options),
-    do: do_serialize(view, resources, conn, config.include || [], options)
+  def serialize(
+        view,
+        resources,
+        %Conn{assigns: %{jsonapi_query: %Config{} = config}} = conn,
+        options
+      ),
+      do: do_serialize(view, resources, conn, config.include, options)
 
   def serialize(view, resources, conn, options),
     do: do_serialize(view, resources, conn, [], options)

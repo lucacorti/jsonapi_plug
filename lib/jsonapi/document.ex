@@ -45,8 +45,7 @@ defmodule JSONAPI.Document do
   def serialize(view, resource, conn \\ nil, meta \\ nil, options \\ [])
 
   def serialize(view, resource, conn, meta, options) do
-    {to_include, serialized_data} =
-      ResourceObject.serialize(view, resource, conn, options)
+    {to_include, serialized_data} = ResourceObject.serialize(view, resource, conn, options)
 
     %__MODULE__{data: serialized_data}
     |> add_included(to_include)
@@ -66,12 +65,19 @@ defmodule JSONAPI.Document do
     %__MODULE__{document | included: included}
   end
 
-  defp add_links(%__MODULE__{} = document, resources, view, %Conn{assigns: %{jsonapi_query: %Config{} = config}} = conn, options) when is_list(resources) do
+  defp add_links(
+         %__MODULE__{} = document,
+         resources,
+         view,
+         %Conn{assigns: %{jsonapi_query: %Config{} = config}} = conn,
+         options
+       )
+       when is_list(resources) do
     links =
       resources
       |> view.links(conn)
-      |> Map.merge(view.pagination_links(resources, conn, config.page || %{}, options))
-      |> Map.merge(%{self: View.url_for_pagination(view, resources, conn, config.page || %{})})
+      |> Map.merge(view.pagination_links(resources, conn, config.page, options))
+      |> Map.merge(%{self: View.url_for_pagination(view, resources, conn, config.page)})
 
     %__MODULE__{document | links: links}
   end
