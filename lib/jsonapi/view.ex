@@ -298,11 +298,11 @@ defmodule JSONAPI.View do
 
   @spec url_for_pagination(
           t(),
-          data(),
+          [Resource.t()],
           Conn.t() | nil,
           Paginator.params() | nil
         ) ::
-          String.t() | nil
+          String.t()
   def url_for_pagination(
         view,
         resources,

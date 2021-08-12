@@ -16,7 +16,8 @@ defmodule JSONAPI.Document do
 
   alias Plug.Conn
 
-  @type meta :: String.t() | integer() | float() | [meta()] | %{String.t() => meta()} | nil
+  @type meta_value :: String.t() | integer() | float() | [meta()] | %{String.t() => meta()} | nil
+  @type meta :: %{String.t() => meta_value()} | nil
   @type links :: LinksObject.t() | nil
 
   @type t :: %__MODULE__{

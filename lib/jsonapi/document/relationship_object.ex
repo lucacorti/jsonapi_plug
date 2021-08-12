@@ -5,24 +5,24 @@ defmodule JSONAPI.Document.RelationshipObject do
   See https://jsonapi.org/format/#document-resource-object-relationships
   """
 
-  alias JSONAPI.{Document, Resource, View}
+  alias JSONAPI.{Document, Document.LinksObject, Resource, View}
   alias Plug.Conn
 
   @type data :: %{type: Resource.type(), id: Resource.id()}
 
   @type t :: %__MODULE__{
           data: data() | [data()],
-          links: Document.links() | nil,
-          meta: Document.meta() | nil
+          links: Document.links(),
+          meta: Document.meta()
         }
 
-  defstruct data: nil, links: nil, meta: nil
+  defstruct [:data, :links, :meta]
 
   @spec serialize(View.t(), Resource.t() | [Resource.t()], String.t(), Conn.t() | nil) :: t()
   def serialize(rel_view, rel_data, rel_url, conn) do
     %__MODULE__{
       data: serialize_data(rel_view, rel_data),
-      links: %{self: rel_url, related: rel_view.url_for(rel_data, conn)}
+      links: struct(LinksObject, self: rel_url, related: rel_view.url_for(rel_data, conn))
     }
   end
 
