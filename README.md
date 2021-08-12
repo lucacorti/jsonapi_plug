@@ -20,12 +20,12 @@ of the JSON:API spec.
 
 ## Documentation
 
-* [Full docs here](https://hexdocs.pm/jsonapi)
-* [JSON API Spec (v1.0)](https://jsonapi.org/format/1.0/)
+- [Full docs here](https://hexdocs.pm/jsonapi)
+- [JSON API Spec (v1.0)](https://jsonapi.org/format/1.0/)
 
 ## Badges
 
-![](https://github.com/jeregrine/jsonapi/workflows/Continuous%20Integration/badge.svg)
+![CI](https://github.com/dottori-it/jsonapi/workflows/Continuous%20Integration/badge.svg)
 
 ## How to use with Phoenix
 
@@ -140,6 +140,7 @@ Transforming fields requires two steps:
    *incoming* params.
 
    Your pipeline in a Phoenix app might look something like this:
+
    ```elixir
    pipeline :api do
      plug JSONAPI.EnsureSpec
@@ -191,7 +192,6 @@ config :jsonapi,
   `:dasherize`. If your API uses underscores (e.g. `"favorite_color": "red"`)
   set to `:underscore`.
 - **paginator**. Module implementing pagination links generation. Defaults to `nil`.
-
 
 ## Pagination
 

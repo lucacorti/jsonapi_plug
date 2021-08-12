@@ -12,7 +12,7 @@ defmodule JSONAPI.Mixfile do
       elixirc_paths: elixirc_paths(Mix.env()),
       build_embedded: Mix.env() == :prod,
       start_permanent: Mix.env() == :prod,
-      source_url: "https://github.com/jeregrine/jsonapi",
+      source_url: "https://github.com/dottori-it/jsonapi",
       deps: deps(),
       dialyzer: dialyzer(),
       docs: [
@@ -65,7 +65,7 @@ defmodule JSONAPI.Mixfile do
         "James Herdman"
       ],
       licenses: ["MIT"],
-      links: %{github: "https://github.com/jeregrine/jsonapi", docs: "http://hexdocs.pm/jsonapi/"}
+      links: %{github: "https://github.com/dottori-it/jsonapi", docs: "http://hexdocs.pm/jsonapi/"}
     ]
   end
 
