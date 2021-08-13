@@ -24,7 +24,10 @@ defmodule JSONAPITest do
 
     @impl JSONAPI.View
     def relationships do
-      [author: {JSONAPITest.UserView, :include}, other_user: JSONAPITest.UserView]
+      [
+        author: JSONAPITest.UserView,
+        other_user: JSONAPITest.UserView
+      ]
     end
 
     def excerpt(post, _conn) do

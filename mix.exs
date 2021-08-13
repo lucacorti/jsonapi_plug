@@ -65,7 +65,10 @@ defmodule JSONAPI.Mixfile do
         "James Herdman"
       ],
       licenses: ["MIT"],
-      links: %{github: "https://github.com/dottori-it/jsonapi", docs: "http://hexdocs.pm/jsonapi/"}
+      links: %{
+        github: "https://github.com/dottori-it/jsonapi",
+        docs: "http://hexdocs.pm/jsonapi/"
+      }
     ]
   end
 

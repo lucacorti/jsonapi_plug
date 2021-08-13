@@ -27,8 +27,8 @@ defmodule JSONAPI.DocumentTest do
     @impl JSONAPI.View
     def relationships do
       [
-        author: {JSONAPI.DocumentTest.UserView, :include},
-        best_comments: {JSONAPI.DocumentTest.CommentView, :include}
+        author: JSONAPI.DocumentTest.UserView,
+        best_comments: JSONAPI.DocumentTest.CommentView
       ]
     end
   end
@@ -155,9 +155,7 @@ defmodule JSONAPI.DocumentTest do
     def fields, do: [:text]
 
     @impl JSONAPI.View
-    def relationships do
-      [user: {JSONAPI.DocumentTest.UserView, :include}]
-    end
+    def relationships, do: [user: JSONAPI.DocumentTest.UserView]
   end
 
   defmodule NotIncludedView do

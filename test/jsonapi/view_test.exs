@@ -81,10 +81,10 @@ defmodule JSONAPI.ViewTest do
       assert PostView.url_for([], %Plug.Conn{}) == "http://www.example.com/api/posts"
       assert PostView.url_for(%Post{id: 1}, %Plug.Conn{}) == "http://www.example.com/api/posts/1"
 
-      assert View.url_for_relationship(PostView, [], "comments", %Plug.Conn{}) ==
+      assert View.url_for_relationship(PostView, [], %Plug.Conn{}, "comments") ==
                "http://www.example.com/api/posts/relationships/comments"
 
-      assert View.url_for_relationship(PostView, %Post{id: 1}, "comments", %Plug.Conn{}) ==
+      assert View.url_for_relationship(PostView, %Post{id: 1}, %Plug.Conn{}, "comments") ==
                "http://www.example.com/api/posts/1/relationships/comments"
     end
   end
@@ -101,10 +101,10 @@ defmodule JSONAPI.ViewTest do
     end
 
     test "uses configured host instead of that on Conn" do
-      assert View.url_for_relationship(PostView, [], "comments", %Plug.Conn{}) ==
+      assert View.url_for_relationship(PostView, [], %Plug.Conn{}, "comments") ==
                "http://www.otherhost.com/api/posts/relationships/comments"
 
-      assert View.url_for_relationship(PostView, %Post{id: 1}, "comments", %Plug.Conn{}) ==
+      assert View.url_for_relationship(PostView, %Post{id: 1}, %Plug.Conn{}, "comments") ==
                "http://www.otherhost.com/api/posts/1/relationships/comments"
 
       assert View.url_for(PostView, [], %Plug.Conn{}) == "http://www.otherhost.com/api/posts"
@@ -129,10 +129,10 @@ defmodule JSONAPI.ViewTest do
       assert PostView.url_for([], %Plug.Conn{}) == "ftp://www.example.com/api/posts"
       assert PostView.url_for(%Post{id: 1}, %Plug.Conn{}) == "ftp://www.example.com/api/posts/1"
 
-      assert View.url_for_relationship(PostView, [], "comments", %Plug.Conn{}) ==
+      assert View.url_for_relationship(PostView, [], %Plug.Conn{}, "comments") ==
                "ftp://www.example.com/api/posts/relationships/comments"
 
-      assert View.url_for_relationship(PostView, %Post{id: 1}, "comments", %Plug.Conn{}) ==
+      assert View.url_for_relationship(PostView, %Post{id: 1}, %Plug.Conn{}, "comments") ==
                "ftp://www.example.com/api/posts/1/relationships/comments"
     end
   end

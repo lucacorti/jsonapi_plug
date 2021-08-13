@@ -2,7 +2,7 @@ defmodule JSONAPI.Document.ErrorObject do
   @moduledoc """
   JSON:API Error Object
 
-  See https://jsonapi.org/format/#error-objects
+  https://jsonapi.org/format/#error-objects
   """
 
   @type t :: %__MODULE__{

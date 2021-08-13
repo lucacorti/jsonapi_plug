@@ -3,7 +3,7 @@ defmodule JSONAPI.Paginator do
   Pagination strategy behaviour
   """
 
-  alias JSONAPI.{Document.LinksObject, Resource, View}
+  alias JSONAPI.{Document, Resource, View}
   alias Plug.Conn
 
   @type t :: module()
@@ -18,5 +18,5 @@ defmodule JSONAPI.Paginator do
               Conn.t() | nil,
               params(),
               View.options()
-            ) :: LinksObject.t()
+            ) :: Document.links()
 end

@@ -64,9 +64,10 @@ defmodule MyApp.PostView do
 
   @impl JSONAPI.View
   def relationships do
-    # The post's author will be included by default
-    [author: {MyApp.UserView, :include},
-     comments: MyApp.CommentView]
+    [
+      author: MyApp.UserView,
+      comments: MyApp.CommentView
+    ]
   end
 
   def excerpt(post, _conn) do

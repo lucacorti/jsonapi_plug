@@ -47,25 +47,24 @@ defmodule JSONAPI.Deserializer do
       plug JSONAPI.UnderscoreParameters
   """
 
-  import Plug.Conn
-
   alias JSONAPI.Utils
+  alias Plug.Conn
 
   @spec init(Keyword.t()) :: Keyword.t()
   def init(opts), do: opts
 
-  @spec call(Plug.Conn.t(), Keyword.t()) :: Plug.Conn.t()
+  @spec call(Conn.t(), Keyword.t()) :: Plug.Conn.t()
   def call(conn, _opts) do
-    content_type = get_req_header(conn, "content-type")
+    content_type = Conn.get_req_header(conn, "content-type")
 
     if JSONAPI.mime_type() in content_type do
-      Map.put(conn, :params, process(conn.params))
+      %Conn{conn | params: process(conn.params)}
     else
       conn
     end
   end
 
-  @spec process(map) :: map
+  @spec process(map()) :: map()
   def process(%{"data" => nil}), do: nil
 
   def process(%{"data" => _} = incoming) do
@@ -82,13 +81,11 @@ defmodule JSONAPI.Deserializer do
     data
   end
 
-  defp flatten_incoming(%{"data" => data} = incoming) do
+  defp flatten_incoming(%{"data" => data} = incoming) when is_map(data) do
     incoming
     |> Map.merge(data)
     |> Map.drop(["data"])
   end
-
-  ## Attributes
 
   defp process_attributes(%{"attributes" => nil} = data) do
     Map.drop(data, ["attributes"])
@@ -101,8 +98,6 @@ defmodule JSONAPI.Deserializer do
   end
 
   defp process_attributes(data), do: data
-
-  ## Relationships
 
   defp process_relationships(%{"relationships" => nil} = data) do
     Map.drop(data, ["relationships"])
@@ -138,15 +133,9 @@ defmodule JSONAPI.Deserializer do
     end)
   end
 
-  defp update_list_relationship(existing, id) do
-    case existing do
-      val when is_list(val) -> {val, val ++ [id]}
-      val when is_binary(val) -> {val, [val] ++ [id]}
-      _ -> {nil, id}
-    end
-  end
-
-  ## Included
+  defp update_list_relationship(value, id) when is_list(value), do: {value, value ++ [id]}
+  defp update_list_relationship(value, id) when is_binary(value), do: {value, [value] ++ [id]}
+  defp update_list_relationship(_value, id), do: {nil, id}
 
   defp process_included(%{"included" => nil} = incoming) do
     Map.drop(incoming, ["included"])

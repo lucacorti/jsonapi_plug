@@ -2,7 +2,7 @@ defmodule JSONAPI.Document.ResourceObject do
   @moduledoc """
   JSON:API Resource Object
 
-  See https://jsonapi.org/format/#document-resource-objects
+  https://jsonapi.org/format/#document-resource-objects
   """
 
   alias JSONAPI.{Config, Document, Document.RelationshipObject, Resource, Utils, View}
@@ -17,14 +17,14 @@ defmodule JSONAPI.Document.ResourceObject do
           type: Resource.type(),
           attributes: %{attribute() => value()} | nil,
           relationships: %{attribute() => [RelationshipObject.t()]} | nil,
-          links: Document.links()
+          links: Document.links() | nil
         }
 
   defstruct id: nil, type: nil, attributes: nil, relationships: %{}, links: nil, meta: nil
 
   @spec serialize(
           View.t(),
-          JSONAPI.Resource.t() | [JSONAPI.Resource.t()] | nil,
+          View.data() | nil,
           Conn.t() | nil,
           View.options()
         ) :: {[t()], t() | [t()]}
@@ -65,12 +65,12 @@ defmodule JSONAPI.Document.ResourceObject do
       type: view.type(),
       attributes: attributes
     }
-    |> add_links(resource, view, conn, nil, options)
-    |> add_meta(view.meta(resource, conn))
-    |> add_relationships(conn, {view, resource, query_includes, valid_includes}, options)
+    |> serialize_links(resource, view, conn, nil, options)
+    |> serialize_meta(view.meta(resource, conn))
+    |> serialize_relationships(conn, {view, resource, query_includes, valid_includes}, options)
   end
 
-  defp add_links(%__MODULE__{} = document, resource, view, conn, _page, _options) do
+  defp serialize_links(%__MODULE__{} = document, resource, view, conn, _page, _options) do
     links =
       resource
       |> view.links(conn)
@@ -79,41 +79,35 @@ defmodule JSONAPI.Document.ResourceObject do
     %__MODULE__{document | links: links}
   end
 
-  defp add_meta(%__MODULE__{} = document, meta) when is_map(meta),
+  defp serialize_meta(%__MODULE__{} = document, meta) when is_map(meta),
     do: %__MODULE__{document | meta: meta}
 
-  defp add_meta(document, _meta), do: document
+  defp serialize_meta(document, _meta), do: document
 
-  defp add_relationships(document, conn, {view, resource, _, _} = view_info, options) do
+  defp serialize_relationships(document, conn, {view, resource, _, _} = view_info, options) do
     view.relationships()
-    |> Enum.filter(&assoc_loaded?(Map.get(resource, elem(&1, 0))))
+    |> Enum.filter(&data_loaded?(Map.get(resource, elem(&1, 0))))
     |> Enum.map_reduce(document, &build_relationships(conn, view_info, &1, &2, options))
   end
 
   defp build_relationships(
          conn,
          {view, resource, query_includes, valid_includes},
-         {key, include_view},
+         {key, relationship_view},
          %__MODULE__{relationships: relationships} = document,
          options
        ) do
-    rel_view =
-      case include_view do
-        {view, :include} -> view
-        view -> view
-      end
+    relationship_data = Map.get(resource, key)
+    relationship_type = transform_fields(key)
+    relationship_url = View.url_for_relationship(view, resource, conn, relationship_type)
 
-    rel_data = Map.get(resource, key)
-    rel_key = transform_fields(key)
-    rel_url = View.url_for_relationship(view, resource, rel_key, conn)
+    relationship =
+      RelationshipObject.serialize(relationship_view, relationship_data, conn, relationship_url)
 
-    relationship = RelationshipObject.serialize(rel_view, rel_data, rel_url, conn)
-    relationships = Map.put(relationships, rel_key, relationship)
+    relationships = Map.put(relationships, relationship_type, relationship)
     resource = %__MODULE__{document | relationships: relationships}
 
-    valid_include_view = include_view(valid_includes, key)
-
-    if {rel_view, :include} == valid_include_view && data_loaded?(rel_data) do
+    if Keyword.get(valid_includes, key) && data_loaded?(relationship_data) do
       rel_query_includes =
         if is_list(query_includes) do
           query_includes
@@ -127,7 +121,7 @@ defmodule JSONAPI.Document.ResourceObject do
         end
 
       {included_relationships, serialized_relationship} =
-        do_serialize(rel_view, rel_data, conn, rel_query_includes, options)
+        do_serialize(relationship_view, relationship_data, conn, rel_query_includes, options)
 
       {included_relationships ++ [serialized_relationship], resource}
     else
@@ -135,47 +129,20 @@ defmodule JSONAPI.Document.ResourceObject do
     end
   end
 
-  defp data_loaded?(rel_data) do
-    assoc_loaded?(rel_data) && (is_map(rel_data) || is_list(rel_data))
-  end
-
-  defp assoc_loaded?(nil), do: false
-  defp assoc_loaded?(%{__struct__: Ecto.Association.NotLoaded}), do: false
-  defp assoc_loaded?(_association), do: true
+  defp data_loaded?(nil), do: false
+  defp data_loaded?(%{__struct__: Ecto.Association.NotLoaded}), do: false
+  defp data_loaded?(association) when is_map(association) or is_list(association), do: true
 
   defp get_includes(view, query_includes) do
-    includes = get_default_includes(view) ++ get_query_includes(view, query_includes)
-
-    Enum.uniq(includes)
-  end
-
-  defp get_default_includes(view) do
-    rels = view.relationships()
-
-    Enum.filter(rels, fn
-      {_k, {_v, :include}} -> true
-      _ -> false
-    end)
-  end
-
-  defp get_query_includes(view, query_includes) do
-    rels = view.relationships()
+    relationships = view.relationships()
 
     query_includes
     |> Enum.map(fn
-      {include, _} -> Keyword.take(rels, [include])
-      include -> Keyword.take(rels, [include])
+      {include, _} -> Keyword.take(relationships, [include])
+      include -> Keyword.take(relationships, [include])
     end)
     |> List.flatten()
-  end
-
-  defp generate_view_tuple({view, :include}), do: {view, :include}
-  defp generate_view_tuple(view) when is_atom(view), do: {view, :include}
-
-  defp include_view(valid_includes, key) when is_list(valid_includes) do
-    valid_includes
-    |> Keyword.get(key)
-    |> generate_view_tuple
+    |> Enum.uniq()
   end
 
   defp transform_fields(fields) do
@@ -184,5 +151,10 @@ defmodule JSONAPI.Document.ResourceObject do
       :dasherize -> Utils.String.expand_fields(fields, &Utils.String.dasherize/1)
       _ -> fields
     end
+  end
+
+  @spec deserialize(View.t(), Document.payload()) :: t()
+  def deserialize(_view, _payload) do
+    %__MODULE__{id: "0", type: "a"}
   end
 end

@@ -195,8 +195,8 @@ defmodule JSONAPI.QueryParser do
     Map.put(config, :include, includes)
   end
 
-  def handle_include(str, config) when is_binary(str) do
-    valid_includes = get_base_relationships(config.view)
+  def handle_include(str, %Config{view: view} = config) when is_binary(str) do
+    valid_includes = view.relationships()
 
     includes =
       str
@@ -224,8 +224,7 @@ defmodule JSONAPI.QueryParser do
     end)
   end
 
-  @spec handle_nested_include(key :: String.t(), valid_include :: list(), config :: Config.t()) ::
-          list() | no_return()
+  @spec handle_nested_include(String.t(), list(), Config.t()) :: list() | no_return()
   def handle_nested_include(key, valid_include, config) do
     keys =
       try do
@@ -315,18 +314,10 @@ defmodule JSONAPI.QueryParser do
 
   defp member_of_tree?([path | tail], include) when is_list(include) do
     if Keyword.has_key?(include, path) do
-      member_of_tree?(tail, get_base_relationships(include[path]))
+      view = include[path]
+      member_of_tree?(tail, view.relationships())
     else
       false
     end
-  end
-
-  defp get_base_relationships({view, :include}), do: get_base_relationships(view)
-
-  defp get_base_relationships(view) do
-    Enum.map(view.relationships(), fn
-      {view, :include} -> view
-      view -> view
-    end)
   end
 end

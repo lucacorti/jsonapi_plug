@@ -2,6 +2,8 @@ defmodule JSONAPI.DeserializerTest do
   use ExUnit.Case
   use Plug.Test
 
+  alias JSONAPI.Deserializer
+
   defmodule ExamplePlug do
     use Plug.Builder
     plug Plug.Parsers, parsers: [:json], json_decoder: Jason
@@ -223,7 +225,7 @@ defmodule JSONAPI.DeserializerTest do
       }
     }
 
-    result = JSONAPI.Deserializer.process(incoming)
+    result = Deserializer.process(incoming)
 
     assert result == %{
              "id" => "1",
@@ -253,7 +255,7 @@ defmodule JSONAPI.DeserializerTest do
       }
     }
 
-    result = JSONAPI.Deserializer.process(incoming)
+    result = Deserializer.process(incoming)
 
     assert result == %{
              "id" => "1",
@@ -282,7 +284,7 @@ defmodule JSONAPI.DeserializerTest do
       }
     }
 
-    result = JSONAPI.Deserializer.process(incoming)
+    result = Deserializer.process(incoming)
 
     assert result == %{
              "id" => "1",
@@ -315,7 +317,7 @@ defmodule JSONAPI.DeserializerTest do
       ]
     }
 
-    result = JSONAPI.Deserializer.process(incoming)
+    result = Deserializer.process(incoming)
 
     assert result == %{
              "friend" => [
@@ -382,7 +384,7 @@ defmodule JSONAPI.DeserializerTest do
       ]
     }
 
-    result = JSONAPI.Deserializer.process(incoming)
+    result = Deserializer.process(incoming)
 
     assert result == %{
              "friend" => [
@@ -420,7 +422,7 @@ defmodule JSONAPI.DeserializerTest do
       ]
     }
 
-    result = JSONAPI.Deserializer.process(incoming)
+    result = Deserializer.process(incoming)
 
     assert result == [
              %{"id" => "1", "type" => "user"},
@@ -439,7 +441,7 @@ defmodule JSONAPI.DeserializerTest do
       "included" => nil
     }
 
-    result = JSONAPI.Deserializer.process(incoming)
+    result = Deserializer.process(incoming)
 
     assert result == %{
              "id" => "1",
@@ -455,7 +457,7 @@ defmodule JSONAPI.DeserializerTest do
       }
     }
 
-    result = JSONAPI.Deserializer.process(incoming)
+    result = Deserializer.process(incoming)
 
     assert result == %{
              "id" => "1",
@@ -468,7 +470,7 @@ defmodule JSONAPI.DeserializerTest do
       "data" => nil
     }
 
-    result = JSONAPI.Deserializer.process(incoming)
+    result = Deserializer.process(incoming)
 
     assert result == nil
   end

@@ -2,34 +2,38 @@ defmodule JSONAPI.Document.RelationshipObject do
   @moduledoc """
   JSON:API Relationship Object
 
-  See https://jsonapi.org/format/#document-resource-object-relationships
+  https://jsonapi.org/format/#document-resource-object-relationships
   """
 
   alias JSONAPI.{Document, Document.LinksObject, Resource, View}
   alias Plug.Conn
 
-  @type data :: %{type: Resource.type(), id: Resource.id()}
+  @type data :: %{id: Resource.id(), type: Resource.type()}
 
   @type t :: %__MODULE__{
-          data: data() | [data()],
-          links: Document.links(),
-          meta: Document.meta()
+          data: data() | [data()] | nil,
+          links: Document.links() | nil,
+          meta: Document.meta() | nil
         }
 
   defstruct [:data, :links, :meta]
 
-  @spec serialize(View.t(), View.data(), String.t(), Conn.t() | nil) :: t()
-  def serialize(rel_view, rel_data, rel_url, conn) do
-    %__MODULE__{
-      data: serialize_data(rel_view, rel_data),
-      links: struct(LinksObject, self: rel_url, related: rel_view.url_for(rel_data, conn))
-    }
+  @spec serialize(View.t(), View.data() | nil, Conn.t() | nil, LinksObject.link()) :: t()
+  def serialize(view, resources, conn, url) do
+    %__MODULE__{}
+    |> serialize_data(view, resources)
+    |> serialize_links(view, resources, conn, url)
   end
 
-  defp serialize_data(_view, nil), do: nil
+  defp serialize_data(%__MODULE__{} = relationship, view, resources) when is_list(resources),
+    do: %__MODULE__{relationship | data: Enum.map(resources, &relationship_data(view, &1))}
 
-  defp serialize_data(view, resources) when is_list(resources),
-    do: Enum.map(resources, &serialize_data(view, &1))
+  defp serialize_data(%__MODULE__{} = relationship, view, resource),
+    do: %__MODULE__{relationship | data: relationship_data(view, resource)}
 
-  defp serialize_data(view, resource), do: %{id: view.id(resource), type: view.type()}
+  defp relationship_data(view, resource), do: %{id: view.id(resource), type: view.type()}
+
+  defp serialize_links(%__MODULE__{} = relationship, view, resources, conn, url) do
+    %__MODULE__{relationship | links: %{self: url, related: view.url_for(resources, conn)}}
+  end
 end

@@ -42,9 +42,7 @@ defmodule JSONAPI.View do
         def type, do: "comment"
 
         @impl JSONAPI.View
-        def relationships do
-          [user: {UserView, :include}]
-        end
+        def relationships, do: [user: UserView]
       end
 
       defmodule DogView do
@@ -100,10 +98,6 @@ defmodule JSONAPI.View do
   `GET /posts?include=post.author` if the author record is loaded on the Post, and you are using
   the `JSONAPI.QueryParser` it will be included in the `includes` section of the JSONAPI document.
 
-  If you always want to include a relationship. First make sure its always preloaded
-  and then use the `[user: {UserView, :include}]` syntax in your `includes` function. This tells
-  the serializer to *always* include if its loaded.
-
   ## Options
     * `:host` (binary) - Allows the `host` to be overrided for generated URLs. Defaults to `host` of the supplied `conn`.
 
@@ -123,7 +117,7 @@ defmodule JSONAPI.View do
 
   @type t :: module()
   @type options :: keyword()
-  @type data :: Resource.t() | [Resource.t()] | nil
+  @type data :: Resource.t() | [Resource.t()]
 
   @callback id(Resource.t()) :: Resource.id() | nil
   @callback fields :: [Resource.attribute()]
@@ -131,7 +125,7 @@ defmodule JSONAPI.View do
   @callback meta(Resource.t(), Conn.t() | nil) :: Document.meta()
   @callback namespace :: String.t()
   @callback path :: String.t()
-  @callback relationships :: [{Resource.attribute(), Resource.t() | {Resource.t(), :include}}]
+  @callback relationships :: [{Resource.attribute(), t()}]
   @callback type :: Resource.type()
   @callback url_for(Resource.t(), Conn.t() | nil) :: String.t()
 
@@ -264,7 +258,7 @@ defmodule JSONAPI.View do
     end
   end
 
-  @spec url_for(t(), data(), Conn.t() | nil) :: String.t()
+  @spec url_for(t(), data() | nil, Conn.t() | nil) :: String.t()
   def url_for(view, resource, nil = _conn) when is_nil(resource) or is_list(resource),
     do: URI.to_string(%URI{path: Enum.join([view.namespace(), view.path() || view.type()], "/")})
 
@@ -290,9 +284,9 @@ defmodule JSONAPI.View do
     })
   end
 
-  @spec url_for_relationship(t(), Resource.t(), Resource.type(), Conn.t() | nil) :: String.t()
-  def url_for_relationship(view, resource, rel_type, conn) do
-    "#{url_for(view, resource, conn)}/relationships/#{rel_type}"
+  @spec url_for_relationship(t(), Resource.t(), Conn.t() | nil, Resource.type()) :: String.t()
+  def url_for_relationship(view, resource, conn, relationship_type) do
+    "#{url_for(view, resource, conn)}/relationships/#{relationship_type}"
   end
 
   @spec url_for_pagination(

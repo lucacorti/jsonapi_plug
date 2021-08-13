@@ -2,17 +2,13 @@ defmodule JSONAPI.Document.LinksObject do
   @moduledoc """
   JSON:API Links Object
 
-  See https://jsonapi.org/format/#document-links
+  https://jsonapi.org/format/#document-links
   """
 
-  @type link :: String.t() | nil
-  @type t :: %__MODULE__{
-          first: link(),
-          last: link(),
-          next: link(),
-          prev: link(),
-          related: link(),
-          self: link()
-        }
-  defstruct [:first, :last, :next, :prev, :related, :self]
+  alias JSONAPI.Document
+
+  @type link :: t() | String.t()
+
+  @type t :: %__MODULE__{href: String.t(), meta: Document.meta() | nil}
+  defstruct [:href, :meta]
 end
