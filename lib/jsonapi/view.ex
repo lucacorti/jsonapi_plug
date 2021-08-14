@@ -119,7 +119,7 @@ defmodule JSONAPI.View do
   @type options :: keyword()
   @type data :: Resource.t() | [Resource.t()]
 
-  @callback id(Resource.t()) :: Resource.id() | nil
+  @callback id(Resource.t()) :: Resource.id()
   @callback attributes :: [Resource.attribute()]
   @callback links(Resource.t(), Conn.t() | nil) :: Document.links()
   @callback meta(Resource.t(), Conn.t() | nil) :: Document.meta()
