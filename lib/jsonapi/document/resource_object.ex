@@ -90,7 +90,15 @@ defmodule JSONAPI.Document.ResourceObject do
     |> Enum.filter(&data_loaded?(Map.get(resource, elem(&1, 0))))
     |> Enum.map_reduce(
       resource_object,
-      &build_relationships(&2, view, resource, conn, {include, get_includes(view, include)}, &1, options)
+      &build_relationships(
+        &2,
+        view,
+        resource,
+        conn,
+        {include, get_includes(view, include)},
+        &1,
+        options
+      )
     )
   end
 
@@ -108,33 +116,42 @@ defmodule JSONAPI.Document.ResourceObject do
     relationship_url = View.url_for_relationship(view, resource, conn, relationship_type)
 
     relationship =
-      RelationshipObject.serialize(relationship_view, relationship_data, conn, relationship_url)
+      RelationshipObject.serialize(
+        relationship_view,
+        relationship_data,
+        conn,
+        relationship_url
+      )
 
     relationships = Map.put(relationships, relationship_type, relationship)
     resource = %__MODULE__{resource_object | relationships: relationships}
 
     if Keyword.get(valid_includes, key) && data_loaded?(relationship_data) do
-      relationship_includes =
-        if is_list(include) do
-          include
-          |> Enum.reduce([], fn
-            {^key, value}, acc -> [value | acc]
-            _, acc -> acc
-          end)
-          |> Enum.reverse()
-          |> List.flatten()
-        else
-          []
-        end
-
       {included_relationships, serialized_relationship} =
-        do_serialize(relationship_view, relationship_data, conn, relationship_includes, options)
+        do_serialize(
+          relationship_view,
+          relationship_data,
+          conn,
+          get_relationship_includes(include, key),
+          options
+        )
 
       {[serialized_relationship | included_relationships], resource}
     else
       {nil, resource}
     end
   end
+
+  defp get_relationship_includes(include, key) when is_list(include) do
+    include
+    |> Enum.flat_map(fn
+      {^key, value} -> [value]
+      _ -> []
+    end)
+    |> List.flatten()
+  end
+
+  defp get_relationship_includes(_include, _key), do: []
 
   defp data_loaded?(nil), do: false
   defp data_loaded?(%{__struct__: Ecto.Association.NotLoaded}), do: false

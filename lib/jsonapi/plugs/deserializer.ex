@@ -78,7 +78,7 @@ defmodule JSONAPI.Deserializer do
   def process(incoming), do: incoming
 
   defp flatten_incoming(%{"data" => data}) when is_list(data),
-   do: data
+    do: data
 
   defp flatten_incoming(%{"data" => data} = incoming) when is_map(data) do
     incoming
@@ -99,7 +99,7 @@ defmodule JSONAPI.Deserializer do
   defp process_attributes(data), do: data
 
   defp process_relationships(%{"relationships" => nil} = data),
-   do: Map.drop(data, ["relationships"])
+    do: Map.drop(data, ["relationships"])
 
   defp process_relationships(%{"relationships" => relationships} = data) do
     relationships
