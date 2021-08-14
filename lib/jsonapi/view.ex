@@ -7,7 +7,7 @@ defmodule JSONAPI.View do
         use JSONAPI.View, resource: Post
 
         @impl JSONAPI.View
-        def fields, do: [:id, :text, :body]
+        def attributes, do: [:id, :text, :body]
 
         @impl JSONAPI.View
         def type, do: "post"
@@ -23,7 +23,7 @@ defmodule JSONAPI.View do
         use JSONAPI.View, resource: User
 
         @impl JSONAPI.View
-        def fields, do: [:id, :username]
+        def attributes, do: [:id, :username]
 
         @impl JSONAPI.View
         def type, do: "user"
@@ -36,7 +36,7 @@ defmodule JSONAPI.View do
         use JSONAPI.View, resource: Comment
 
         @impl JSONAPI.View
-        def fields, do: [:id, :text]
+        def attributes, do: [:id, :text]
 
         @impl JSONAPI.View
         def type, do: "comment"
@@ -54,8 +54,8 @@ defmodule JSONAPI.View do
 
   ## Fields
 
-  By default, the resulting JSON document consists of fields, defined in the `fields/0`
-  function. You can define custom fields or override current fields by defining a
+  By default, the resulting JSON document consists of attributes, defined in the `attributes/0`
+  function. You can define custom attributes or override current attributes by defining a
   2-arity function inside the view that takes `resource` and `conn` as arguments and has
   the same name as the field it will be producing. Refer to our `fullname/2` example below.
 
@@ -63,7 +63,7 @@ defmodule JSONAPI.View do
         use JSONAPI.View, resource: User
 
         @impl JSONAPI.View
-        def fields, do: [:id, :username, :fullname]
+        def attributes, do: [:id, :username, :fullname]
 
         @impl JSONAPI.View
         def type, do: "user"
@@ -120,7 +120,7 @@ defmodule JSONAPI.View do
   @type data :: Resource.t() | [Resource.t()]
 
   @callback id(Resource.t()) :: Resource.id() | nil
-  @callback fields :: [Resource.attribute()]
+  @callback attributes :: [Resource.attribute()]
   @callback links(Resource.t(), Conn.t() | nil) :: Document.links()
   @callback meta(Resource.t(), Conn.t() | nil) :: Document.meta()
   @callback namespace :: String.t()
@@ -149,7 +149,7 @@ defmodule JSONAPI.View do
       def id(resource), do: Resource.id(resource)
 
       @impl View
-      def fields, do: Resource.attributes(@resource)
+      def attributes, do: Resource.attributes(@resource)
 
       @impl View
       def links(_resource, _conn), do: %{}
@@ -227,18 +227,21 @@ defmodule JSONAPI.View do
     end
   end
 
-  @spec attributes(t(), Resource.t(), Conn.t() | nil) :: [Resource.attribute()]
+  @spec attributes(t(), Resource.t(), Conn.t() | nil) :: %{
+          Resource.attribute() => Document.value()
+        }
   def attributes(view, resource, conn) do
     view
     |> visible_fields(conn)
-    |> Enum.reduce(%{}, fn field, intermediate_map ->
+    |> Enum.reduce(%{}, fn field, attributes ->
       value =
-        case function_exported?(view, field, 2) do
-          true -> apply(view, field, [resource, conn])
-          false -> Map.get(resource, field)
+        if function_exported?(view, field, 2) do
+          apply(view, field, [resource, conn])
+        else
+          Map.get(resource, field)
         end
 
-      Map.put(intermediate_map, field, value)
+      Map.put(attributes, field, value)
     end)
   end
 
@@ -331,11 +334,11 @@ defmodule JSONAPI.View do
     |> URI.to_string()
   end
 
-  @spec visible_fields(t(), Conn.t() | nil) :: list(atom)
+  @spec visible_fields(t(), Conn.t() | nil) :: [Resource.attribute()]
   def visible_fields(view, conn) do
     view
     |> requested_fields_for_type(conn)
-    |> net_fields_for_type(view.fields())
+    |> net_fields_for_type(view.attributes())
   end
 
   defp net_fields_for_type(requested_fields, fields) when requested_fields in [nil, %{}],
@@ -348,11 +351,8 @@ defmodule JSONAPI.View do
     |> MapSet.to_list()
   end
 
-  defp requested_fields_for_type(view, %Conn{
-         assigns: %{jsonapi_query: %{fields: fields}}
-       }) do
-    fields[view.type()]
-  end
+  defp requested_fields_for_type(view, %Conn{assigns: %{jsonapi_query: %{fields: fields}}}),
+    do: fields[view.type()]
 
   defp requested_fields_for_type(_view, _conn), do: nil
 

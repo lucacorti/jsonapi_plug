@@ -6,14 +6,14 @@ defmodule JSONAPI.Config do
   alias JSONAPI.View
 
   @type t :: %__MODULE__{
-          data: nil | map,
-          fields: map,
-          filter: keyword,
-          include: keyword,
-          opts: nil | keyword,
-          sort: nil | keyword,
+          data: nil | map(),
+          fields: map(),
+          filter: keyword(),
+          include: keyword(),
+          opts: nil | keyword(),
+          sort: nil | keyword(),
           view: View.t(),
-          page: nil | map
+          page: nil | map()
         }
   defstruct data: nil,
             fields: %{},

@@ -242,10 +242,10 @@ defmodule JSONAPI.QueryParser do
 
   @spec get_valid_fields_for_type(Config.t(), String.t()) :: list(atom())
   def get_valid_fields_for_type(%Config{view: view}, type) do
-    if type == view.type do
-      view.fields
+    if type == view.type() do
+      view.attributes()
     else
-      get_view_for_type(view, type).fields
+      get_view_for_type(view, type).attributes()
     end
   end
 
@@ -263,14 +263,12 @@ defmodule JSONAPI.QueryParser do
     view.type == expected_type
   end
 
-  @spec raise_invalid_include_query(param :: String.t(), resource_type :: String.t()) ::
-          no_return()
+  @spec raise_invalid_include_query(String.t(), String.t()) :: no_return()
   defp raise_invalid_include_query(param, resource_type) do
     raise InvalidQuery, resource: resource_type, param: param, param_type: :include
   end
 
-  @spec raise_invalid_field_names(bad_fields :: String.t(), resource_type :: String.t()) ::
-          no_return()
+  @spec raise_invalid_field_names(String.t(), String.t()) :: no_return()
   defp raise_invalid_field_names(bad_fields, resource_type) do
     raise InvalidQuery, resource: resource_type, param: bad_fields, param_type: :fields
   end

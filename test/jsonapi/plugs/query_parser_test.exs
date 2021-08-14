@@ -11,7 +11,7 @@ defmodule JSONAPI.QueryParserTest do
     use JSONAPI.View, resource: Post
 
     @impl JSONAPI.View
-    def fields, do: [:id, :text, :body]
+    def attributes, do: [:id, :text, :body]
 
     @impl JSONAPI.View
     def type, do: "my-type"
@@ -30,7 +30,7 @@ defmodule JSONAPI.QueryParserTest do
     use JSONAPI.View, resource: User
 
     @impl JSONAPI.View
-    def fields, do: [:id, :username]
+    def attributes, do: [:id, :username]
 
     @impl JSONAPI.View
     def type, do: "user"
@@ -43,7 +43,7 @@ defmodule JSONAPI.QueryParserTest do
     use JSONAPI.View, resource: Comment
 
     @impl JSONAPI.View
-    def fields, do: [:id, :text]
+    def attributes, do: [:id, :text]
 
     @impl JSONAPI.View
     def type, do: "comment"

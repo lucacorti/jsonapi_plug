@@ -51,9 +51,7 @@ defmodule MyApp.PostView do
   use JSONAPI.View, type: "posts"
 
   @impl JSONAPI.View
-  def fields do
-    [:text, :body, :excerpt]
-  end
+  def attributes, do: [:text, :body, :excerpt]
 
   @impl JSONAPI.View
   def meta(data, _conn) do

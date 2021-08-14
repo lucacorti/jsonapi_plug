@@ -18,7 +18,7 @@ defmodule JSONAPITest do
     use JSONAPI.View, resource: Post
 
     @impl JSONAPI.View
-    def fields, do: [:text, :body, :excerpt, :first_character]
+    def attributes, do: [:text, :body, :excerpt, :first_character]
 
     @impl JSONAPI.View
     def type, do: "my-type"
@@ -44,7 +44,7 @@ defmodule JSONAPITest do
     use JSONAPI.View, resource: User
 
     @impl JSONAPI.View
-    def fields, do: [:username]
+    def attributes, do: [:username]
 
     @impl JSONAPI.View
     def type, do: "user"
@@ -59,7 +59,7 @@ defmodule JSONAPITest do
     use JSONAPI.View, resource: Company
 
     @impl JSONAPI.View
-    def fields, do: [:name]
+    def attributes, do: [:name]
 
     @impl JSONAPI.View
     def type, do: "company"
@@ -74,7 +74,7 @@ defmodule JSONAPITest do
     use JSONAPI.View, resource: Industry
 
     @impl JSONAPI.View
-    def fields, do: [:name]
+    def attributes, do: [:name]
 
     @impl JSONAPI.View
     def type, do: "industry"
@@ -89,7 +89,7 @@ defmodule JSONAPITest do
     use JSONAPI.View, resource: Tag
 
     @impl JSONAPI.View
-    def fields, do: [:name]
+    def attributes, do: [:name]
 
     @impl JSONAPI.View
     def type, do: "tag"

@@ -2,28 +2,28 @@ defmodule JSONAPI.ViewTest do
   use ExUnit.Case
 
   alias JSONAPI.SupportTest.{Car, Comment, Post, User}
-  alias JSONAPI.View
+  alias JSONAPI.{Document, Document.ResourceObject, View}
   alias Plug.Conn
 
   defmodule PostView do
     use JSONAPI.View, resource: Post, type: "post", path: "posts", namespace: "/api"
 
     @impl JSONAPI.View
-    def fields, do: [:title, :body]
+    def attributes, do: [:title, :body]
   end
 
   defmodule CommentView do
     use JSONAPI.View, resource: Comment, type: "comment", path: "comments", namespace: "/api"
 
     @impl JSONAPI.View
-    def fields, do: [:body]
+    def attributes, do: [:body]
   end
 
   defmodule UserView do
     use JSONAPI.View, resource: User, type: "user", path: "users"
 
     @impl JSONAPI.View
-    def fields, do: [:age, :first_name, :last_name, :full_name, :password]
+    def attributes, do: [:age, :first_name, :last_name, :full_name, :password]
 
     def full_name(user, _conn) do
       "#{user.first_name} #{user.last_name}"
@@ -119,9 +119,7 @@ defmodule JSONAPI.ViewTest do
     setup do
       Application.put_env(:jsonapi, :scheme, "ftp")
 
-      on_exit(fn ->
-        Application.delete_env(:jsonapi, :scheme)
-      end)
+      on_exit(fn -> Application.delete_env(:jsonapi, :scheme) end)
 
       {:ok, []}
     end
@@ -168,42 +166,45 @@ defmodule JSONAPI.ViewTest do
   end
 
   test "show renders with data, conn" do
-    data = CommentView.render("show.json", %{data: %Comment{id: 1, body: "hi"}, conn: %Conn{}})
-
-    assert data.data.attributes.body == "hi"
+    %Document{
+      data: %ResourceObject{
+        attributes: %{
+          body: "hi"
+        }
+      }
+    } = CommentView.render("show.json", %{data: %Comment{id: 1, body: "hi"}, conn: %Conn{}})
   end
 
   test "show renders with data, conn, meta" do
-    data =
+    %Document{
+      meta: %{total_pages: 100}
+    } =
       CommentView.render("show.json", %{
         data: %Comment{id: 1, body: "hi"},
         conn: %Conn{},
         meta: %{total_pages: 100}
       })
-
-    assert data.meta.total_pages == 100
   end
 
   test "index renders with data, conn" do
-    data =
-      CommentView.render("index.json", %{
-        data: [%Comment{id: 1, body: "hi"}],
-        conn: Conn.fetch_query_params(%Conn{})
-      })
-
-    data = Enum.at(data.data, 0)
-    assert data.attributes.body == "hi"
+    assert %Document{
+             data: [
+               %ResourceObject{attributes: %{body: "hi"}} | _
+             ]
+           } =
+             CommentView.render("index.json", %{
+               data: [%Comment{id: 1, body: "hi"}],
+               conn: Conn.fetch_query_params(%Conn{})
+             })
   end
 
   test "index renders with data, conn, meta" do
-    data =
-      CommentView.render("index.json", %{
-        data: [%Comment{id: 1, body: "hi"}],
-        conn: Conn.fetch_query_params(%Conn{}),
-        meta: %{total_pages: 100}
-      })
-
-    assert data.meta.total_pages == 100
+    assert %Document{meta: %{total_pages: 100}} =
+             CommentView.render("index.json", %{
+               data: [%Comment{id: 1, body: "hi"}],
+               conn: Conn.fetch_query_params(%Conn{}),
+               meta: %{total_pages: 100}
+             })
   end
 
   test "visible_fields/2 returns all field names by default" do
@@ -215,7 +216,7 @@ defmodule JSONAPI.ViewTest do
     config = %JSONAPI.Config{fields: %{PostView.type() => [:body]}}
     conn = %Conn{assigns: %{jsonapi_query: config}}
 
-    assert [:body] == View.visible_fields(PostView, conn)
+    assert [:body] = View.visible_fields(PostView, conn)
   end
 
   test "attributes/2 can return only requested fields" do
