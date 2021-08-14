@@ -90,7 +90,10 @@ defmodule JSONAPI.Document.ResourceObject do
 
     view.relationships()
     |> Enum.filter(&data_loaded?(Map.get(resource, elem(&1, 0))))
-    |> Enum.map_reduce(resource_object, &build_relationships(&2, view, resource, conn, {include, valid_includes}, &1, options))
+    |> Enum.map_reduce(
+      resource_object,
+      &build_relationships(&2, view, resource, conn, {include, valid_includes}, &1, options)
+    )
   end
 
   defp build_relationships(
