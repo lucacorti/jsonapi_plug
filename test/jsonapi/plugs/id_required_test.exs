@@ -3,6 +3,7 @@ defmodule JSONAPI.IdRequiredTest do
   use Plug.Test
 
   alias JSONAPI.IdRequired
+  alias Plug.{Conn, Parsers}
 
   test "halts and returns an error if id attribute is missing" do
     conn =
@@ -58,12 +59,12 @@ defmodule JSONAPI.IdRequiredTest do
   end
 
   defp call_plug(%{path_info: [_, id]} = conn) do
-    parser_opts = Plug.Parsers.init(parsers: [:json], pass: ["text/*"], json_decoder: Jason)
+    parser_opts = Parsers.init(parsers: [:json], pass: ["text/*"], json_decoder: Jason)
 
     conn
-    |> Plug.Conn.put_req_header("content-type", "application/json")
+    |> Conn.put_req_header("content-type", "application/json")
     |> Map.put(:path_params, %{"id" => id})
-    |> Plug.Parsers.call(parser_opts)
+    |> Parsers.call(parser_opts)
     |> IdRequired.call([])
   end
 end

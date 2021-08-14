@@ -2,7 +2,7 @@ defmodule JSONAPI.Document.RelationshipObject do
   @moduledoc """
   JSON:API Relationship Object
 
-  https://jsonapi.org/format/#document-resource-object-relationships
+  https://jsonapi.org/format/#relationship-resource-object-relationships
   """
 
   alias JSONAPI.{Document, Document.LinksObject, Resource, View}
@@ -23,6 +23,7 @@ defmodule JSONAPI.Document.RelationshipObject do
     %__MODULE__{}
     |> serialize_data(view, resources)
     |> serialize_links(view, resources, conn, url)
+    |> serialize_meta(view.meta(resources, conn))
   end
 
   defp serialize_data(%__MODULE__{} = relationship, view, resources) when is_list(resources),
@@ -36,4 +37,9 @@ defmodule JSONAPI.Document.RelationshipObject do
   defp serialize_links(%__MODULE__{} = relationship, view, resources, conn, url) do
     %__MODULE__{relationship | links: %{self: url, related: view.url_for(resources, conn)}}
   end
+
+  defp serialize_meta(%__MODULE__{} = relationship, meta) when is_map(meta),
+    do: %__MODULE__{relationship | meta: meta}
+
+  defp serialize_meta(relationship, _meta), do: relationship
 end

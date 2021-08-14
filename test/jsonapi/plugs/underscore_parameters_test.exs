@@ -3,6 +3,7 @@ defmodule JSONAPI.UnderscoreParametersTest do
   use Plug.Test
 
   alias JSONAPI.UnderscoreParameters
+  alias Plug.Conn
 
   test "underscores dasherized data parameters" do
     params = %{
@@ -26,7 +27,7 @@ defmodule JSONAPI.UnderscoreParametersTest do
       |> conn("/hello", params)
       |> put_req_header("content-type", JSONAPI.mime_type())
 
-    assert %Plug.Conn{
+    assert %Conn{
              params: %{
                "data" => %{
                  "attributes" => %{
@@ -57,7 +58,7 @@ defmodule JSONAPI.UnderscoreParametersTest do
       |> conn("/example", params)
       |> put_req_header("content-type", JSONAPI.mime_type())
 
-    assert %Plug.Conn{
+    assert %Conn{
              params: %{
                "data" => %{
                  "attributes" => %{
@@ -79,7 +80,7 @@ defmodule JSONAPI.UnderscoreParametersTest do
 
     conn = conn(:get, "/hello", params)
 
-    assert %Plug.Conn{
+    assert %Conn{
              params: %{
                "data" => %{
                  "attributes" => %{

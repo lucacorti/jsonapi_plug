@@ -12,6 +12,8 @@ defmodule JSONAPI.DocumentTest do
 
   alias JSONAPI.SupportTest.{Comment, Company, Industry, Post, Tag, User}
 
+  alias Plug.Conn
+
   defmodule PostView do
     use JSONAPI.View, resource: Post
 
@@ -221,6 +223,8 @@ defmodule JSONAPI.DocumentTest do
   end
 
   test "serialize handles singular objects" do
+    conn = Conn.assign(%Conn{}, :jsonapi_query, %Config{include: [best_comments: [:user]]})
+
     post = %Post{
       id: 1,
       text: "Hello",
@@ -233,31 +237,27 @@ defmodule JSONAPI.DocumentTest do
     }
 
     assert %Document{
-             data:
-               %ResourceObject{
-                 id: id,
-                 type: type,
-                 attributes: attributes,
-                 relationships: relationships
-               } = data,
+             data: %ResourceObject{
+               id: id,
+               type: type,
+               attributes: %{text: text, body: body},
+               relationships: relationships,
+               meta: %{meta_text: "meta_Hello"},
+               links: %{self: self}
+             },
              included: included,
              links: links
-           } = Document.serialize(PostView, post, nil)
+           } = Document.serialize(PostView, post, conn)
 
-    assert links[:self] == PostView.url_for(post, nil)
+    assert links[:self] == PostView.url_for(post, conn)
 
     assert ^id = PostView.id(post)
     assert ^type = PostView.type()
-    assert data.links[:self] == PostView.url_for(post, nil)
+    assert ^self = PostView.url_for(post, conn)
+    assert ^text = post.text
+    assert ^body = post.body
 
-    assert %{meta_text: "meta_Hello"} = data.meta
-
-    assert attributes[:text] == post.text
-    assert attributes[:body] == post.body
-
-    assert data.links[:self] == PostView.url_for(post, nil)
     assert map_size(relationships) == 2
-
     assert Enum.count(included) == 4
   end
 
@@ -273,7 +273,10 @@ defmodule JSONAPI.DocumentTest do
       ]
     }
 
-    conn = Plug.Conn.fetch_query_params(%Plug.Conn{})
+    conn =
+      %Conn{}
+      |> Conn.assign(:jsonapi_query, %Config{include: [best_comments: [:user]]})
+      |> Conn.fetch_query_params()
 
     assert %Document{
              data: data,
@@ -301,6 +304,8 @@ defmodule JSONAPI.DocumentTest do
   end
 
   test "serialize handles an empty relationship" do
+    conn = Conn.assign(%Conn{}, :jsonapi_query, %Config{include: [:author]})
+
     post = %Post{
       id: 1,
       text: "Hello",
@@ -318,7 +323,7 @@ defmodule JSONAPI.DocumentTest do
         relationships: relationships
       },
       included: included
-    } = Document.serialize(PostView, post, nil)
+    } = Document.serialize(PostView, post, conn)
 
     assert ^id = PostView.id(post)
     assert ^type = PostView.type()
@@ -326,7 +331,7 @@ defmodule JSONAPI.DocumentTest do
     assert attributes[:text] == post.text
     assert attributes[:body] == post.body
 
-    assert links[:self] == PostView.url_for(post, nil)
+    assert links[:self] == PostView.url_for(post, conn)
     assert map_size(relationships) == 2
 
     assert %RelationshipObject{data: []} = relationships[:best_comments]
@@ -335,6 +340,8 @@ defmodule JSONAPI.DocumentTest do
   end
 
   test "serialize handles a nil relationship" do
+    conn = Conn.assign(%Conn{}, :jsonapi_query, %Config{include: [:author]})
+
     post = %Post{
       id: 1,
       text: "Hello",
@@ -352,7 +359,7 @@ defmodule JSONAPI.DocumentTest do
              },
              links: links,
              included: included
-           } = Document.serialize(PostView, post, nil)
+           } = Document.serialize(PostView, post, conn)
 
     assert ^id = PostView.id(post)
     assert ^type = PostView.type()
@@ -360,7 +367,7 @@ defmodule JSONAPI.DocumentTest do
     assert attributes[:text] == post.text
     assert attributes[:body] == post.body
 
-    assert links[:self] == PostView.url_for(post, nil)
+    assert links[:self] == PostView.url_for(post, conn)
     assert map_size(relationships) == 1
     assert Enum.count(included) == 1
   end
@@ -387,7 +394,7 @@ defmodule JSONAPI.DocumentTest do
 
   test "serialize handles a relationship self link on an index request" do
     assert %Document{links: %{self: "http://www.example.com/my-type"}} =
-             Document.serialize(PostView, [], Plug.Conn.fetch_query_params(%Plug.Conn{}))
+             Document.serialize(PostView, [], Conn.fetch_query_params(%Conn{}))
   end
 
   test "serialize handles including from the query" do
@@ -403,14 +410,14 @@ defmodule JSONAPI.DocumentTest do
     }
 
     conn =
-      %Plug.Conn{
+      %Conn{
         assigns: %{
           jsonapi_query: %Config{
             include: [best_comments: :user]
           }
         }
       }
-      |> Plug.Conn.fetch_query_params()
+      |> Conn.fetch_query_params()
 
     assert %Document{data: %ResourceObject{relationships: relationships}, included: included} =
              Document.serialize(PostView, post, conn)
@@ -431,14 +438,14 @@ defmodule JSONAPI.DocumentTest do
     }
 
     conn =
-      %Plug.Conn{
+      %Conn{
         assigns: %{
           jsonapi_query: %Config{
             include: [:company]
           }
         }
       }
-      |> Plug.Conn.fetch_query_params()
+      |> Conn.fetch_query_params()
 
     encoded = Document.serialize(UserView, user, conn)
 
@@ -458,14 +465,14 @@ defmodule JSONAPI.DocumentTest do
     }
 
     conn =
-      %Plug.Conn{
+      %Conn{
         assigns: %{
           jsonapi_query: %Config{
             include: [company: :industry]
           }
         }
       }
-      |> Plug.Conn.fetch_query_params()
+      |> Conn.fetch_query_params()
 
     encoded = Document.serialize(UserView, user, conn)
 
@@ -496,14 +503,14 @@ defmodule JSONAPI.DocumentTest do
     }
 
     conn =
-      %Plug.Conn{
+      %Conn{
         assigns: %{
           jsonapi_query: %Config{
             include: [company: [industry: :tags]]
           }
         }
       }
-      |> Plug.Conn.fetch_query_params()
+      |> Conn.fetch_query_params()
 
     encoded = Document.serialize(UserView, user, conn)
 
@@ -641,7 +648,7 @@ defmodule JSONAPI.DocumentTest do
       :get
       |> Plug.Test.conn("/my-type?page[page]=2&page[size]=1")
       |> QueryParser.call(%Config{view: view, opts: []})
-      |> Plug.Conn.fetch_query_params()
+      |> Conn.fetch_query_params()
 
     %Document{links: links} =
       Document.serialize(PaginatedPostView, posts, conn, nil, total_pages: 3, total_items: 3)
@@ -662,7 +669,7 @@ defmodule JSONAPI.DocumentTest do
     users = [%User{id: 1}]
 
     assert %Document{links: links} =
-             Document.serialize(UserView, users, Plug.Conn.fetch_query_params(%Plug.Conn{}))
+             Document.serialize(UserView, users, Conn.fetch_query_params(%Conn{}))
 
     refute links[:first]
     refute links[:last]
@@ -709,7 +716,7 @@ defmodule JSONAPI.DocumentTest do
       :get
       |> Plug.Test.conn("/my-type?page[page]=2&page[size]=1")
       |> QueryParser.call(%Config{view: view, opts: []})
-      |> Plug.Conn.fetch_query_params()
+      |> Conn.fetch_query_params()
 
     %Document{data: data, links: links} =
       Document.serialize(PaginatedPostView, posts, conn, nil, total_pages: 3, total_items: 3)

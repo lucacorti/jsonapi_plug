@@ -189,39 +189,34 @@ defmodule JSONAPI.QueryParser do
 
   def parse_include(config, []), do: config
 
-  def parse_include(%Config{} = config, include_str) do
-    includes = handle_include(include_str, config)
-
-    Map.put(config, :include, includes)
-  end
-
-  def handle_include(str, %Config{view: view} = config) when is_binary(str) do
+  def parse_include(%Config{view: view} = config, include) do
     valid_includes = view.relationships()
 
     includes =
-      str
+      include
       |> String.split(",")
       |> Enum.filter(&(&1 !== ""))
       |> Enum.map(&underscore/1)
-
-    Enum.reduce(includes, [], fn inc, acc ->
-      if inc =~ ~r/\w+\.\w+/ do
-        acc ++ handle_nested_include(inc, valid_includes, config)
-      else
-        inc =
-          try do
-            String.to_existing_atom(inc)
-          rescue
-            ArgumentError -> raise_invalid_include_query(inc, config.view.type())
-          end
-
-        if Enum.any?(valid_includes, fn {key, _val} -> key == inc end) do
-          acc ++ [inc]
+      |> Enum.reduce([], fn inc, acc ->
+        if inc =~ ~r/\w+\.\w+/ do
+          acc ++ handle_nested_include(inc, valid_includes, config)
         else
-          raise_invalid_include_query(inc, config.view.type())
+          inc =
+            try do
+              String.to_existing_atom(inc)
+            rescue
+              ArgumentError -> raise_invalid_include_query(inc, config.view.type())
+            end
+
+          if Enum.any?(valid_includes, fn {key, _val} -> key == inc end) do
+            acc ++ [inc]
+          else
+            raise_invalid_include_query(inc, config.view.type())
+          end
         end
-      end
-    end)
+      end)
+
+    %Config{config | include: includes}
   end
 
   @spec handle_nested_include(String.t(), list(), Config.t()) :: list() | no_return()

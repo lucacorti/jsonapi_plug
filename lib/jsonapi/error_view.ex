@@ -2,7 +2,7 @@ defmodule JSONAPI.ErrorView do
   @moduledoc """
   """
 
-  import Plug.Conn, only: [send_resp: 3, halt: 1, put_resp_content_type: 2]
+  alias Plug.Conn
 
   @crud_message "Check out http://jsonapi.org/format/#crud for more info."
 
@@ -83,7 +83,7 @@ defmodule JSONAPI.ErrorView do
     |> serialize_error
   end
 
-  @spec send_error(Plug.Conn.t(), term()) :: term()
+  @spec send_error(Conn.t(), term()) :: term()
   def send_error(conn, %{errors: [%{status: status}]} = error),
     do: send_error(conn, status, error)
 
@@ -105,9 +105,9 @@ defmodule JSONAPI.ErrorView do
 
   def send_error(conn, status, error) do
     conn
-    |> put_resp_content_type(JSONAPI.mime_type())
-    |> send_resp(status, error)
-    |> halt
+    |> Conn.put_resp_content_type(JSONAPI.mime_type())
+    |> Conn.send_resp(status, error)
+    |> Conn.halt()
   end
 
   @spec serialize_error(map()) :: map()

@@ -3,6 +3,7 @@ defmodule JSONAPI.FormatRequiredTest do
   use Plug.Test
 
   alias JSONAPI.FormatRequired
+  alias Plug.{Conn, Parsers}
 
   test "halts and returns an error for missing data param" do
     conn =
@@ -162,11 +163,11 @@ defmodule JSONAPI.FormatRequiredTest do
   end
 
   defp call_plug(conn) do
-    parser_opts = Plug.Parsers.init(parsers: [:json], pass: ["text/*"], json_decoder: Jason)
+    parser_opts = Parsers.init(parsers: [:json], pass: ["text/*"], json_decoder: Jason)
 
     conn
-    |> Plug.Conn.put_req_header("content-type", "application/json")
-    |> Plug.Parsers.call(parser_opts)
+    |> Conn.put_req_header("content-type", "application/json")
+    |> Parsers.call(parser_opts)
     |> FormatRequired.call([])
   end
 end

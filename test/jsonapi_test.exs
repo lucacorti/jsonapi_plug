@@ -4,6 +4,7 @@ defmodule JSONAPITest do
 
   alias JSONAPI.View
   alias JSONAPI.SupportTest.{Company, Industry, Post, Tag, User}
+  alias Plug.Conn
 
   @default_data %Post{
     id: 1,
@@ -133,92 +134,96 @@ defmodule JSONAPITest do
   test "handles simple requests" do
     conn =
       :get
-      |> conn("/posts")
-      |> Plug.Conn.assign(:data, [@default_data])
-      |> Plug.Conn.assign(:meta, %{total_pages: 1})
-      |> Plug.Conn.fetch_query_params()
+      |> conn("/posts?include=author")
+      |> Conn.assign(:data, [@default_data])
+      |> Conn.assign(:meta, %{total_pages: 1})
+      |> Conn.fetch_query_params()
       |> MyPostPlug.call([])
 
-    json = conn.resp_body |> Jason.decode!()
+    assert %{
+             "data" => [
+               %{
+                 "id" => "1",
+                 "type" => "my-type",
+                 "attributes" => %{
+                   "body" => "Hi",
+                   "text" => "Hello",
+                   "excerpt" => "He"
+                 },
+                 "relationships" =>
+                   %{
+                     "author" => %{
+                       "data" => %{
+                         "id" => "2",
+                         "type" => "user"
+                       }
+                     },
+                     "other_user" => _other_user
+                   } = relationships
+               }
+             ],
+             "included" => [
+               %{
+                 "id" => "2",
+                 "type" => "user"
+               }
+             ],
+             "links" => _links,
+             "meta" => %{
+               "total_pages" => 1
+             }
+           } = Jason.decode!(conn.resp_body)
 
-    assert Map.has_key?(json, "data")
-    data_list = Map.get(json, "data")
-    meta = Map.get(json, "meta")
-    assert meta["total_pages"] == 1
-
-    assert Enum.count(data_list) == 1
-    [data | _] = data_list
-    assert Map.get(data["attributes"], "body") == "Hi"
-    assert Map.get(data["attributes"], "text") == "Hello"
-    assert Map.get(data["attributes"], "excerpt") == "He"
-    assert Map.get(data, "type") == "my-type"
-    assert Map.get(data, "id") == "1"
-
-    relationships = Map.get(data, "relationships")
     assert map_size(relationships) == 2
-    assert Enum.sort(Map.keys(relationships)) == ["author", "other_user"]
-    author_rel = Map.get(relationships, "author")
-
-    assert get_in(author_rel, ["data", "type"]) == "user"
-    assert get_in(author_rel, ["data", "id"]) == "2"
-
-    assert Map.has_key?(json, "included")
-    included = Map.get(json, "included")
-    assert is_list(included)
-    assert Enum.count(included) == 1
-
-    [author | _] = included
-    assert Map.get(author, "type") == "user"
-    assert Map.get(author, "id") == "2"
-
-    assert Map.has_key?(json, "links")
   end
 
   test "handles includes properly" do
     conn =
       :get
-      |> conn("/posts?include=other_user")
-      |> Plug.Conn.assign(:data, [@default_data])
-      |> Plug.Conn.fetch_query_params()
+      |> conn("/posts?include=author,other_user")
+      |> Conn.assign(:data, [@default_data])
+      |> Conn.fetch_query_params()
       |> MyPostPlug.call([])
 
-    json = conn.resp_body |> Jason.decode!()
+    assert %{
+             "data" => [
+               %{
+                 "id" => "1",
+                 "type" => "my-type",
+                 "relationships" =>
+                   %{
+                     "author" => %{
+                       "data" => %{
+                         "id" => "2",
+                         "type" => "user"
+                       }
+                     },
+                     "other_user" => %{
+                       "data" => %{
+                         "id" => "3",
+                         "type" => "user"
+                       }
+                     }
+                   } = relationships
+               }
+               | _rest
+             ],
+             "included" => [_ | _] = included,
+             "links" => _links
+           } = Jason.decode!(conn.resp_body)
 
-    assert Map.has_key?(json, "data")
-    data_list = Map.get(json, "data")
-
-    assert Enum.count(data_list) == 1
-    [data | _] = data_list
-    assert Map.get(data, "type") == "my-type"
-    assert Map.get(data, "id") == "1"
-
-    relationships = Map.get(data, "relationships")
     assert map_size(relationships) == 2
     assert Enum.sort(Map.keys(relationships)) == ["author", "other_user"]
-    author_rel = Map.get(relationships, "author")
 
-    assert get_in(author_rel, ["data", "type"]) == "user"
-    assert get_in(author_rel, ["data", "id"]) == "2"
-
-    other_user = Map.get(relationships, "other_user")
-
-    assert get_in(other_user, ["data", "type"]) == "user"
-    assert get_in(other_user, ["data", "id"]) == "3"
-
-    assert Map.has_key?(json, "included")
-    included = Map.get(json, "included")
-    assert is_list(included)
-    assert Enum.count(included) == 2
-
-    assert Enum.find(included, fn include ->
-             Map.get(include, "type") == "user" && Map.get(include, "id") == "2"
+    assert Enum.find(included, fn
+             %{"id" => "2", "type" => "user"} -> true
+             _ -> false
            end)
 
-    assert Enum.find(included, fn include ->
-             Map.get(include, "type") == "user" && Map.get(include, "id") == "3"
+    assert Enum.find(included, fn
+             %{"id" => "3", "type" => "user"} -> true
+             _ -> false
            end)
-
-    assert Map.has_key?(json, "links")
   end
 
   test "handles empty includes properly" do
@@ -291,63 +296,63 @@ defmodule JSONAPITest do
     conn =
       :get
       |> conn("/posts?include=other_user.company.industry.tags")
-      |> Plug.Conn.assign(:data, posts)
-      |> Plug.Conn.fetch_query_params()
+      |> Conn.assign(:data, posts)
+      |> Conn.fetch_query_params()
       |> MyPostPlug.call([])
 
-    json = conn.resp_body |> Jason.decode!()
+    assert %{
+             "data" => [
+               %{
+                 "id" => "1",
+                 "type" => "my-type",
+                 "relationships" => %{
+                   "author" =>
+                     %{
+                       "data" => %{
+                         "id" => "2",
+                         "type" => "user"
+                       }
+                     } = relationships,
+                   "other_user" => %{
+                     "data" => %{
+                       "id" => "1",
+                       "type" => "user"
+                     }
+                   }
+                 }
+               }
+             ],
+             "included" => [_ | _] = included,
+             "links" => _links
+           } = Jason.decode!(conn.resp_body)
 
-    assert Map.has_key?(json, "data")
-    data_list = Map.get(json, "data")
-
-    assert Enum.count(data_list) == 1
-    [data | _] = data_list
-    assert Map.get(data, "type") == "my-type"
-    assert Map.get(data, "id") == "1"
-
-    relationships = Map.get(data, "relationships")
     assert map_size(relationships) == 2
-    assert Enum.sort(Map.keys(relationships)) == ["author", "other_user"]
-    author_rel = Map.get(relationships, "author")
+    assert Enum.count(included) == 5
 
-    assert get_in(author_rel, ["data", "type"]) == "user"
-    assert get_in(author_rel, ["data", "id"]) == "2"
-
-    other_user = Map.get(relationships, "other_user")
-
-    assert get_in(other_user, ["data", "type"]) == "user"
-    assert get_in(other_user, ["data", "id"]) == "1"
-
-    assert Map.has_key?(json, "included")
-    included = Map.get(json, "included")
-    assert is_list(included)
-    assert Enum.count(included) == 6
-
-    assert Enum.find(included, fn include ->
-             Map.get(include, "type") == "user" && Map.get(include, "id") == "2"
+    assert Enum.find(included, fn
+             %{"id" => "1", "type" => "user"} -> true
+             _ -> false
            end)
 
-    assert Enum.find(included, fn include ->
-             Map.get(include, "type") == "user" && Map.get(include, "id") == "1"
+    assert Enum.find(included, fn
+             %{"id" => "2", "type" => "company"} -> true
+             _ -> false
            end)
 
-    assert Enum.find(included, fn include ->
-             Map.get(include, "type") == "company" && Map.get(include, "id") == "2"
+    assert Enum.find(included, fn
+             %{"id" => "4", "type" => "industry"} -> true
+             _ -> false
            end)
 
-    assert Enum.find(included, fn include ->
-             Map.get(include, "type") == "industry" && Map.get(include, "id") == "4"
+    assert Enum.find(included, fn
+             %{"id" => "3", "type" => "tag"} -> true
+             _ -> false
            end)
 
-    assert Enum.find(included, fn include ->
-             Map.get(include, "type") == "tag" && Map.get(include, "id") == "3"
+    assert Enum.find(included, fn
+             %{"id" => "4", "type" => "tag"} -> true
+             _ -> false
            end)
-
-    assert Enum.find(included, fn include ->
-             Map.get(include, "type") == "tag" && Map.get(include, "id") == "4"
-           end)
-
-    assert Map.has_key?(json, "links")
   end
 
   describe "with an underscored API" do
@@ -365,8 +370,8 @@ defmodule JSONAPITest do
       conn =
         :get
         |> conn("/posts?include=other_user.company&fields[my-type]=text,excerpt,first_character")
-        |> Plug.Conn.assign(:data, [@default_data])
-        |> Plug.Conn.fetch_query_params()
+        |> Conn.assign(:data, [@default_data])
+        |> Conn.fetch_query_params()
         |> MyPostPlug.call([])
 
       assert %{
@@ -398,8 +403,8 @@ defmodule JSONAPITest do
       conn =
         :get
         |> conn("/posts?include=other_user.company&fields[my-type]=text,first-character")
-        |> Plug.Conn.assign(:data, [@default_data])
-        |> Plug.Conn.fetch_query_params()
+        |> Conn.assign(:data, [@default_data])
+        |> Conn.fetch_query_params()
         |> MyPostPlug.call([])
 
       assert %{
@@ -436,9 +441,9 @@ defmodule JSONAPITest do
     conn =
       :get
       |> conn("/posts")
-      |> Plug.Conn.assign(:data, [@default_data])
-      |> Plug.Conn.assign(:meta, nil)
-      |> Plug.Conn.fetch_query_params()
+      |> Conn.assign(:data, [@default_data])
+      |> Conn.assign(:meta, nil)
+      |> Conn.fetch_query_params()
       |> MyPostPlug.call([])
 
     json = conn.resp_body |> Jason.decode!()
@@ -450,8 +455,8 @@ defmodule JSONAPITest do
     conn =
       :get
       |> conn("/posts")
-      |> Plug.Conn.assign(:data, [@default_data])
-      |> Plug.Conn.fetch_query_params()
+      |> Conn.assign(:data, [@default_data])
+      |> Conn.fetch_query_params()
       |> MyPostPlug.call([])
 
     json = conn.resp_body |> Jason.decode!()

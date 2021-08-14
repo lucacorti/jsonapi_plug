@@ -3,15 +3,14 @@ defmodule JSONAPI.ContentTypeNegotiationTest do
   use Plug.Test
 
   alias JSONAPI.ContentTypeNegotiation
-
-  import JSONAPI, only: [mime_type: 0]
+  alias Plug.Conn
 
   test "passes request through" do
     conn =
       :post
       |> conn("/example", "")
-      |> Plug.Conn.put_req_header("content-type", mime_type())
-      |> Plug.Conn.put_req_header("accept", mime_type())
+      |> Conn.put_req_header("content-type", JSONAPI.mime_type())
+      |> Conn.put_req_header("accept", JSONAPI.mime_type())
       |> ContentTypeNegotiation.call([])
 
     refute conn.halted
@@ -30,7 +29,7 @@ defmodule JSONAPI.ContentTypeNegotiationTest do
     conn =
       :post
       |> conn("/example", "")
-      |> Plug.Conn.put_req_header("content-type", mime_type())
+      |> Conn.put_req_header("content-type", JSONAPI.mime_type())
       |> ContentTypeNegotiation.call([])
 
     refute conn.halted
@@ -40,7 +39,7 @@ defmodule JSONAPI.ContentTypeNegotiationTest do
     conn =
       :post
       |> conn("/example", "")
-      |> Plug.Conn.put_req_header("accept", mime_type())
+      |> Conn.put_req_header("accept", JSONAPI.mime_type())
       |> ContentTypeNegotiation.call([])
 
     refute conn.halted
@@ -50,9 +49,9 @@ defmodule JSONAPI.ContentTypeNegotiationTest do
     conn =
       :post
       |> conn("/example", "")
-      |> Plug.Conn.put_req_header(
+      |> Conn.put_req_header(
         "accept",
-        "#{mime_type()}, #{mime_type()}; version=1.0"
+        "#{JSONAPI.mime_type()}, #{JSONAPI.mime_type()}; version=1.0"
       )
       |> ContentTypeNegotiation.call([])
 
@@ -63,9 +62,9 @@ defmodule JSONAPI.ContentTypeNegotiationTest do
     conn =
       :post
       |> conn("/example", "")
-      |> Plug.Conn.put_req_header(
+      |> Conn.put_req_header(
         "content-type",
-        "#{mime_type()}, #{mime_type()}; version=1.0"
+        "#{JSONAPI.mime_type()}, #{JSONAPI.mime_type()}; version=1.0"
       )
       |> ContentTypeNegotiation.call([])
 
@@ -76,9 +75,9 @@ defmodule JSONAPI.ContentTypeNegotiationTest do
     conn =
       :post
       |> conn("/example", "")
-      |> Plug.Conn.put_req_header(
+      |> Conn.put_req_header(
         "accept",
-        "#{mime_type()}, #{mime_type()}; version=1.0"
+        "#{JSONAPI.mime_type()}, #{JSONAPI.mime_type()}; version=1.0"
       )
       |> ContentTypeNegotiation.call([])
 
@@ -89,7 +88,7 @@ defmodule JSONAPI.ContentTypeNegotiationTest do
     conn =
       :post
       |> conn("/example", "")
-      |> Plug.Conn.put_req_header("content-type", "text/html")
+      |> Conn.put_req_header("content-type", "text/html")
       |> ContentTypeNegotiation.call([])
 
     assert conn.halted
@@ -100,7 +99,7 @@ defmodule JSONAPI.ContentTypeNegotiationTest do
     conn =
       :post
       |> conn("/example", "")
-      |> Plug.Conn.put_req_header("content-type", "#{mime_type()}; version=1.0")
+      |> Conn.put_req_header("content-type", "#{JSONAPI.mime_type()}; version=1.0")
       |> ContentTypeNegotiation.call([])
 
     assert conn.halted
@@ -111,9 +110,9 @@ defmodule JSONAPI.ContentTypeNegotiationTest do
     conn =
       :post
       |> conn("/example", "")
-      |> Plug.Conn.put_req_header(
+      |> Conn.put_req_header(
         "content-type",
-        "#{mime_type()}; version=1.0, #{mime_type()}; version=1.0"
+        "#{JSONAPI.mime_type()}; version=1.0, #{JSONAPI.mime_type()}; version=1.0"
       )
       |> ContentTypeNegotiation.call([])
 
@@ -125,8 +124,8 @@ defmodule JSONAPI.ContentTypeNegotiationTest do
     conn =
       :post
       |> conn("/example", "")
-      |> Plug.Conn.put_req_header("content-type", "#{mime_type()}; version=1.0")
-      |> Plug.Conn.put_req_header("accept", "#{mime_type()}")
+      |> Conn.put_req_header("content-type", "#{JSONAPI.mime_type()}; version=1.0")
+      |> Conn.put_req_header("accept", "#{JSONAPI.mime_type()}")
       |> ContentTypeNegotiation.call([])
 
     assert conn.halted
@@ -137,8 +136,8 @@ defmodule JSONAPI.ContentTypeNegotiationTest do
     conn =
       :post
       |> conn("/example", "")
-      |> Plug.Conn.put_req_header("content-type", mime_type())
-      |> Plug.Conn.put_req_header("accept", "#{mime_type()} charset=utf-8")
+      |> Conn.put_req_header("content-type", JSONAPI.mime_type())
+      |> Conn.put_req_header("accept", "#{JSONAPI.mime_type()} charset=utf-8")
       |> ContentTypeNegotiation.call([])
 
     assert conn.halted
@@ -149,9 +148,9 @@ defmodule JSONAPI.ContentTypeNegotiationTest do
     conn =
       :post
       |> conn("/example", "")
-      |> Plug.Conn.put_req_header(
+      |> Conn.put_req_header(
         "accept",
-        "#{mime_type()}; version=1.0, #{mime_type()}; version=1.0"
+        "#{JSONAPI.mime_type()}; version=1.0, #{JSONAPI.mime_type()}; version=1.0"
       )
       |> ContentTypeNegotiation.call([])
 
@@ -163,10 +162,10 @@ defmodule JSONAPI.ContentTypeNegotiationTest do
     conn =
       :post
       |> conn("/example", "")
-      |> Plug.Conn.put_req_header("content-type", mime_type())
-      |> Plug.Conn.put_req_header(
+      |> Conn.put_req_header("content-type", JSONAPI.mime_type())
+      |> Conn.put_req_header(
         "accept",
-        "#{mime_type()}; version=1.0, #{mime_type()}; version=1.0"
+        "#{JSONAPI.mime_type()}; version=1.0, #{JSONAPI.mime_type()}; version=1.0"
       )
       |> ContentTypeNegotiation.call([])
 
@@ -178,16 +177,16 @@ defmodule JSONAPI.ContentTypeNegotiationTest do
     conn =
       :post
       |> conn("/example", "")
-      |> Plug.Conn.put_req_header(
+      |> Conn.put_req_header(
         "accept",
-        "#{mime_type()}; version=1.0, #{mime_type()}; version=1.0"
+        "#{JSONAPI.mime_type()}; version=1.0, #{JSONAPI.mime_type()}; version=1.0"
       )
       |> ContentTypeNegotiation.call([])
 
     assert conn.halted
 
-    assert Plug.Conn.get_resp_header(conn, "content-type") == [
-             "#{mime_type()}; charset=utf-8"
+    assert Conn.get_resp_header(conn, "content-type") == [
+             "#{JSONAPI.mime_type()}; charset=utf-8"
            ]
   end
 end
