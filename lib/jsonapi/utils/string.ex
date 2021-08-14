@@ -117,10 +117,7 @@ defmodule JSONAPI.Utils.String do
   end
 
   defp camelize_list([]), do: []
-
-  defp camelize_list([h | t]) do
-    [String.capitalize(h)] ++ camelize_list(t)
-  end
+  defp camelize_list([h | t]), do: [String.capitalize(h) | camelize_list(t)]
 
   @doc """
 

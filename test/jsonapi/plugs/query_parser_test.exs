@@ -94,13 +94,12 @@ defmodule JSONAPI.QueryParserTest do
 
   test "parse_include/2 turns an include string into a keyword list" do
     config = struct(Config, view: MyView)
-    assert parse_include(config, "author,comments.user").include == [:author, comments: :user]
-    assert parse_include(config, "author").include == [:author]
-    assert parse_include(config, "comments,author").include == [:comments, :author]
-    assert parse_include(config, "comments.user").include == [comments: :user]
-    assert parse_include(config, "best_friends").include == [:best_friends]
-    assert parse_include(config, "author.top-posts").include == [author: :top_posts]
-    assert parse_include(config, "").include == []
+    assert [:author, comments: :user] = parse_include(config, "author,comments.user").include()
+    assert [:author] = parse_include(config, "author").include()
+    assert [:comments, :author] = parse_include(config, "comments,author").include()
+    assert [comments: :user] = parse_include(config, "comments.user").include()
+    assert [:best_friends] = parse_include(config, "best_friends").include()
+    assert [author: :top_posts] = parse_include(config, "author.top-posts").include()
   end
 
   test "parse_include/2 errors with invalid includes" do

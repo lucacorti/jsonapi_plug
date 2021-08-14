@@ -168,7 +168,7 @@ defmodule JSONAPI.View do
       def path, do: @path
 
       @impl View
-      def relationships, do: Resource.has_one(@resource) ++ Resource.has_many(@resource)
+      def relationships, do: Enum.concat(Resource.has_one(@resource), Resource.has_many(@resource))
 
       @impl View
       def type, do: Resource.type(@resource)

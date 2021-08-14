@@ -133,8 +133,8 @@ defmodule JSONAPI.Deserializer do
     end)
   end
 
-  defp update_list_relationship(value, id) when is_list(value), do: {value, value ++ [id]}
-  defp update_list_relationship(value, id) when is_binary(value), do: {value, [value] ++ [id]}
+  defp update_list_relationship(value, id) when is_list(value), do: {value, [id | value]}
+  defp update_list_relationship(value, id) when is_binary(value), do: {value, [value, id]}
   defp update_list_relationship(_value, id), do: {nil, id}
 
   defp process_included(%{"included" => nil} = incoming) do

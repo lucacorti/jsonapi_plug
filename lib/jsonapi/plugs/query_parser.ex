@@ -197,9 +197,9 @@ defmodule JSONAPI.QueryParser do
       |> String.split(",")
       |> Enum.filter(&(&1 !== ""))
       |> Enum.map(&underscore/1)
-      |> Enum.reduce([], fn inc, acc ->
+      |> Enum.flat_map(fn inc ->
         if inc =~ ~r/\w+\.\w+/ do
-          acc ++ handle_nested_include(inc, valid_includes, config)
+          handle_nested_include(inc, valid_includes, config)
         else
           inc =
             try do
@@ -209,7 +209,7 @@ defmodule JSONAPI.QueryParser do
             end
 
           if Enum.any?(valid_includes, fn {key, _val} -> key == inc end) do
-            acc ++ [inc]
+            [inc]
           else
             raise_invalid_include_query(inc, config.view.type())
           end
