@@ -30,7 +30,7 @@ defprotocol JSONAPI.Resource.Serializable do
   ```
   """
 
-  alias JSONAPI.Resource
+  alias JSONAPI.{Resource, View}
 
   @doc """
   Resource attributes
@@ -45,7 +45,7 @@ defprotocol JSONAPI.Resource.Serializable do
 
   Returns the resource one-to-one relationships
   """
-  @spec has_one(t()) :: [{Resource.attribute(), module()}]
+  @spec has_one(t()) :: [{Resource.attribute(), View.t()}]
   def has_one(resource)
 
   @doc """
@@ -53,7 +53,7 @@ defprotocol JSONAPI.Resource.Serializable do
 
   Returns the resource one-to-many relationships
   """
-  @spec has_many(t()) :: [{Resource.attribute(), module()}]
+  @spec has_many(t()) :: [{Resource.attribute(), View.t()}]
   def has_many(resource)
 end
 

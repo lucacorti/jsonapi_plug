@@ -140,7 +140,7 @@ defmodule JSONAPI.View do
 
       @behaviour View
 
-      @resource unquote(resource)
+      @resource struct(unquote(resource))
       @namespace unquote(namespace)
       @path unquote(path)
       @paginator unquote(paginator)
@@ -149,7 +149,7 @@ defmodule JSONAPI.View do
       def id(resource), do: Resource.id(resource)
 
       @impl View
-      def fields, do: Resource.attributes(struct(unquote(resource)))
+      def fields, do: Resource.attributes(@resource)
 
       @impl View
       def links(_resource, _conn), do: %{}
@@ -168,10 +168,10 @@ defmodule JSONAPI.View do
       def path, do: @path
 
       @impl View
-      def relationships, do: []
+      def relationships, do: Resource.has_one(@resource) ++ Resource.has_many(@resource)
 
       @impl View
-      def type, do: Resource.type(struct(unquote(resource)))
+      def type, do: Resource.type(@resource)
 
       @impl View
       def url_for(resource, conn),

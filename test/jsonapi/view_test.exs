@@ -1,7 +1,7 @@
 defmodule JSONAPI.ViewTest do
   use ExUnit.Case
 
-  alias JSONAPI.SupportTest.{Comment, Post, User}
+  alias JSONAPI.SupportTest.{Car, Comment, Post, User}
   alias JSONAPI.View
   alias Plug.Conn
 

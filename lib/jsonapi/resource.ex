@@ -6,7 +6,7 @@ defmodule JSONAPI.Resource do
   protocols to provide Resource related functionality.
   """
 
-  alias JSONAPI.Resource.{Identifiable, Serializable}
+  alias JSONAPI.{Resource.Identifiable, Resource.Serializable, View}
 
   @typedoc "JSONAPI Resource"
   @type t :: struct()
@@ -37,13 +37,14 @@ defmodule JSONAPI.Resource do
   Returns the JSONAPI Resource Type
   """
   @spec type(t()) :: id()
-  def type(resource), do: Identifiable.type(resource)
+  def type(resource), do: to_string(Identifiable.type(resource))
 
   @doc """
   Resource type
 
   Returns the JSONAPI Resource Attributes
   """
+  @spec attributes(t()) :: [attribute()]
   def attributes(resource), do: Serializable.attributes(resource)
 
   @doc """
@@ -51,6 +52,7 @@ defmodule JSONAPI.Resource do
 
   Returns the JSONAPI Resource Attributes
   """
+  @spec has_one(t()) :: [{attribute(), View.t()}]
   def has_one(resource),
     do: Serializable.has_one(resource)
 
@@ -59,6 +61,7 @@ defmodule JSONAPI.Resource do
 
   Returns the JSONAPI Resource Attributes
   """
+  @spec has_many(t()) :: [{attribute(), View.t()}]
   def has_many(resource),
     do: Serializable.has_one(resource)
 end

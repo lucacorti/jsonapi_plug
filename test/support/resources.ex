@@ -39,6 +39,13 @@ defmodule JSONAPI.SupportTest do
               company: nil
   end
 
+  defmodule Car do
+    @moduledoc false
+    @derive {JSONAPI.Resource.Identifiable, id_attribute: :id, type: "car"}
+    @derive JSONAPI.Resource.Serializable
+    defstruct id: nil
+  end
+
   defmodule Comment do
     @moduledoc false
     @derive {JSONAPI.Resource.Identifiable, id_attribute: :id, type: "comment"}

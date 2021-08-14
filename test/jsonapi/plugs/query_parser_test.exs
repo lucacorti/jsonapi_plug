@@ -5,6 +5,7 @@ defmodule JSONAPI.QueryParserTest do
 
   alias JSONAPI.Config
   alias JSONAPI.Exceptions.InvalidQuery
+  alias JSONAPI.SupportTest.{Comment, Post, User}
 
   defmodule MyView do
     use JSONAPI.View, resource: Post
