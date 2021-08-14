@@ -124,7 +124,7 @@ defmodule JSONAPI.Document.ResourceObject do
       )
 
     relationships = Map.put(relationships, relationship_type, relationship)
-    resource = %__MODULE__{resource_object | relationships: relationships}
+    resource_object = %__MODULE__{resource_object | relationships: relationships}
 
     if Keyword.get(valid_includes, key) && data_loaded?(relationship_data) do
       {included_relationships, serialized_relationship} =
@@ -136,9 +136,9 @@ defmodule JSONAPI.Document.ResourceObject do
           options
         )
 
-      {[serialized_relationship | included_relationships], resource}
+      {[serialized_relationship | included_relationships], resource_object}
     else
-      {nil, resource}
+      {nil, resource_object}
     end
   end
 
