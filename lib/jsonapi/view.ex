@@ -289,7 +289,7 @@ defmodule JSONAPI.View do
 
   @spec url_for_relationship(t(), Resource.t(), Conn.t() | nil, Resource.type()) :: String.t()
   def url_for_relationship(view, resource, conn, relationship_type) do
-    "#{url_for(view, resource, conn)}/relationships/#{relationship_type}"
+    Enum.join([url_for(view, resource, conn), "relationships", relationship_type], "/")
   end
 
   @spec url_for_pagination(
