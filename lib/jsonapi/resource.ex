@@ -8,11 +8,11 @@ defmodule JSONAPI.Resource do
 
   alias JSONAPI.{Resource.Identifiable, Resource.Serializable, View}
 
-  @typedoc "JSONAPI Resource"
+  @typedoc "Resource"
   @type t :: struct()
 
-  @typedoc "Resource attribute"
-  @type attribute :: atom()
+  @typedoc "Resource field"
+  @type field :: atom()
 
   @typedoc "Resource type"
   @type options :: [type: module()]
@@ -26,7 +26,7 @@ defmodule JSONAPI.Resource do
   @doc """
   Resource id
 
-  Returns the JSONAPI Resource ID
+  Returns the JSON:API Resource ID
   """
   @spec id(t()) :: id()
   def id(resource), do: to_string(Identifiable.id(resource))
@@ -34,7 +34,7 @@ defmodule JSONAPI.Resource do
   @doc """
   Resource type
 
-  Returns the JSONAPI Resource Type
+  Returns the JSON:API Resource Type
   """
   @spec type(t()) :: id()
   def type(resource), do: to_string(Identifiable.type(resource))
@@ -42,26 +42,26 @@ defmodule JSONAPI.Resource do
   @doc """
   Resource type
 
-  Returns the JSONAPI Resource Attributes
+  Returns the JSON:API Resource Attributes
   """
-  @spec attributes(t()) :: [attribute()]
+  @spec attributes(t()) :: [field()]
   def attributes(resource), do: Serializable.attributes(resource)
 
   @doc """
   Resource type
 
-  Returns the JSONAPI Resource Attributes
+  Returns the JSON:API Resource One-to-One relationships
   """
-  @spec has_one(t()) :: [{attribute(), View.t()}]
+  @spec has_one(t()) :: [{field(), View.t()}]
   def has_one(resource),
     do: Serializable.has_one(resource)
 
   @doc """
   Resource type
 
-  Returns the JSONAPI Resource Attributes
+  Returns the JSON:API Resource One-to-Many relationships
   """
-  @spec has_many(t()) :: [{attribute(), View.t()}]
+  @spec has_many(t()) :: [{field(), View.t()}]
   def has_many(resource),
     do: Serializable.has_one(resource)
 end

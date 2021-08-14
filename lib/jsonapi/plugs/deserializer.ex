@@ -77,9 +77,8 @@ defmodule JSONAPI.Deserializer do
 
   def process(incoming), do: incoming
 
-  defp flatten_incoming(%{"data" => data}) when is_list(data) do
-    data
-  end
+  defp flatten_incoming(%{"data" => data}) when is_list(data),
+   do: data
 
   defp flatten_incoming(%{"data" => data} = incoming) when is_map(data) do
     incoming
@@ -99,9 +98,8 @@ defmodule JSONAPI.Deserializer do
 
   defp process_attributes(data), do: data
 
-  defp process_relationships(%{"relationships" => nil} = data) do
-    Map.drop(data, ["relationships"])
-  end
+  defp process_relationships(%{"relationships" => nil} = data),
+   do: Map.drop(data, ["relationships"])
 
   defp process_relationships(%{"relationships" => relationships} = data) do
     relationships
@@ -112,16 +110,16 @@ defmodule JSONAPI.Deserializer do
 
   defp process_relationships(data), do: data
 
-  defp transform_relationship({key, %{"data" => nil}}, acc) do
-    Map.put(acc, transform_fields("#{key}-id"), nil)
+  defp transform_relationship({relationship, %{"data" => nil}}, acc) do
+    Map.put(acc, transform_fields("#{relationship}-id"), nil)
   end
 
-  defp transform_relationship({key, %{"data" => %{"id" => id}}}, acc) do
-    Map.put(acc, transform_fields("#{key}-id"), id)
+  defp transform_relationship({relationship, %{"data" => %{"id" => id}}}, acc) do
+    Map.put(acc, transform_fields("#{relationship}-id"), id)
   end
 
-  defp transform_relationship({_key, %{"data" => list}}, acc) when is_list(list) do
-    Enum.reduce(list, acc, fn %{"id" => id, "type" => type}, inner_acc ->
+  defp transform_relationship({_relationship, %{"data" => data}}, acc) when is_list(data) do
+    Enum.reduce(data, acc, fn %{"id" => id, "type" => type}, inner_acc ->
       {_val, new_map} =
         Map.get_and_update(
           inner_acc,
@@ -137,9 +135,8 @@ defmodule JSONAPI.Deserializer do
   defp update_list_relationship(value, id) when is_binary(value), do: {value, [value, id]}
   defp update_list_relationship(_value, id), do: {nil, id}
 
-  defp process_included(%{"included" => nil} = incoming) do
-    Map.drop(incoming, ["included"])
-  end
+  defp process_included(%{"included" => nil} = incoming),
+    do: Map.drop(incoming, ["included"])
 
   defp process_included(%{"included" => included} = incoming) do
     included

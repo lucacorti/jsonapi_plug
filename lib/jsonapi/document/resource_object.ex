@@ -8,15 +8,15 @@ defmodule JSONAPI.Document.ResourceObject do
   alias JSONAPI.{Config, Document, Document.RelationshipObject, Resource, Utils, View}
   alias Plug.Conn
 
-  @type attribute :: atom()
+  @type field :: atom()
 
-  @type value :: String.t() | integer() | float() | [value()] | %{attribute() => value()}
+  @type value :: String.t() | integer() | float() | [value()] | %{field() => value()}
 
   @type t :: %__MODULE__{
           id: Resource.id(),
           type: Resource.type(),
-          attributes: %{attribute() => value()} | nil,
-          relationships: %{attribute() => [RelationshipObject.t()]} | nil,
+          attributes: %{field() => value()} | nil,
+          relationships: %{field() => [RelationshipObject.t()]} | nil,
           links: Document.links() | nil
         }
 
@@ -86,13 +86,11 @@ defmodule JSONAPI.Document.ResourceObject do
   end
 
   defp serialize_relationships(resource_object, view, resource, conn, include, options) do
-    valid_includes = get_includes(view, include)
-
     view.relationships()
     |> Enum.filter(&data_loaded?(Map.get(resource, elem(&1, 0))))
     |> Enum.map_reduce(
       resource_object,
-      &build_relationships(&2, view, resource, conn, {include, valid_includes}, &1, options)
+      &build_relationships(&2, view, resource, conn, {include, get_includes(view, include)}, &1, options)
     )
   end
 

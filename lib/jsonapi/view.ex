@@ -120,12 +120,12 @@ defmodule JSONAPI.View do
   @type data :: Resource.t() | [Resource.t()]
 
   @callback id(Resource.t()) :: Resource.id()
-  @callback attributes :: [Resource.attribute()]
+  @callback attributes :: [Resource.field()]
   @callback links(Resource.t(), Conn.t() | nil) :: Document.links()
   @callback meta(Resource.t(), Conn.t() | nil) :: Document.meta()
   @callback namespace :: String.t()
   @callback path :: String.t()
-  @callback relationships :: [{Resource.attribute(), t()}]
+  @callback relationships :: [{Resource.field(), t()}]
   @callback type :: Resource.type()
   @callback url_for(Resource.t(), Conn.t() | nil) :: String.t()
 
@@ -228,7 +228,7 @@ defmodule JSONAPI.View do
   end
 
   @spec attributes(t(), Resource.t(), Conn.t() | nil) :: %{
-          Resource.attribute() => Document.value()
+          Resource.field() => Document.value()
         }
   def attributes(view, resource, conn) do
     view
@@ -334,7 +334,7 @@ defmodule JSONAPI.View do
     |> URI.to_string()
   end
 
-  @spec visible_fields(t(), Conn.t() | nil) :: [Resource.attribute()]
+  @spec visible_fields(t(), Conn.t() | nil) :: [Resource.field()]
   def visible_fields(view, conn) do
     view
     |> requested_fields_for_type(conn)

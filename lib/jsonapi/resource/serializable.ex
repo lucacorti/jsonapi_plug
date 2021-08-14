@@ -37,7 +37,7 @@ defprotocol JSONAPI.Resource.Serializable do
 
   Returns the resource attributes
   """
-  @spec attributes(t()) :: [Resource.attribute()]
+  @spec attributes(t()) :: [Resource.field()]
   def attributes(resource)
 
   @doc """
@@ -45,7 +45,7 @@ defprotocol JSONAPI.Resource.Serializable do
 
   Returns the resource one-to-one relationships
   """
-  @spec has_one(t()) :: [{Resource.attribute(), View.t()}]
+  @spec has_one(t()) :: [{Resource.field(), View.t()}]
   def has_one(resource)
 
   @doc """
@@ -53,7 +53,7 @@ defprotocol JSONAPI.Resource.Serializable do
 
   Returns the resource one-to-many relationships
   """
-  @spec has_many(t()) :: [{Resource.attribute(), View.t()}]
+  @spec has_many(t()) :: [{Resource.field(), View.t()}]
   def has_many(resource)
 end
 
