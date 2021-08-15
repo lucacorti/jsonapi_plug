@@ -11,14 +11,11 @@ defmodule JSONAPI.Resource do
   @typedoc "Resource"
   @type t :: struct()
 
-  @typedoc "Resource field"
-  @type field :: atom()
-
-  @typedoc "Resource type"
-  @type options :: [type: module()]
-
   @typedoc "Resource ID"
   @type id :: String.t()
+
+  @typedoc "Resource field"
+  @type field :: atom()
 
   @typedoc "Resource Type"
   @type type :: String.t()
