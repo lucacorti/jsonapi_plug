@@ -110,13 +110,11 @@ defmodule JSONAPI.Deserializer do
 
   defp process_relationships(data), do: data
 
-  defp transform_relationship({relationship, %{"data" => nil}}, acc) do
-    Map.put(acc, View.transform_fields("#{relationship}-id"), nil)
-  end
+  defp transform_relationship({relationship, %{"data" => nil}}, acc),
+    do: Map.put(acc, View.transform_fields("#{relationship}-id"), nil)
 
-  defp transform_relationship({relationship, %{"data" => %{"id" => id}}}, acc) do
-    Map.put(acc, View.transform_fields("#{relationship}-id"), id)
-  end
+  defp transform_relationship({relationship, %{"data" => %{"id" => id}}}, acc),
+    do: Map.put(acc, View.transform_fields("#{relationship}-id"), id)
 
   defp transform_relationship({_relationship, %{"data" => data}}, acc) when is_list(data) do
     Enum.reduce(data, acc, fn %{"id" => id, "type" => type}, inner_acc ->
@@ -143,9 +141,10 @@ defmodule JSONAPI.Deserializer do
     |> Enum.reduce(incoming, fn %{"data" => %{"type" => type}} = params, acc ->
       flattened = process(params)
 
-      case Map.has_key?(acc, type) do
-        false -> Map.put(acc, type, [flattened])
-        true -> Map.update(acc, type, flattened, &[flattened | &1])
+      if Map.has_key?(acc, type) do
+        Map.update(acc, type, flattened, &[flattened | &1])
+      else
+        Map.put(acc, type, [flattened])
       end
     end)
     |> Map.drop(["included"])
