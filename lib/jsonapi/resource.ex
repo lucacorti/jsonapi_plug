@@ -64,4 +64,14 @@ defmodule JSONAPI.Resource do
   @spec has_many(t()) :: [{field(), View.t()}]
   def has_many(resource),
     do: Serializable.has_one(resource)
+
+  @doc """
+  Resource loaded
+
+  Returns a boolean indicating wether the given Resource is loaded
+  """
+  @spec data_loaded?(t()) :: boolean()
+  def data_loaded?(nil), do: false
+  def data_loaded?(%{__struct__: Ecto.Association.NotLoaded}), do: false
+  def data_loaded?(association) when is_map(association) or is_list(association), do: true
 end

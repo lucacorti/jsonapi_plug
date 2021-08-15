@@ -3,7 +3,7 @@ defmodule JSONAPI.SupportTest do
 
   defmodule Tag do
     @moduledoc false
-    @derive {JSONAPI.Resource.Identifiable, id_attribute: :id, type: "industry"}
+    @derive {JSONAPI.Resource.Identifiable, id_attribute: :id, type: "tag"}
     @derive {JSONAPI.Resource.Serializable, attributes: [:name]}
     defstruct id: nil, name: nil
   end

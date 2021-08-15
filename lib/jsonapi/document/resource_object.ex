@@ -28,7 +28,6 @@ defmodule JSONAPI.Document.ResourceObject do
           Conn.t() | nil,
           View.options()
         ) :: {[t()], t() | [t()]}
-
   def serialize(
         view,
         resources,
@@ -40,15 +39,10 @@ defmodule JSONAPI.Document.ResourceObject do
   def serialize(view, resources, conn, options),
     do: do_serialize(view, resources, conn, [], options)
 
-  def do_serialize(_view, nil = _resources, _conn, _includes, _options) do
-    {[], nil}
-  end
-
   def do_serialize(view, resources, conn, include, options) when is_list(resources) do
-    Enum.map_reduce(resources, [], fn resource, data ->
-      {to_include, serialized_data} = do_serialize(view, resource, conn, include, options)
-
-      {to_include, [serialized_data | data]}
+    Enum.map_reduce(resources, [], fn resource, resource_objects ->
+      {to_include, resource_object} = do_serialize(view, resource, conn, include, options)
+      {to_include, [resource_object | resource_objects]}
     end)
   end
 
@@ -87,7 +81,7 @@ defmodule JSONAPI.Document.ResourceObject do
 
   defp serialize_relationships(resource_object, view, resource, conn, include, options) do
     view.relationships()
-    |> Enum.filter(&data_loaded?(Map.get(resource, elem(&1, 0))))
+    |> Enum.filter(&Resource.data_loaded?(Map.get(resource, elem(&1, 0))))
     |> Enum.map_reduce(
       resource_object,
       &build_relationships(
@@ -126,7 +120,7 @@ defmodule JSONAPI.Document.ResourceObject do
     relationships = Map.put(relationships, relationship_type, relationship)
     resource_object = %__MODULE__{resource_object | relationships: relationships}
 
-    if Keyword.get(valid_includes, key) && data_loaded?(relationship_data) do
+    if Keyword.get(valid_includes, key) && Resource.data_loaded?(relationship_data) do
       {included_relationships, serialized_relationship} =
         do_serialize(
           relationship_view,
@@ -152,10 +146,6 @@ defmodule JSONAPI.Document.ResourceObject do
   end
 
   defp get_relationship_includes(_include, _key), do: []
-
-  defp data_loaded?(nil), do: false
-  defp data_loaded?(%{__struct__: Ecto.Association.NotLoaded}), do: false
-  defp data_loaded?(association) when is_map(association) or is_list(association), do: true
 
   defp get_includes(view, query_includes) do
     relationships = view.relationships()

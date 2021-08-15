@@ -88,19 +88,35 @@ defmodule JSONAPI.Document do
           meta() | nil,
           View.options()
         ) :: t()
-  def serialize(view, resource, conn \\ nil, meta \\ nil, options \\ []) do
-    {to_include, serialized_data} = ResourceObject.serialize(view, resource, conn, options)
-
-    %__MODULE__{data: serialized_data}
-    |> serialize_included(to_include)
-    |> serialize_jsonapi(%JSONAPIObject{})
-    |> serialize_meta(meta)
-    |> serialize_links(resource, view, conn, options)
+  def serialize(view, data, conn \\ nil, meta \\ nil, options \\ []) do
+    %__MODULE__{}
+    |> serialize_data(view, data, conn, options)
+    |> serialize_jsonapi(view, data, conn, options)
+    |> serialize_meta(view, data, conn, options, meta)
+    |> serialize_links(view, data, conn, options)
   end
 
-  defp serialize_included(document, [] = _to_include), do: document
+  defp serialize_data(%__MODULE__{} = document, _view, nil = _resource, _conn, _options),
+    do: document
 
-  defp serialize_included(%__MODULE__{} = document, to_include) do
+  defp serialize_data(%__MODULE__{} = document, view, resources, conn, options)
+       when is_list(resources) do
+    {to_include, data} =
+      Enum.map_reduce(resources, [], fn resource, resource_objects ->
+        {to_include, resource_object} = ResourceObject.serialize(view, resource, conn, options)
+        {to_include, [resource_object | resource_objects]}
+      end)
+
+    add_included(%__MODULE__{document | data: data}, to_include)
+  end
+
+  defp serialize_data(%__MODULE__{} = document, view, resource, conn, options) do
+    {to_include, data} = ResourceObject.serialize(view, resource, conn, options)
+
+    add_included(%__MODULE__{document | data: data}, to_include)
+  end
+
+  defp add_included(%__MODULE__{} = document, to_include) do
     included =
       to_include
       |> List.flatten()
@@ -110,13 +126,13 @@ defmodule JSONAPI.Document do
     %__MODULE__{document | included: included}
   end
 
-  defp serialize_jsonapi(%__MODULE__{} = document, jsonapi),
-    do: %__MODULE__{document | jsonapi: jsonapi}
+  defp serialize_jsonapi(%__MODULE__{} = document, _view, _resource, _conn, _options),
+    do: %__MODULE__{document | jsonapi: %JSONAPIObject{}}
 
   defp serialize_links(
          %__MODULE__{} = document,
-         resources,
          view,
+         resources,
          %Conn{assigns: %{jsonapi_query: %Config{} = config}} = conn,
          options
        )
@@ -130,7 +146,7 @@ defmodule JSONAPI.Document do
     %__MODULE__{document | links: links}
   end
 
-  defp serialize_links(%__MODULE__{} = document, resource, view, conn, _options) do
+  defp serialize_links(%__MODULE__{} = document, view, resource, conn, _options) do
     links =
       resource
       |> view.links(conn)
@@ -139,10 +155,12 @@ defmodule JSONAPI.Document do
     %__MODULE__{document | links: links}
   end
 
-  defp serialize_meta(%__MODULE__{} = document, meta) when is_map(meta),
-    do: %__MODULE__{document | meta: meta}
+  defp serialize_meta(%__MODULE__{} = document, _resource, _view, _conn, _options, meta)
+       when is_map(meta),
+       do: %__MODULE__{document | meta: meta}
 
-  defp serialize_meta(document, _meta), do: document
+  defp serialize_meta(%__MODULE__{} = document, _resource, _view, _conn, _options, _meta),
+    do: document
 
   @spec deserialize(View.t(), payload()) :: {:ok, t()} | {:error, :invalid}
   def deserialize(view, payload) do
