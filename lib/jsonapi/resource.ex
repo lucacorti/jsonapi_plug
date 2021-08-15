@@ -70,8 +70,8 @@ defmodule JSONAPI.Resource do
 
   Returns a boolean indicating wether the given Resource is loaded
   """
-  @spec data_loaded?(t()) :: boolean()
-  def data_loaded?(nil), do: false
-  def data_loaded?(%{__struct__: Ecto.Association.NotLoaded}), do: false
-  def data_loaded?(association) when is_map(association) or is_list(association), do: true
+  @spec loaded?(t()) :: boolean()
+  def loaded?(nil), do: false
+  def loaded?(%{__struct__: Ecto.Association.NotLoaded}), do: false
+  def loaded?(association) when is_map(association) or is_list(association), do: true
 end

@@ -81,7 +81,7 @@ defmodule JSONAPI.Document.ResourceObject do
 
   defp serialize_relationships(resource_object, view, resource, conn, include, options) do
     view.relationships()
-    |> Enum.filter(&Resource.data_loaded?(Map.get(resource, elem(&1, 0))))
+    |> Enum.filter(&Resource.loaded?(Map.get(resource, elem(&1, 0))))
     |> Enum.map_reduce(
       resource_object,
       &build_relationships(
@@ -120,7 +120,7 @@ defmodule JSONAPI.Document.ResourceObject do
     relationships = Map.put(relationships, relationship_type, relationship)
     resource_object = %__MODULE__{resource_object | relationships: relationships}
 
-    if Keyword.get(valid_includes, key) && Resource.data_loaded?(relationship_data) do
+    if Keyword.get(valid_includes, key) && Resource.loaded?(relationship_data) do
       {included_relationships, serialized_relationship} =
         do_serialize(
           relationship_view,
