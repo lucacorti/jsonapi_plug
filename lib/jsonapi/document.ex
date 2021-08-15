@@ -101,24 +101,24 @@ defmodule JSONAPI.Document do
 
   defp serialize_data(%__MODULE__{} = document, view, resources, conn, options)
        when is_list(resources) do
-    {to_include, data} =
+    {included, data} =
       Enum.map_reduce(resources, [], fn resource, resource_objects ->
-        {to_include, resource_object} = ResourceObject.serialize(view, resource, conn, options)
-        {to_include, [resource_object | resource_objects]}
+        {included, resource_object} = ResourceObject.serialize(view, resource, conn, options)
+        {included, [resource_object | resource_objects]}
       end)
 
-    add_included(%__MODULE__{document | data: data}, to_include)
+    add_included(%__MODULE__{document | data: data}, included)
   end
 
   defp serialize_data(%__MODULE__{} = document, view, resource, conn, options) do
-    {to_include, data} = ResourceObject.serialize(view, resource, conn, options)
+    {included, data} = ResourceObject.serialize(view, resource, conn, options)
 
-    add_included(%__MODULE__{document | data: data}, to_include)
+    add_included(%__MODULE__{document | data: data}, included)
   end
 
-  defp add_included(%__MODULE__{} = document, to_include) do
+  defp add_included(%__MODULE__{} = document, included) do
     included =
-      to_include
+      included
       |> List.flatten()
       |> Enum.reject(&is_nil/1)
       |> Enum.uniq()
