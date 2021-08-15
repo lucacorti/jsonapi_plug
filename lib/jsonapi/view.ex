@@ -112,7 +112,7 @@ defmodule JSONAPI.View do
   default style for presentation in names is to be underscored and not dashed.
   """
 
-  alias JSONAPI.{Document, Paginator, Resource}
+  alias JSONAPI.{Config, Document, Paginator, Resource}
   alias Plug.Conn
 
   @type t :: module()
@@ -186,11 +186,11 @@ defmodule JSONAPI.View do
       def show(model, conn, _params, meta \\ nil, options \\ []),
         do: Serializer.serialize(__MODULE__, model, conn, meta, options)
 
-      def index(models, conn, _params, meta \\ nil, options \\ []),
-        do: Document.serialize(__MODULE__, models, conn, meta, options)
+      def index(data, conn, _params, meta \\ nil, options \\ []),
+        do: Document.serialize(__MODULE__, data, conn, meta, options)
 
-      def show(model, conn, _params, meta \\ nil, options \\ []),
-        do: Document.serialize(__MODULE__, model, conn, meta, options)
+      def show(data, conn, _params, meta \\ nil, options \\ []),
+        do: Document.serialize(__MODULE__, data, conn, meta, options)
 
       if @paginator do
         def pagination_links(resource, conn, page, options),
@@ -352,7 +352,7 @@ defmodule JSONAPI.View do
     |> MapSet.to_list()
   end
 
-  defp requested_fields_for_type(view, %Conn{assigns: %{jsonapi_query: %{fields: fields}}}),
+  defp requested_fields_for_type(view, %Conn{assigns: %{jsonapi_query: %Config{fields: fields}}}),
     do: fields[view.type()]
 
   defp requested_fields_for_type(_view, _conn), do: nil

@@ -2,7 +2,7 @@ defmodule JSONAPI.ViewTest do
   use ExUnit.Case
 
   alias JSONAPI.SupportTest.{Car, Comment, Post, User}
-  alias JSONAPI.{Document, Document.ResourceObject, View}
+  alias JSONAPI.{Config, Document, Document.ResourceObject, View}
   alias Plug.Conn
 
   defmodule PostView do
@@ -213,17 +213,14 @@ defmodule JSONAPI.ViewTest do
   end
 
   test "visible_fields/2 trims returned field names to only those requested" do
-    config = %JSONAPI.Config{fields: %{PostView.type() => [:body]}}
-    conn = %Conn{assigns: %{jsonapi_query: config}}
-
+    conn = %Conn{assigns: %{jsonapi_query: %Config{fields: %{PostView.type() => [:body]}}}}
     assert [:body] = View.visible_fields(PostView, conn)
   end
 
   test "attributes/2 can return only requested fields" do
-    post = %Post{body: "Chunky", title: "Bacon"}
-    config = %JSONAPI.Config{fields: %{PostView.type() => [:body]}}
-    conn = %Conn{assigns: %{jsonapi_query: config}}
+    conn = %Conn{assigns: %{jsonapi_query: %Config{fields: %{PostView.type() => [:body]}}}}
 
-    assert %{body: "Chunky"} == View.attributes(PostView, post, conn)
+    assert %{body: "Chunky"} ==
+             View.attributes(PostView, %Post{body: "Chunky", title: "Bacon"}, conn)
   end
 end
