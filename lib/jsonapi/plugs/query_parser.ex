@@ -75,8 +75,6 @@ defmodule JSONAPI.QueryParser do
   alias JSONAPI.{Config, Exceptions.InvalidQuery}
   alias Plug.Conn
 
-  import JSONAPI.Utils.String, only: [underscore: 1]
-
   @impl Plug
   def init(opts) do
     build_config(opts)
@@ -137,8 +135,7 @@ defmodule JSONAPI.QueryParser do
         try do
           value
           |> String.split(",")
-          |> Enum.filter(&(&1 !== ""))
-          |> Enum.map(&underscore/1)
+          |> Enum.map(&JSONAPI.underscore/1)
           |> Enum.into(MapSet.new(), &String.to_existing_atom/1)
         rescue
           ArgumentError -> raise_invalid_field_names(value, config.view.type())
@@ -195,8 +192,7 @@ defmodule JSONAPI.QueryParser do
     includes =
       include
       |> String.split(",")
-      |> Enum.filter(&(&1 !== ""))
-      |> Enum.map(&underscore/1)
+      |> Enum.map(&JSONAPI.underscore/1)
       |> Enum.flat_map(fn inc ->
         if inc =~ ~r/\w+\.\w+/ do
           handle_nested_include(inc, valid_includes, config)
