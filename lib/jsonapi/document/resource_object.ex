@@ -80,6 +80,8 @@ defmodule JSONAPI.Document.ResourceObject do
   end
 
   defp serialize_relationships(resource_object, view, resource, conn, include, options) do
+    includes = get_includes(view, include)
+
     view.relationships()
     |> Enum.filter(&Resource.loaded?(Map.get(resource, elem(&1, 0))))
     |> Enum.map_reduce(
@@ -89,7 +91,7 @@ defmodule JSONAPI.Document.ResourceObject do
         view,
         resource,
         conn,
-        {include, get_includes(view, include)},
+        {include, includes},
         &1,
         options
       )
