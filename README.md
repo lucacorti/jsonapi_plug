@@ -78,7 +78,7 @@ You can now call `render(conn, MyApp.PostView, "show.json", %{data: my_data, met
 or `"index.json"` normally.
 
 If you'd like to use this without Phoenix simply use the `JSONAPI.View` and call
-`JSONAPI.Document.serialize(MyApp.PostView, data, conn, meta)`.
+`JSONAPI.View.render(MyApp.PostView, data, conn, meta)`.
 
 ## Parsing and validating a JSONAPI Request
 

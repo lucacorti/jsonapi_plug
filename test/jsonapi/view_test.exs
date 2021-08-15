@@ -74,13 +74,13 @@ defmodule JSONAPI.ViewTest do
     end
   end
 
-  describe "url_for/2 when host and scheme not configured" do
-    test "url_for/2" do
-      assert PostView.url_for(nil, nil) == "/api/posts"
-      assert PostView.url_for([], nil) == "/api/posts"
-      assert PostView.url_for(%Post{id: 1}, nil) == "/api/posts/1"
-      assert PostView.url_for([], %Conn{}) == "http://www.example.com/api/posts"
-      assert PostView.url_for(%Post{id: 1}, %Conn{}) == "http://www.example.com/api/posts/1"
+  describe "url_for/3 when host and scheme not configured" do
+    test "url_for/3" do
+      assert View.url_for(PostView, nil, nil) == "/api/posts"
+      assert View.url_for(PostView, [], nil) == "/api/posts"
+      assert View.url_for(PostView, %Post{id: 1}, nil) == "/api/posts/1"
+      assert View.url_for(PostView, [], %Conn{}) == "http://www.example.com/api/posts"
+      assert View.url_for(PostView, %Post{id: 1}, %Conn{}) == "http://www.example.com/api/posts/1"
 
       assert View.url_for_relationship(PostView, [], %Conn{}, "comments") ==
                "http://www.example.com/api/posts/relationships/comments"
@@ -90,7 +90,7 @@ defmodule JSONAPI.ViewTest do
     end
   end
 
-  describe "url_for/2 when host configured" do
+  describe "url_for/3 when host configured" do
     setup do
       Application.put_env(:jsonapi, :host, "www.otherhost.com")
 
@@ -115,7 +115,7 @@ defmodule JSONAPI.ViewTest do
     end
   end
 
-  describe "url_for/2 when scheme configured" do
+  describe "url_for/3 when scheme configured" do
     setup do
       Application.put_env(:jsonapi, :scheme, "ftp")
 
@@ -125,8 +125,8 @@ defmodule JSONAPI.ViewTest do
     end
 
     test "uses configured scheme instead of that on Conn" do
-      assert PostView.url_for([], %Conn{}) == "ftp://www.example.com/api/posts"
-      assert PostView.url_for(%Post{id: 1}, %Conn{}) == "ftp://www.example.com/api/posts/1"
+      assert View.url_for(PostView, [], %Conn{}) == "ftp://www.example.com/api/posts"
+      assert View.url_for(PostView, %Post{id: 1}, %Conn{}) == "ftp://www.example.com/api/posts/1"
 
       assert View.url_for_relationship(PostView, [], %Conn{}, "comments") ==
                "ftp://www.example.com/api/posts/relationships/comments"

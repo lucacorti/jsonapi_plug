@@ -105,7 +105,6 @@ defmodule JSONAPITest do
   defmodule MyPostPlug do
     use Plug.Builder
 
-    alias JSONAPI.Document
     alias Plug.Conn
 
     plug JSONAPI.QueryParser,
@@ -118,7 +117,7 @@ defmodule JSONAPITest do
     defp passthrough(conn, _) do
       resp =
         PostView
-        |> Document.serialize(conn.assigns[:data], conn, conn.assigns[:meta])
+        |> View.render(conn.assigns[:data], conn, conn.assigns[:meta])
         |> Jason.encode!()
 
       Conn.send_resp(conn, 200, resp)

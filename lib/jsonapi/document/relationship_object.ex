@@ -35,7 +35,7 @@ defmodule JSONAPI.Document.RelationshipObject do
   defp relationship_data(view, resource), do: %{id: view.id(resource), type: view.type()}
 
   defp serialize_links(%__MODULE__{} = relationship, view, resources, conn, url) do
-    %__MODULE__{relationship | links: %{self: url, related: view.url_for(resources, conn)}}
+    %__MODULE__{relationship | links: %{self: url, related: View.url_for(view, resources, conn)}}
   end
 
   defp serialize_meta(%__MODULE__{} = relationship, meta) when is_map(meta),

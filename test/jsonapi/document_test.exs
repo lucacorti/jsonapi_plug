@@ -249,11 +249,11 @@ defmodule JSONAPI.DocumentTest do
              links: links
            } = Document.serialize(PostView, post, conn)
 
-    assert links[:self] == PostView.url_for(post, conn)
+    assert links[:self] == View.url_for(PostView, post, conn)
 
     assert ^id = PostView.id(post)
     assert ^type = PostView.type()
-    assert ^self = PostView.url_for(post, conn)
+    assert ^self = View.url_for(PostView, post, conn)
     assert ^text = post.text
     assert ^body = post.body
 
@@ -298,7 +298,7 @@ defmodule JSONAPI.DocumentTest do
       assert attributes[:text] == post.text
       assert attributes[:body] == post.body
 
-      assert links[:self] == PostView.url_for(post, conn)
+      assert links[:self] == View.url_for(PostView, post, conn)
       assert map_size(resource.relationships) == 2
     end)
   end
@@ -331,7 +331,7 @@ defmodule JSONAPI.DocumentTest do
     assert attributes[:text] == post.text
     assert attributes[:body] == post.body
 
-    assert links[:self] == PostView.url_for(post, conn)
+    assert links[:self] == View.url_for(PostView, post, conn)
     assert map_size(relationships) == 2
 
     assert %RelationshipObject{data: []} = relationships[:best_comments]
@@ -367,7 +367,7 @@ defmodule JSONAPI.DocumentTest do
     assert attributes[:text] == post.text
     assert attributes[:body] == post.body
 
-    assert links[:self] == PostView.url_for(post, conn)
+    assert links[:self] == View.url_for(PostView, post, conn)
     assert map_size(relationships) == 1
     assert Enum.count(included) == 1
   end

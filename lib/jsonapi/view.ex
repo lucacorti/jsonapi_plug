@@ -127,7 +127,6 @@ defmodule JSONAPI.View do
   @callback path :: String.t()
   @callback relationships :: [{Resource.field(), t()}]
   @callback type :: Resource.type()
-  @callback url_for(Resource.t(), Conn.t() | nil) :: String.t()
 
   defmacro __using__(opts \\ []) do
     {resource, opts} = Keyword.pop(opts, :resource)
@@ -174,10 +173,6 @@ defmodule JSONAPI.View do
       @impl View
       def type, do: Resource.type(@resource)
 
-      @impl View
-      def url_for(resource, conn),
-        do: View.url_for(__MODULE__, resource, conn)
-
       defoverridable View
  
       def index(models, conn, _params, meta \\ nil, options \\ []),
@@ -187,10 +182,10 @@ defmodule JSONAPI.View do
         do: Serializer.serialize(__MODULE__, model, conn, meta, options)
 
       def index(data, conn, _params, meta \\ nil, options \\ []),
-        do: Document.serialize(__MODULE__, data, conn, meta, options)
+        do: View.render(__MODULE__, data, conn, meta, options)
 
       def show(data, conn, _params, meta \\ nil, options \\ []),
-        do: Document.serialize(__MODULE__, data, conn, meta, options)
+        do: View.render(__MODULE__, data, conn, meta, options)
 
       if @paginator do
         def pagination_links(resource, conn, page, options),
@@ -210,16 +205,16 @@ defmodule JSONAPI.View do
 
       if Code.ensure_loaded?(Phoenix) do
         def render("show.json", %{data: resource, conn: conn, meta: meta}),
-          do: Document.serialize(__MODULE__, resource, conn, meta)
+          do: View.render(__MODULE__, resource, conn, meta)
 
         def render("show.json", %{data: resource, conn: conn}),
-          do: Document.serialize(__MODULE__, resource, conn)
+          do: View.render(__MODULE__, resource, conn)
 
         def render("index.json", %{data: resource, conn: conn, meta: meta}),
-          do: Document.serialize(__MODULE__, resource, conn, meta)
+          do: View.render(__MODULE__, resource, conn, meta)
 
         def render("index.json", %{data: resource, conn: conn}),
-          do: Document.serialize(__MODULE__, resource, conn)
+          do: View.render(__MODULE__, resource, conn)
       else
         raise ArgumentError,
               "Attempted to call function that depends on Phoenix. " <>
@@ -325,6 +320,23 @@ defmodule JSONAPI.View do
     url_for_pagination(view, resources, %Conn{conn | query_params: query_params}, nil)
   end
 
+  @spec render(
+          t(),
+          data() | nil,
+          Conn.t() | nil,
+          Document.meta() | nil,
+          options()
+        ) :: Document.t()
+  def render(view, data, conn \\ nil, meta \\ nil, options \\ []),
+    do: Document.serialize(view, data, conn, meta, options)
+
+  @spec visible_fields(t(), Conn.t() | nil) :: [Resource.field()]
+  def visible_fields(view, conn) do
+    view
+    |> requested_fields_for_type(conn)
+    |> net_fields_for_type(view.attributes())
+  end
+
   defp prepare_url(view, resources, conn, "" = _query), do: url_for(view, resources, conn)
 
   defp prepare_url(view, resources, conn, query) do
@@ -333,13 +345,6 @@ defmodule JSONAPI.View do
     |> URI.parse()
     |> struct(query: query)
     |> URI.to_string()
-  end
-
-  @spec visible_fields(t(), Conn.t() | nil) :: [Resource.field()]
-  def visible_fields(view, conn) do
-    view
-    |> requested_fields_for_type(conn)
-    |> net_fields_for_type(view.attributes())
   end
 
   defp net_fields_for_type(requested_fields, fields) when requested_fields in [nil, %{}],

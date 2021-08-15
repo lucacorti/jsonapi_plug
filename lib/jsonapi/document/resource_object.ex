@@ -67,7 +67,7 @@ defmodule JSONAPI.Document.ResourceObject do
     links =
       resource
       |> view.links(conn)
-      |> Map.merge(%{self: view.url_for(resource, conn)})
+      |> Map.merge(%{self: View.url_for(view, resource, conn)})
 
     %__MODULE__{resource_object | links: links}
   end
