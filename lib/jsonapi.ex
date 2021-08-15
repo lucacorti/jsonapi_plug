@@ -126,4 +126,113 @@ defmodule JSONAPI do
 
   defp camelize_list([]), do: []
   defp camelize_list([h | t]), do: [String.capitalize(h) | camelize_list(t)]
+
+  @doc """
+  iex> expand_fields(%{"foo-bar" => "baz"}, &underscore/1)
+  %{"foo_bar" => "baz"}
+
+  iex> expand_fields(%{"foo_bar" => "baz"}, &dasherize/1)
+  %{"foo-bar" => "baz"}
+
+  iex> expand_fields(%{"foo-bar" => "baz"}, &camelize/1)
+  %{"fooBar" => "baz"}
+
+  iex> expand_fields({"foo-bar", "dollar-sol"}, &underscore/1)
+  {"foo_bar", "dollar-sol"}
+
+  iex> expand_fields({"foo-bar", %{"a-d" => "z-8"}}, &underscore/1)
+  {"foo_bar", %{"a_d" => "z-8"}}
+
+  iex> expand_fields(%{"f-b" => %{"a-d" => "z"}, "c-d" => "e"}, &underscore/1)
+  %{"f_b" => %{"a_d" => "z"}, "c_d" => "e"}
+
+  iex> expand_fields(%{"f-b" => %{"a-d" => %{"z-w" => "z"}}, "c-d" => "e"}, &underscore/1)
+  %{"f_b" => %{"a_d" => %{"z_w" => "z"}}, "c_d" => "e"}
+
+  iex> expand_fields(:"foo-bar", &underscore/1)
+  "foo_bar"
+
+  iex> expand_fields(:foo_bar, &dasherize/1)
+  "foo-bar"
+
+  iex> expand_fields(:"foo-bar", &camelize/1)
+  "fooBar"
+
+  iex> expand_fields(%{"f-b" => "a-d"}, &underscore/1)
+  %{"f_b" => "a-d"}
+
+  iex> expand_fields(%{"inserted-at" => ~N[2019-01-17 03:27:24.776957]}, &underscore/1)
+  %{"inserted_at" => ~N[2019-01-17 03:27:24.776957]}
+
+  iex> expand_fields(%{"xValue" => 123}, &underscore/1)
+  %{"x_value" => 123}
+
+  iex> expand_fields(%{"attributes" => %{"corgiName" => "Wardel"}}, &underscore/1)
+  %{"attributes" => %{"corgi_name" => "Wardel"}}
+
+  iex> expand_fields(%{"attributes" => %{"corgiName" => ["Wardel"]}}, &underscore/1)
+  %{"attributes" => %{"corgi_name" => ["Wardel"]}}
+
+  iex> expand_fields(%{"attributes" => %{"someField" => ["SomeValue", %{"nestedField" => "Value"}]}}, &underscore/1)
+  %{"attributes" => %{"some_field" => ["SomeValue", %{"nested_field" => "Value"}]}}
+
+  iex> expand_fields([%{"fooBar" => "a"}, %{"fooBar" => "b"}], &underscore/1)
+  [%{"foo_bar" => "a"}, %{"foo_bar" => "b"}]
+
+  iex> expand_fields([%{"foo_bar" => "a"}, %{"foo_bar" => "b"}], &camelize/1)
+  [%{"fooBar" => "a"}, %{"fooBar" => "b"}]
+
+  iex> expand_fields(%{"fooAttributes" => [%{"fooBar" => "a"}, %{"fooBar" => "b"}]}, &underscore/1)
+  %{"foo_attributes" => [%{"foo_bar" => "a"}, %{"foo_bar" => "b"}]}
+
+  iex> expand_fields(%{"foo_attributes" => [%{"foo_bar" => "a"}, %{"foo_bar" => "b"}]}, &camelize/1)
+  %{"fooAttributes" => [%{"fooBar" => "a"}, %{"fooBar" => "b"}]}
+
+  iex> expand_fields(%{"foo_attributes" => [%{"foo_bar" => [1, 2]}]}, &camelize/1)
+  %{"fooAttributes" => [%{"fooBar" => [1, 2]}]}
+  """
+  @spec expand_fields(String.t() | atom() | tuple() | map() | list(), function()) :: tuple
+  def expand_fields(%{__struct__: _} = value, _fun), do: value
+
+  def expand_fields(map, fun) when is_map(map) do
+    Enum.into(map, %{}, &expand_fields(&1, fun))
+  end
+
+  def expand_fields(values, fun) when is_list(values) do
+    Enum.map(values, &expand_fields(&1, fun))
+  end
+
+  def expand_fields({key, value}, fun) when is_map(value) do
+    {fun.(key), expand_fields(value, fun)}
+  end
+
+  def expand_fields({key, values}, fun) when is_list(values) do
+    {
+      fun.(key),
+      Enum.map(values, fn
+        string when is_binary(string) -> string
+        value -> expand_fields(value, fun)
+      end)
+    }
+  end
+
+  def expand_fields({key, value}, fun) do
+    {fun.(key), value}
+  end
+
+  def expand_fields(value, fun) when is_binary(value) or is_atom(value) do
+    fun.(value)
+  end
+
+  def expand_fields(value, _fun) do
+    value
+  end
+
+  def transform_fields(fields) do
+    case Application.get_env(:jsonapi, :field_transformation) do
+      :camelize -> expand_fields(fields, &camelize/1)
+      :dasherize -> expand_fields(fields, &dasherize/1)
+      _ -> fields
+    end
+  end
 end

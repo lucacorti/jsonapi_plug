@@ -47,7 +47,6 @@ defmodule JSONAPI.Deserializer do
       plug JSONAPI.UnderscoreParameters
   """
 
-  alias JSONAPI.View
   alias Plug.Conn
 
   @spec init(Keyword.t()) :: Keyword.t()
@@ -111,17 +110,17 @@ defmodule JSONAPI.Deserializer do
   defp process_relationships(data), do: data
 
   defp transform_relationship({relationship, %{"data" => nil}}, acc),
-    do: Map.put(acc, View.transform_fields("#{relationship}-id"), nil)
+    do: Map.put(acc, JSONAPI.transform_fields("#{relationship}-id"), nil)
 
   defp transform_relationship({relationship, %{"data" => %{"id" => id}}}, acc),
-    do: Map.put(acc, View.transform_fields("#{relationship}-id"), id)
+    do: Map.put(acc, JSONAPI.transform_fields("#{relationship}-id"), id)
 
   defp transform_relationship({_relationship, %{"data" => data}}, acc) when is_list(data) do
     Enum.reduce(data, acc, fn %{"id" => id, "type" => type}, inner_acc ->
       {_val, new_map} =
         Map.get_and_update(
           inner_acc,
-          View.transform_fields("#{type}-id"),
+          JSONAPI.transform_fields("#{type}-id"),
           &update_list_relationship(&1, id)
         )
 

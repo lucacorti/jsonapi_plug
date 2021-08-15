@@ -58,7 +58,7 @@ defmodule JSONAPI.Document.ResourceObject do
     attributes =
       view
       |> View.attributes(resource, conn)
-      |> View.transform_fields()
+      |> JSONAPI.transform_fields()
 
     %__MODULE__{resource_object | attributes: attributes}
   end
@@ -106,7 +106,7 @@ defmodule JSONAPI.Document.ResourceObject do
          options
        ) do
     relationship_data = Map.get(resource, key)
-    relationship_type = View.transform_fields(key)
+    relationship_type = JSONAPI.transform_fields(key)
     relationship_url = View.url_for_relationship(view, resource, conn, relationship_type)
 
     relationship =
