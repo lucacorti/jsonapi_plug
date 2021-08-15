@@ -112,7 +112,7 @@ defmodule JSONAPI.View do
   default style for presentation in names is to be underscored and not dashed.
   """
 
-  alias JSONAPI.{Document, Paginator, Resource}
+  alias JSONAPI.{Document, Paginator, Resource, Utils}
   alias Plug.Conn
 
   @type t :: module()
@@ -333,6 +333,14 @@ defmodule JSONAPI.View do
     |> URI.parse()
     |> struct(query: query)
     |> URI.to_string()
+  end
+
+  def transform_fields(fields) do
+    case Application.get_env(:jsonapi, :field_transformation) do
+      :camelize -> Utils.String.expand_fields(fields, &Utils.String.camelize/1)
+      :dasherize -> Utils.String.expand_fields(fields, &Utils.String.dasherize/1)
+      _ -> fields
+    end
   end
 
   @spec visible_fields(t(), Conn.t() | nil) :: [Resource.field()]

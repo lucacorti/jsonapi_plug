@@ -5,7 +5,7 @@ defmodule JSONAPI.Document.ResourceObject do
   https://jsonapi.org/format/#resource_object-resource-objects
   """
 
-  alias JSONAPI.{Config, Document, Document.RelationshipObject, Resource, Utils, View}
+  alias JSONAPI.{Config, Document, Document.RelationshipObject, Resource, View}
   alias Plug.Conn
 
   @type field :: atom()
@@ -58,7 +58,7 @@ defmodule JSONAPI.Document.ResourceObject do
     attributes =
       view
       |> View.attributes(resource, conn)
-      |> transform_fields()
+      |> View.transform_fields()
 
     %__MODULE__{resource_object | attributes: attributes}
   end
@@ -106,7 +106,7 @@ defmodule JSONAPI.Document.ResourceObject do
          options
        ) do
     relationship_data = Map.get(resource, key)
-    relationship_type = transform_fields(key)
+    relationship_type = View.transform_fields(key)
     relationship_url = View.url_for_relationship(view, resource, conn, relationship_type)
 
     relationship =
@@ -159,16 +159,8 @@ defmodule JSONAPI.Document.ResourceObject do
     |> Enum.uniq()
   end
 
-  defp transform_fields(fields) do
-    case Application.get_env(:jsonapi, :field_transformation) do
-      :camelize -> Utils.String.expand_fields(fields, &Utils.String.camelize/1)
-      :dasherize -> Utils.String.expand_fields(fields, &Utils.String.dasherize/1)
-      _ -> fields
-    end
-  end
-
-  @spec deserialize(View.t(), Document.payload()) :: t()
+  @spec deserialize(View.t(), Document.payload()) :: {:ok, t()} | {:error, :invalid}
   def deserialize(_view, _payload) do
-    %__MODULE__{id: "0", type: "a"}
+    {:ok, %__MODULE__{id: "0", type: "a"}}
   end
 end

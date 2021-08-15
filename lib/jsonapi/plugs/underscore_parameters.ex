@@ -59,7 +59,7 @@ defmodule JSONAPI.UnderscoreParameters do
   @doc false
   def call(%Conn{params: params} = conn, _opts) do
     if JSONAPI.mime_type() in Conn.get_req_header(conn, "content-type") do
-      Map.put(conn, :params, Utils.String.expand_fields(params, &Utils.String.underscore/1))
+      %Conn{conn | params: Utils.String.expand_fields(params, &Utils.String.underscore/1)}
     else
       conn
     end

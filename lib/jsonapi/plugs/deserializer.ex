@@ -47,7 +47,7 @@ defmodule JSONAPI.Deserializer do
       plug JSONAPI.UnderscoreParameters
   """
 
-  alias JSONAPI.Utils
+  alias JSONAPI.View
   alias Plug.Conn
 
   @spec init(Keyword.t()) :: Keyword.t()
@@ -111,11 +111,11 @@ defmodule JSONAPI.Deserializer do
   defp process_relationships(data), do: data
 
   defp transform_relationship({relationship, %{"data" => nil}}, acc) do
-    Map.put(acc, transform_fields("#{relationship}-id"), nil)
+    Map.put(acc, View.transform_fields("#{relationship}-id"), nil)
   end
 
   defp transform_relationship({relationship, %{"data" => %{"id" => id}}}, acc) do
-    Map.put(acc, transform_fields("#{relationship}-id"), id)
+    Map.put(acc, View.transform_fields("#{relationship}-id"), id)
   end
 
   defp transform_relationship({_relationship, %{"data" => data}}, acc) when is_list(data) do
@@ -123,7 +123,7 @@ defmodule JSONAPI.Deserializer do
       {_val, new_map} =
         Map.get_and_update(
           inner_acc,
-          transform_fields("#{type}-id"),
+          View.transform_fields("#{type}-id"),
           &update_list_relationship(&1, id)
         )
 
@@ -152,12 +152,4 @@ defmodule JSONAPI.Deserializer do
   end
 
   defp process_included(incoming), do: incoming
-
-  defp transform_fields(fields) do
-    case Application.get_env(:jsonapi, :field_transformation) do
-      :camelize -> Utils.String.expand_fields(fields, &Utils.String.camelize/1)
-      :dasherize -> Utils.String.expand_fields(fields, &Utils.String.dasherize/1)
-      _ -> fields
-    end
-  end
 end
