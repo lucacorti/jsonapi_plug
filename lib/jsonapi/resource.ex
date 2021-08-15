@@ -6,7 +6,7 @@ defmodule JSONAPI.Resource do
   protocols to provide Resource related functionality.
   """
 
-  alias JSONAPI.{Resource.Identifiable, Resource.Serializable, View}
+  alias JSONAPI.{Resource.Identifiable, Resource.Loadable, Resource.Serializable, View}
 
   @typedoc "Resource"
   @type t :: struct()
@@ -71,7 +71,5 @@ defmodule JSONAPI.Resource do
   Returns a boolean indicating wether the given Resource is loaded
   """
   @spec loaded?(t()) :: boolean()
-  def loaded?(nil), do: false
-  def loaded?(%{__struct__: Ecto.Association.NotLoaded}), do: false
-  def loaded?(association) when is_map(association) or is_list(association), do: true
+  def loaded?(resource), do: Loadable.loaded?(resource)
 end
