@@ -114,15 +114,11 @@ defmodule JSONAPI.QueryParser do
     opts_filter = Keyword.get(opts, :filter, [])
 
     Enum.reduce(filter, config, fn {key, val}, config ->
-      check_filter_validity!(opts_filter, key, config)
-      %Config{config | filter: Keyword.put(config.filter, String.to_atom(key), val)}
+      unless key in opts_filter do
+        raise InvalidQuery, resource: config.view.type(), param: key, param_type: :filter
+      end
+      %Config{config | filter: Keyword.put(config.filter, String.to_existing_atom(key), val)}
     end)
-  end
-
-  defp check_filter_validity!(filters, key, config) do
-    unless key in filters do
-      raise InvalidQuery, resource: config.view.type(), param: key, param_type: :filter
-    end
   end
 
   @spec parse_fields(Config.t(), Config.t()) :: Config.t() | no_return()
@@ -182,7 +178,7 @@ defmodule JSONAPI.QueryParser do
           raise InvalidQuery, resource: config.view.type(), param: field, param_type: :sort
         end
 
-        build_sort(direction, String.to_atom(field))
+        build_sort(direction, String.to_existing_atom(field))
       end)
       |> List.flatten()
 
