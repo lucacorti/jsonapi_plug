@@ -117,6 +117,7 @@ defmodule JSONAPI.QueryParser do
       unless key in opts_filter do
         raise InvalidQuery, resource: config.view.type(), param: key, param_type: :filter
       end
+
       %Config{config | filter: Keyword.put(config.filter, String.to_existing_atom(key), val)}
     end)
   end
