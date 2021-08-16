@@ -77,12 +77,13 @@ defmodule JSONAPI.QueryParser do
 
   @impl Plug
   def init(opts) do
-    build_config(opts)
+    view = Keyword.fetch!(opts, :view)
+    struct(Config, opts: opts, view: view)
   end
 
   @impl Plug
   def call(conn, opts) do
-    query_params_config_struct =
+    config =
       conn
       |> Conn.fetch_query_params()
       |> Map.get(:query_params)
@@ -90,28 +91,31 @@ defmodule JSONAPI.QueryParser do
 
     config =
       opts
-      |> parse_fields(query_params_config_struct.fields)
-      |> parse_include(query_params_config_struct.include)
-      |> parse_filter(query_params_config_struct.filter)
-      |> parse_sort(query_params_config_struct.sort)
-      |> parse_pagination(query_params_config_struct.page)
+      |> parse_fields(config)
+      |> parse_include(config)
+      |> parse_filter(config)
+      |> parse_sort(config)
+      |> parse_pagination(config)
 
     Conn.assign(conn, :jsonapi_query, config)
   end
 
-  def parse_pagination(config, map) when map_size(map) == 0, do: config
+  @spec parse_pagination(Config.t(), Config.t()) :: Config.t()
+  def parse_pagination(config, %Config{page: page}) when map_size(page) == 0,
+    do: config
 
-  def parse_pagination(%Config{} = config, page), do: Map.put(config, :page, page)
+  def parse_pagination(%Config{} = config, %Config{page: page}),
+    do: %Config{config | page: page}
 
-  @spec parse_filter(Config.t(), keyword()) :: Config.t()
-  def parse_filter(config, map) when map_size(map) == 0, do: config
+  @spec parse_filter(Config.t(), Config.t()) :: Config.t()
+  def parse_filter(config, %Config{filter: filter}) when map_size(filter) == 0, do: config
 
-  def parse_filter(%Config{opts: opts} = config, filter) do
+  def parse_filter(%Config{opts: opts} = config, %Config{filter: filter}) do
     opts_filter = Keyword.get(opts, :filter, [])
 
-    Enum.reduce(filter, config, fn {key, val}, acc ->
+    Enum.reduce(filter, config, fn {key, val}, config ->
       check_filter_validity!(opts_filter, key, config)
-      %{acc | filter: Keyword.put(acc.filter, String.to_atom(key), val)}
+      %Config{config | filter: Keyword.put(config.filter, String.to_atom(key), val)}
     end)
   end
 
@@ -121,11 +125,12 @@ defmodule JSONAPI.QueryParser do
     end
   end
 
-  @spec parse_fields(Config.t(), map()) :: Config.t() | no_return()
-  def parse_fields(%Config{} = config, fields) when fields == %{}, do: config
+  @spec parse_fields(Config.t(), Config.t()) :: Config.t() | no_return()
+  def parse_fields(%Config{} = config, %Config{fields: fields}) when fields == %{},
+    do: config
 
-  def parse_fields(%Config{} = config, fields) do
-    Enum.reduce(fields, config, fn {type, value}, acc ->
+  def parse_fields(%Config{} = config, %Config{fields: fields}) do
+    Enum.reduce(fields, config, fn {type, value}, config ->
       valid_fields =
         config
         |> get_valid_fields_for_type(type)
@@ -157,14 +162,17 @@ defmodule JSONAPI.QueryParser do
         _ ->
           %{acc | fields: Map.put(acc.fields, type, MapSet.to_list(requested_fields))}
       end
+
+      %Config{config | fields: Map.put(config.fields, type, MapSet.to_list(requested_fields))}
     end)
   end
 
-  def parse_sort(config, nil), do: config
+  @spec parse_sort(Config.t(), Config.t()) :: Config.t()
+  def parse_sort(config, %Config{sort: nil}), do: config
 
-  def parse_sort(%Config{opts: opts} = config, sort_fields) do
-    sorts =
-      sort_fields
+  def parse_sort(%Config{opts: opts} = config, %Config{sort: sort}) do
+    sort =
+      sort
       |> String.split(",")
       |> Enum.map(fn field ->
         valid_sort = Keyword.get(opts, :sort, [])
@@ -178,15 +186,16 @@ defmodule JSONAPI.QueryParser do
       end)
       |> List.flatten()
 
-    %{config | sort: sorts}
+    %Config{config | sort: sort}
   end
 
-  def build_sort("", field), do: [asc: field]
-  def build_sort("-", field), do: [desc: field]
+  defp build_sort("", field), do: [asc: field]
+  defp build_sort("-", field), do: [desc: field]
 
-  def parse_include(config, []), do: config
+  @spec parse_include(Config.t(), Config.t()) :: Config.t()
+  def parse_include(config, %Config{include: []}), do: config
 
-  def parse_include(%Config{view: view} = config, include) do
+  def parse_include(%Config{view: view} = config, %Config{include: include}) do
     valid_includes = view.relationships()
 
     includes =
@@ -263,11 +272,6 @@ defmodule JSONAPI.QueryParser do
   @spec raise_invalid_field_names(String.t(), String.t()) :: no_return()
   defp raise_invalid_field_names(bad_fields, resource_type) do
     raise InvalidQuery, resource: resource_type, param: bad_fields, param_type: :fields
-  end
-
-  defp build_config(opts) do
-    view = Keyword.fetch!(opts, :view)
-    struct(Config, opts: opts, view: view)
   end
 
   defp struct_from_map(params, struct) do
