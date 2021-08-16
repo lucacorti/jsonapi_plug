@@ -224,8 +224,7 @@ defmodule JSONAPI.QueryParser do
     %Config{config | include: includes}
   end
 
-  @spec handle_nested_include(String.t(), list(), Config.t()) :: list() | no_return()
-  def handle_nested_include(key, valid_include, config) do
+  defp handle_nested_include(key, valid_include, config) do
     keys =
       try do
         key
