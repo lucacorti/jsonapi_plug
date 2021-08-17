@@ -72,7 +72,7 @@ defmodule JSONAPI.QueryParser do
 
   @behaviour Plug
 
-  alias JSONAPI.{Config, Exceptions.InvalidQuery, View}
+  alias JSONAPI.{Config, Exceptions.InvalidQuery}
   alias Plug.Conn
 
   @impl Plug
