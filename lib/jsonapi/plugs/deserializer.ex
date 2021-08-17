@@ -53,7 +53,7 @@ defmodule JSONAPI.Deserializer do
   def init(opts), do: opts
 
   @spec call(Conn.t(), Keyword.t()) :: Conn.t()
-  def call(conn, _opts) do
+  def call(%Conn{} = conn, _opts) do
     content_type = Conn.get_req_header(conn, "content-type")
 
     if JSONAPI.mime_type() in content_type do
