@@ -43,33 +43,32 @@ defp deps do [
 
 ### Usage
 
-Simply add `use JSONAPI.View` either to the top of your view, or to the web.ex view section and add the
-proper functions to your view like so.
+Simply add `use JSONAPI.View` either to the top of your view, or to the web.ex view section and add the proper functions to your view like so.
 
 ```elixir
 defmodule MyApp.PostView do
-  use JSONAPI.View, type: "posts"
+  use JSONAPI.View, resource: Post
 
   @impl JSONAPI.View
-  def attributes, do: [:text, :body, :excerpt]
+  def attributes(_resource), do: [:text, :body, :excerpt]
 
   @impl JSONAPI.View
-  def meta(data, _conn) do
+  def meta(resource, _conn) do
     # this will add meta to each record
     # To add meta as a top level property, pass as argument to render function (shown below)
-    %{meta_text: "meta_#{data[:text]}"}
+    %{meta_text: "meta_#{resource.text}"}
   end
 
   @impl JSONAPI.View
-  def relationships do
+  def relationships(_resource) do
     [
       author: MyApp.UserView,
       comments: MyApp.CommentView
     ]
   end
 
-  def excerpt(post, _conn) do
-    String.slice(post.body, 0..5)
+  def excerpt(resource, _conn) do
+    String.slice(resource.body, 0..5)
   end
 end
 ```
@@ -77,7 +76,7 @@ end
 You can now call `render(conn, MyApp.PostView, "show.json", %{data: my_data, meta: meta})`
 or `"index.json"` normally.
 
-If you'd like to use this without Phoenix simply use the `JSONAPI.View` and call
+If you'd like to use this without Phoenix simply `use JSONAPI.View` and call
 `JSONAPI.View.render(MyApp.PostView, data, conn, meta)`.
 
 ## Parsing and validating a JSONAPI Request

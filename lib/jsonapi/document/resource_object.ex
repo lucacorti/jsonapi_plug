@@ -57,7 +57,7 @@ defmodule JSONAPI.Document.ResourceObject do
   defp serialize_attributes(%__MODULE__{} = resource_object, view, resource, conn) do
     attributes =
       view
-      |> View.attributes(resource, conn)
+      |> View.render_attributes(resource, conn)
       |> JSONAPI.transform_fields()
 
     %__MODULE__{resource_object | attributes: attributes}
@@ -80,9 +80,9 @@ defmodule JSONAPI.Document.ResourceObject do
   end
 
   defp serialize_relationships(resource_object, view, resource, conn, include, options) do
-    includes = get_includes(view, include)
+    includes = get_includes(view, resource, include)
 
-    view.relationships()
+    view.relationships(resource)
     |> Enum.filter(&Resource.loaded?(Map.get(resource, elem(&1, 0))))
     |> Enum.map_reduce(
       resource_object,
@@ -104,31 +104,31 @@ defmodule JSONAPI.Document.ResourceObject do
          resource,
          conn,
          {include, valid_includes},
-         {key, relationship_view},
+         {relationship_name, relationship_view},
          options
        ) do
-    relationship_data = Map.get(resource, key)
-    relationship_type = JSONAPI.transform_fields(key)
+    relationship = Map.get(resource, relationship_name)
+    relationship_type = JSONAPI.transform_fields(relationship_name)
     relationship_url = View.url_for_relationship(view, resource, conn, relationship_type)
 
-    relationship =
+    relationship_object =
       RelationshipObject.serialize(
         relationship_view,
-        relationship_data,
+        relationship,
         conn,
         relationship_url
       )
 
-    relationships = Map.put(relationships, relationship_type, relationship)
+    relationships = Map.put(relationships, relationship_type, relationship_object)
     resource_object = %__MODULE__{resource_object | relationships: relationships}
 
-    if Keyword.get(valid_includes, key) && Resource.loaded?(relationship_data) do
+    if Keyword.get(valid_includes, relationship_name) && Resource.loaded?(relationship) do
       {included_relationships, serialized_relationship} =
         do_serialize(
           relationship_view,
-          relationship_data,
+          relationship,
           conn,
-          get_relationship_includes(include, key),
+          get_relationship_includes(include, relationship_name),
           options
         )
 
@@ -138,10 +138,10 @@ defmodule JSONAPI.Document.ResourceObject do
     end
   end
 
-  defp get_relationship_includes(include, key) when is_list(include) do
+  defp get_relationship_includes(include, relationship_name) when is_list(include) do
     include
     |> Enum.flat_map(fn
-      {^key, value} -> [value]
+      {^relationship_name, value} -> [value]
       _ -> []
     end)
     |> List.flatten()
@@ -149,8 +149,8 @@ defmodule JSONAPI.Document.ResourceObject do
 
   defp get_relationship_includes(_include, _key), do: []
 
-  defp get_includes(view, query_includes) do
-    relationships = view.relationships()
+  defp get_includes(view, resource, query_includes) do
+    relationships = view.relationships(resource)
 
     query_includes
     |> Enum.map(fn

@@ -55,7 +55,7 @@ defmodule JSONAPI.Document do
 
   https://jsonapi.org/format/#document-meta
   """
-  @type meta :: %{String.t() => value()}
+  @type meta :: %{atom() => value()}
 
   @typedoc """
   Links
@@ -140,7 +140,7 @@ defmodule JSONAPI.Document do
     links =
       resources
       |> view.links(conn)
-      |> Map.merge(view.pagination_links(resources, conn, config.page, options))
+      |> Map.merge(View.pagination_links(view, resources, conn, config.page, options))
       |> Map.merge(%{self: View.url_for_pagination(view, resources, conn, config.page)})
 
     %__MODULE__{document | links: links}
@@ -225,6 +225,7 @@ defmodule JSONAPI.Document do
       |> Enum.reject(fn
         {_key, nil} -> true
         {_key, []} -> true
+        {_key, %{} = map} when map_size(map) == 0 -> true
         _ -> false
       end)
       |> Enum.into(%{})

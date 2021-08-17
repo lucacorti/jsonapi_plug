@@ -5,6 +5,7 @@ defmodule JSONAPI.Resource.NotLoaded do
 
   alias JSONAPI.Resource
 
-  @type t :: %__MODULE__{type: Resource.type()}
-  defstruct [:type]
+  @type t :: %__MODULE__{id: Resource.id(), type: Resource.type()}
+  @enforce_keys [:id, :type]
+  defstruct [:id, :type]
 end

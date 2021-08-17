@@ -7,13 +7,13 @@ defmodule JSONAPI.View do
         use JSONAPI.View, resource: Post
 
         @impl JSONAPI.View
-        def attributes, do: [:id, :text, :body]
+        def attributes(_resource), do: [:id, :text, :body]
 
         @impl JSONAPI.View
         def type, do: "post"
 
         @impl JSONAPI.View
-        def relationships do
+        def relationships(_resource) do
           [author: UserView,
            comments: CommentView]
         end
@@ -23,26 +23,26 @@ defmodule JSONAPI.View do
         use JSONAPI.View, resource: User
 
         @impl JSONAPI.View
-        def attributes, do: [:id, :username]
+        def attributes(_resource), do: [:id, :username]
 
         @impl JSONAPI.View
         def type, do: "user"
 
         @impl JSONAPI.View
-        def relationships, do: []
+        def relationships(_resource), do: []
       end
 
       defmodule CommentView do
         use JSONAPI.View, resource: Comment
 
         @impl JSONAPI.View
-        def attributes, do: [:id, :text]
+        def attributes(_resource), do: [:id, :text]
 
         @impl JSONAPI.View
         def type, do: "comment"
 
         @impl JSONAPI.View
-        def relationships, do: [user: UserView]
+        def relationships(_resource), do: [user: UserView]
       end
 
       defmodule DogView do
@@ -63,13 +63,13 @@ defmodule JSONAPI.View do
         use JSONAPI.View, resource: User
 
         @impl JSONAPI.View
-        def attributes, do: [:id, :username, :fullname]
+        def attributes(_resource), do: [:id, :username, :fullname]
 
         @impl JSONAPI.View
         def type, do: "user"
 
         @impl JSONAPI.View
-        def relationships, do: []
+        def relationships(_resource), do: []
 
         def fullname(resource, conn), do: "fullname"
       end
@@ -120,12 +120,10 @@ defmodule JSONAPI.View do
   @type data :: Resource.t() | [Resource.t()]
 
   @callback id(Resource.t()) :: Resource.id()
-  @callback attributes :: [Resource.field()]
+  @callback attributes(Resource.t) :: [Resource.field()]
   @callback links(Resource.t(), Conn.t() | nil) :: Document.links()
   @callback meta(Resource.t(), Conn.t() | nil) :: Document.meta()
-  @callback namespace :: String.t()
-  @callback path :: String.t()
-  @callback relationships :: [{Resource.field(), t()}]
+  @callback relationships(Resource.t()) :: [{Resource.field(), t()}]
   @callback type :: Resource.type()
 
   defmacro __using__(opts \\ []) do
@@ -139,35 +137,25 @@ defmodule JSONAPI.View do
 
       @behaviour View
 
-      @resource struct(unquote(resource))
       @namespace unquote(namespace)
-      @path unquote(path)
       @paginator unquote(paginator)
+      @path unquote(path)
+      @resource struct(unquote(resource))
 
       @impl View
       def id(resource), do: Resource.id(resource)
 
       @impl View
-      def attributes, do: Resource.attributes(@resource)
+      def attributes(_resource), do: Resource.attributes(@resource)
 
       @impl View
       def links(_resource, _conn), do: %{}
 
       @impl View
-      def meta(_resource, _conn), do: nil
+      def meta(_resource, _conn), do: %{}
 
       @impl View
-      if @namespace do
-        def namespace, do: @namespace
-      else
-        def namespace, do: Application.get_env(:jsonapi, :namespace, "")
-      end
-
-      @impl View
-      def path, do: @path
-
-      @impl View
-      def relationships,
+      def relationships(_resource),
         do: Enum.concat(Resource.has_one(@resource), Resource.has_many(@resource))
 
       @impl View
@@ -181,27 +169,17 @@ defmodule JSONAPI.View do
       def show(model, conn, _params, meta \\ nil, options \\ []),
         do: Serializer.serialize(__MODULE__, model, conn, meta, options)
 
+      def __namespace__, do: @namespace
+      def __paginator__, do: @paginator
+      def __path__, do: @path
+      def __resource__, do: @resource
+      def __type__, do: @type
+
       def index(data, conn, _params, meta \\ nil, options \\ []),
         do: View.render(__MODULE__, data, conn, meta, options)
 
       def show(data, conn, _params, meta \\ nil, options \\ []),
         do: View.render(__MODULE__, data, conn, meta, options)
-
-      if @paginator do
-        def pagination_links(resource, conn, page, options),
-          do: View.pagination_links(__MODULE__, resource, conn, page, @paginator, options)
-      else
-        def pagination_links(resource, conn, page, options),
-          do:
-            View.pagination_links(
-              __MODULE__,
-              resource,
-              conn,
-              page,
-              Application.get_env(:jsonapi, :paginator),
-              options
-            )
-      end
 
       if Code.ensure_loaded?(Phoenix) do
         def render("show.json", %{data: resource, conn: conn, meta: meta}),
@@ -223,12 +201,12 @@ defmodule JSONAPI.View do
     end
   end
 
-  @spec attributes(t(), Resource.t(), Conn.t() | nil) :: %{
+  @spec render_attributes(t(), Resource.t(), Conn.t() | nil) :: %{
           Resource.field() => Document.value()
         }
-  def attributes(view, resource, conn) do
+  def render_attributes(view, resource, conn) do
     view
-    |> visible_fields(conn)
+    |> visible_fields(resource, conn)
     |> Enum.reduce(%{}, fn field, attributes ->
       value =
         if function_exported?(view, field, 2) do
@@ -241,15 +219,15 @@ defmodule JSONAPI.View do
     end)
   end
 
-  @spec pagination_links(
-          t(),
-          [Resource.t()],
-          Conn.t() | nil,
-          Paginator.params(),
-          Paginator.t(),
-          options()
-        ) :: Document.links()
-  def pagination_links(view, resources, conn, page, paginator, options) do
+  @spec namespace(t()) :: String.t()
+  def namespace(view), do: view.__namespace__() || Application.get_env(:jsonapi, :namespace, "")
+
+  @spec paginator(t()) :: Paginator.t() | nil
+  def paginator(view), do: view.__paginator__() || Application.get_env(:jsonapi, :paginator)
+
+  @spec pagination_links(t(), [Resource.t()], Conn.t() | nil, Paginator.params(), options()) :: Document.links()
+  def pagination_links(view, resources, conn, page, options) do
+    paginator = paginator(view)
     if Code.ensure_loaded?(paginator) && function_exported?(paginator, :paginate, 5) do
       paginator.paginate(view, resources, conn, page, options)
     else
@@ -257,13 +235,19 @@ defmodule JSONAPI.View do
     end
   end
 
+  @spec path(t()) :: String.t()
+  def path(view), do: view.__path__() || view.type()
+
+  @spec type(t()) :: Resource.type()
+  def type(view), do: view.type()
+
   @spec url_for(t(), data() | nil, Conn.t() | nil) :: String.t()
   def url_for(view, resource, nil = _conn) when is_nil(resource) or is_list(resource),
-    do: URI.to_string(%URI{path: Enum.join([view.namespace(), view.path() || view.type()], "/")})
+    do: URI.to_string(%URI{path: Enum.join([namespace(view), path(view)], "/")})
 
   def url_for(view, resource, nil = _conn) do
     URI.to_string(%URI{
-      path: Enum.join([view.namespace(), view.path() || view.type(), view.id(resource)], "/")
+      path: Enum.join([namespace(view), path(view), view.id(resource)], "/")
     })
   end
 
@@ -271,7 +255,7 @@ defmodule JSONAPI.View do
     URI.to_string(%URI{
       scheme: scheme(conn),
       host: host(conn),
-      path: Enum.join([view.namespace(), view.path() || view.type()], "/")
+      path: Enum.join([namespace(view), path(view)], "/")
     })
   end
 
@@ -279,7 +263,7 @@ defmodule JSONAPI.View do
     URI.to_string(%URI{
       scheme: scheme(conn),
       host: host(conn),
-      path: Enum.join([view.namespace(), view.path() || view.type(), view.id(resource)], "/")
+      path: Enum.join([namespace(view), path(view), view.id(resource)], "/")
     })
   end
 
@@ -330,11 +314,11 @@ defmodule JSONAPI.View do
   def render(view, data, conn \\ nil, meta \\ nil, options \\ []),
     do: Document.serialize(view, data, conn, meta, options)
 
-  @spec visible_fields(t(), Conn.t() | nil) :: [Resource.field()]
-  def visible_fields(view, conn) do
+  @spec visible_fields(t(), Resource.t(), Conn.t() | nil) :: [Resource.field()]
+  def visible_fields(view, resource, conn) do
     view
     |> requested_fields_for_type(conn)
-    |> net_fields_for_type(view.attributes())
+    |> net_fields_for_type(view.attributes(resource))
   end
 
   defp prepare_url(view, resources, conn, "" = _query), do: url_for(view, resources, conn)
@@ -358,7 +342,7 @@ defmodule JSONAPI.View do
   end
 
   defp requested_fields_for_type(view, %Conn{assigns: %{jsonapi_query: %Config{fields: fields}}}),
-    do: fields[view.type()]
+    do: fields[type(view)]
 
   defp requested_fields_for_type(_view, _conn), do: nil
 

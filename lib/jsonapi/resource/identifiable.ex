@@ -65,7 +65,7 @@ defimpl JSONAPI.Resource.Identifiable, for: Any do
         if is_nil(unquote(type)) do
           raise "Resources must have a type defined"
         else
-          def type(resource), do: unquote(type)
+          def type(_resource), do: unquote(type)
         end
       end
     end

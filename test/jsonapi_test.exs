@@ -22,84 +22,74 @@ defmodule JSONAPITest do
     use JSONAPI.View, resource: Post
 
     @impl JSONAPI.View
-    def attributes, do: [:text, :body, :excerpt, :first_character]
+    def attributes(_resource), do: [:text, :body, :excerpt, :first_character]
 
     @impl JSONAPI.View
     def type, do: "my-type"
 
     @impl JSONAPI.View
-    def relationships do
+    def relationships(_resource) do
       [
         author: JSONAPITest.UserView,
         other_user: JSONAPITest.UserView
       ]
     end
 
-    def excerpt(post, _conn) do
-      String.slice(post.text, 0..1)
-    end
+    def excerpt(post, _conn), do: String.slice(post.text, 0..1)
 
-    def first_character(post, _conn) do
-      String.first(post.text)
-    end
+    def first_character(post, _conn), do: String.first(post.text)
   end
 
   defmodule UserView do
     use JSONAPI.View, resource: User
 
     @impl JSONAPI.View
-    def attributes, do: [:username]
+    def attributes(_resource), do: [:username]
 
     @impl JSONAPI.View
     def type, do: "user"
 
     @impl JSONAPI.View
-    def relationships do
-      [company: JSONAPITest.CompanyView]
-    end
+    def relationships(_resource), do: [company: JSONAPITest.CompanyView]
   end
 
   defmodule CompanyView do
     use JSONAPI.View, resource: Company
 
     @impl JSONAPI.View
-    def attributes, do: [:name]
+    def attributes(_resource), do: [:name]
 
     @impl JSONAPI.View
     def type, do: "company"
 
     @impl JSONAPI.View
-    def relationships do
-      [industry: JSONAPITest.IndustryView]
-    end
+    def relationships(_resource), do: [industry: JSONAPITest.IndustryView]
   end
 
   defmodule IndustryView do
     use JSONAPI.View, resource: Industry
 
     @impl JSONAPI.View
-    def attributes, do: [:name]
+    def attributes(_resource), do: [:name]
 
     @impl JSONAPI.View
     def type, do: "industry"
 
     @impl JSONAPI.View
-    def relationships do
-      [tags: JSONAPITest.TagView]
-    end
+    def relationships(_resource), do: [tags: JSONAPITest.TagView]
   end
 
   defmodule TagView do
     use JSONAPI.View, resource: Tag
 
     @impl JSONAPI.View
-    def attributes, do: [:name]
+    def attributes(_resource), do: [:name]
 
     @impl JSONAPI.View
     def type, do: "tag"
 
     @impl JSONAPI.View
-    def relationships, do: []
+    def relationships(_resource), do: []
   end
 
   defmodule MyPostPlug do

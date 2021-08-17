@@ -72,7 +72,7 @@ defmodule JSONAPI.QueryParser do
 
   @behaviour Plug
 
-  alias JSONAPI.{Config, Exceptions.InvalidQuery}
+  alias JSONAPI.{Config, Exceptions.InvalidQuery, View}
   alias Plug.Conn
 
   @impl Plug
@@ -110,12 +110,12 @@ defmodule JSONAPI.QueryParser do
   @spec parse_filter(Config.t(), Config.t()) :: Config.t()
   def parse_filter(config, %Config{filter: filter}) when map_size(filter) == 0, do: config
 
-  def parse_filter(%Config{opts: opts} = config, %Config{filter: filter}) do
+  def parse_filter(%Config{view: view, opts: opts} = config, %Config{filter: filter}) do
     opts_filter = Keyword.get(opts, :filter, [])
 
     Enum.reduce(filter, config, fn {key, val}, config ->
       unless key in opts_filter do
-        raise InvalidQuery, resource: config.view.type(), param: key, param_type: :filter
+        raise InvalidQuery, resource: view.type(), param: key, param_type: :filter
       end
 
       %Config{config | filter: Keyword.put(config.filter, String.to_existing_atom(key), val)}
@@ -126,7 +126,7 @@ defmodule JSONAPI.QueryParser do
   def parse_fields(%Config{} = config, %Config{fields: fields}) when fields == %{},
     do: config
 
-  def parse_fields(%Config{} = config, %Config{fields: fields}) do
+  def parse_fields(%Config{view: view} = config, %Config{fields: fields}) do
     Enum.reduce(fields, config, fn {type, value}, config ->
       valid_fields =
         config
@@ -140,7 +140,7 @@ defmodule JSONAPI.QueryParser do
           |> Enum.map(&JSONAPI.underscore/1)
           |> Enum.into(MapSet.new(), &String.to_existing_atom/1)
         rescue
-          ArgumentError -> raise_invalid_field_names(value, config.view.type())
+          ArgumentError -> raise_invalid_field_names(value, view.type())
         end
 
       size = MapSet.size(requested_fields)
@@ -158,6 +158,7 @@ defmodule JSONAPI.QueryParser do
 
         _ ->
           %{acc | fields: Map.put(acc.fields, type, MapSet.to_list(requested_fields))}
+          raise_invalid_field_names(bad_fields, view.type())
       end
 
       %Config{config | fields: Map.put(config.fields, type, MapSet.to_list(requested_fields))}
@@ -167,7 +168,7 @@ defmodule JSONAPI.QueryParser do
   @spec parse_sort(Config.t(), Config.t()) :: Config.t()
   def parse_sort(config, %Config{sort: nil}), do: config
 
-  def parse_sort(%Config{opts: opts} = config, %Config{sort: sort}) do
+  def parse_sort(%Config{view: view, opts: opts} = config, %Config{sort: sort}) do
     sort =
       sort
       |> String.split(",")
@@ -176,7 +177,7 @@ defmodule JSONAPI.QueryParser do
         [_, direction, field] = Regex.run(~r/(-?)(\S*)/, field)
 
         unless field in valid_sort do
-          raise InvalidQuery, resource: config.view.type(), param: field, param_type: :sort
+          raise InvalidQuery, resource: view.type(), param: field, param_type: :sort
         end
 
         build_sort(direction, String.to_existing_atom(field))
@@ -193,7 +194,7 @@ defmodule JSONAPI.QueryParser do
   def parse_include(config, %Config{include: []}), do: config
 
   def parse_include(%Config{view: view} = config, %Config{include: include}) do
-    valid_includes = view.relationships()
+    valid_includes = view.relationships(view.__resource__())
 
     includes =
       include
@@ -207,13 +208,13 @@ defmodule JSONAPI.QueryParser do
             try do
               String.to_existing_atom(inc)
             rescue
-              ArgumentError -> raise_invalid_include_query(inc, config.view.type())
+              ArgumentError -> raise_invalid_include_query(inc, view.type())
             end
 
           if Enum.any?(valid_includes, fn {key, _val} -> key == inc end) do
             [inc]
           else
-            raise_invalid_include_query(inc, config.view.type())
+            raise_invalid_include_query(inc, view.type())
           end
         end
       end)
@@ -221,14 +222,14 @@ defmodule JSONAPI.QueryParser do
     %Config{config | include: includes}
   end
 
-  defp handle_nested_include(key, valid_include, config) do
+  defp handle_nested_include(key, valid_include, %Config{view: view}) do
     keys =
       try do
         key
         |> String.split(".")
         |> Enum.map(&String.to_existing_atom/1)
       rescue
-        ArgumentError -> raise_invalid_include_query(key, config.view.type())
+        ArgumentError -> raise_invalid_include_query(key, view.type())
       end
 
     last = List.last(keys)
@@ -237,22 +238,22 @@ defmodule JSONAPI.QueryParser do
     if member_of_tree?(keys, valid_include) do
       put_as_tree([], path, last)
     else
-      raise_invalid_include_query(key, config.view.type())
+      raise_invalid_include_query(key, view.type())
     end
   end
 
   @spec get_valid_fields_for_type(Config.t(), String.t()) :: list(atom())
   def get_valid_fields_for_type(%Config{view: view}, type) do
     if type == view.type() do
-      view.attributes()
+      view.attributes(view.__resource__())
     else
-      get_view_for_type(view, type).attributes()
+      get_view_for_type(view, type).attributes(view.__resource__())
     end
   end
 
   @spec get_view_for_type(module(), String.t()) :: module() | no_return()
   def get_view_for_type(view, type) do
-    case Enum.find(view.relationships(), fn {_relationship, relationship_view} ->
+    case Enum.find(view.relationships(view.__resource__()), fn {_relationship, relationship_view} ->
            relationship_view.type() == type
          end) do
       {_, view} -> view
@@ -300,7 +301,7 @@ defmodule JSONAPI.QueryParser do
   defp member_of_tree?([path | tail], include) when is_list(include) do
     if Keyword.has_key?(include, path) do
       view = include[path]
-      member_of_tree?(tail, view.relationships())
+      member_of_tree?(tail, view.relationships(view.__resource__()))
     else
       false
     end

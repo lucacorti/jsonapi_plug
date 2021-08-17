@@ -11,13 +11,13 @@ defmodule JSONAPI.QueryParserTest do
     use JSONAPI.View, resource: Post
 
     @impl JSONAPI.View
-    def attributes, do: [:id, :text, :body]
+    def attributes(_resource), do: [:id, :text, :body]
 
     @impl JSONAPI.View
     def type, do: "my-type"
 
     @impl JSONAPI.View
-    def relationships do
+    def relationships(_resource) do
       [
         author: JSONAPI.QueryParserTest.UserView,
         comments: JSONAPI.QueryParserTest.CommentView,
@@ -30,26 +30,26 @@ defmodule JSONAPI.QueryParserTest do
     use JSONAPI.View, resource: User
 
     @impl JSONAPI.View
-    def attributes, do: [:id, :username]
+    def attributes(_resource), do: [:id, :username]
 
     @impl JSONAPI.View
     def type, do: "user"
 
     @impl JSONAPI.View
-    def relationships, do: [top_posts: MyView]
+    def relationships(_resource), do: [top_posts: MyView]
   end
 
   defmodule CommentView do
     use JSONAPI.View, resource: Comment
 
     @impl JSONAPI.View
-    def attributes, do: [:id, :text]
+    def attributes(_resource), do: [:id, :text]
 
     @impl JSONAPI.View
     def type, do: "comment"
 
     @impl JSONAPI.View
-    def relationships, do: [user: JSONAPI.QueryParserTest.UserView]
+    def relationships(_resource), do: [user: JSONAPI.QueryParserTest.UserView]
   end
 
   setup do

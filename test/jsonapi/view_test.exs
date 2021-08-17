@@ -9,25 +9,23 @@ defmodule JSONAPI.ViewTest do
     use JSONAPI.View, resource: Post, type: "post", path: "posts", namespace: "/api"
 
     @impl JSONAPI.View
-    def attributes, do: [:title, :body]
+    def attributes(_resource), do: [:title, :body]
   end
 
   defmodule CommentView do
     use JSONAPI.View, resource: Comment, type: "comment", path: "comments", namespace: "/api"
 
     @impl JSONAPI.View
-    def attributes, do: [:body]
+    def attributes(_resource), do: [:body]
   end
 
   defmodule UserView do
     use JSONAPI.View, resource: User, type: "user", path: "users"
 
     @impl JSONAPI.View
-    def attributes, do: [:age, :first_name, :last_name, :full_name, :password]
+    def attributes(_resource), do: [:age, :first_name, :last_name, :full_name, :password]
 
-    def full_name(user, _conn) do
-      "#{user.first_name} #{user.last_name}"
-    end
+    def full_name(user, _conn), do: Enum.join([user.first_name, user.last_name], " ")
   end
 
   defmodule CarView do
@@ -62,15 +60,15 @@ defmodule JSONAPI.ViewTest do
     end
 
     test "uses macro configuration first" do
-      assert PostView.namespace() == "/api"
+      assert View.namespace(PostView) == "/api"
     end
 
     test "uses global namespace if available" do
-      assert UserView.namespace() == "/cake"
+      assert View.namespace(UserView) == "/cake"
     end
 
     test "can be blank" do
-      assert CarView.namespace() == ""
+      assert View.namespace(CarView) == ""
     end
   end
 
@@ -208,19 +206,19 @@ defmodule JSONAPI.ViewTest do
   end
 
   test "visible_fields/2 returns all field names by default" do
-    for field <- View.visible_fields(UserView, %Conn{}),
+    for field <- View.visible_fields(UserView, %User{}, %Conn{}),
         do: assert(field in [:age, :first_name, :last_name, :full_name, :username, :password])
   end
 
   test "visible_fields/2 trims returned field names to only those requested" do
     conn = %Conn{assigns: %{jsonapi_query: %Config{fields: %{PostView.type() => [:body]}}}}
-    assert [:body] = View.visible_fields(PostView, conn)
+    assert [:body] = View.visible_fields(PostView, %Post{}, conn)
   end
 
   test "attributes/2 can return only requested fields" do
     conn = %Conn{assigns: %{jsonapi_query: %Config{fields: %{PostView.type() => [:body]}}}}
 
     assert %{body: "Chunky"} ==
-             View.attributes(PostView, %Post{body: "Chunky", title: "Bacon"}, conn)
+             View.render_attributes(PostView, %Post{body: "Chunky", title: "Bacon"}, conn)
   end
 end

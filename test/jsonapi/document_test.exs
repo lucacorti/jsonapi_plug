@@ -18,7 +18,7 @@ defmodule JSONAPI.DocumentTest do
     use JSONAPI.View, resource: Post
 
     @impl JSONAPI.View
-    def attributes, do: [:text, :body, :full_description, :inserted_at]
+    def attributes(_resource), do: [:text, :body, :full_description, :inserted_at]
 
     @impl JSONAPI.View
     def meta(%Post{} = post, _conn), do: %{meta_text: "meta_#{post.text}"}
@@ -27,7 +27,7 @@ defmodule JSONAPI.DocumentTest do
     def type, do: "my-type"
 
     @impl JSONAPI.View
-    def relationships do
+    def relationships(_resource) do
       [
         author: JSONAPI.DocumentTest.UserView,
         best_comments: JSONAPI.DocumentTest.CommentView
@@ -86,7 +86,7 @@ defmodule JSONAPI.DocumentTest do
     use JSONAPI.View, resource: Post, paginator: PageBasedPaginator
 
     @impl JSONAPI.View
-    def attributes, do: [:text, :body, :full_description, :inserted_at]
+    def attributes(_resource), do: [:text, :body, :full_description, :inserted_at]
 
     @impl JSONAPI.View
     def type, do: "post"
@@ -96,13 +96,13 @@ defmodule JSONAPI.DocumentTest do
     use JSONAPI.View, resource: User
 
     @impl JSONAPI.View
-    def attributes, do: [:username, :first_name, :last_name]
+    def attributes(_resource), do: [:username, :first_name, :last_name]
 
     @impl JSONAPI.View
     def type, do: "user"
 
     @impl JSONAPI.View
-    def relationships do
+    def relationships(_resource) do
       [company: JSONAPI.DocumentTest.CompanyView]
     end
   end
@@ -111,13 +111,13 @@ defmodule JSONAPI.DocumentTest do
     use JSONAPI.View, resource: Company
 
     @impl JSONAPI.View
-    def attributes, do: [:name]
+    def attributes(_resource), do: [:name]
 
     @impl JSONAPI.View
     def type, do: "company"
 
     @impl JSONAPI.View
-    def relationships do
+    def relationships(_resource) do
       [industry: JSONAPI.DocumentTest.IndustryView]
     end
   end
@@ -126,13 +126,13 @@ defmodule JSONAPI.DocumentTest do
     use JSONAPI.View, resource: Industry
 
     @impl JSONAPI.View
-    def attributes, do: [:name]
+    def attributes(_resource), do: [:name]
 
     @impl JSONAPI.View
     def type, do: "industry"
 
     @impl JSONAPI.View
-    def relationships do
+    def relationships(_resource) do
       [tags: JSONAPI.DocumentTest.TagView]
     end
   end
@@ -141,33 +141,33 @@ defmodule JSONAPI.DocumentTest do
     use JSONAPI.View, resource: Tag
 
     @impl JSONAPI.View
-    def attributes, do: [:name]
+    def attributes(_resource), do: [:name]
 
     @impl JSONAPI.View
     def type, do: "tag"
 
     @impl JSONAPI.View
-    def relationships, do: []
+    def relationships(_resource), do: []
   end
 
   defmodule CommentView do
     use JSONAPI.View, resource: Comment
 
     @impl JSONAPI.View
-    def attributes, do: [:text]
+    def attributes(_resource), do: [:text]
 
     @impl JSONAPI.View
-    def relationships, do: [user: JSONAPI.DocumentTest.UserView]
+    def relationships(_resource), do: [user: JSONAPI.DocumentTest.UserView]
   end
 
   defmodule NotIncludedView do
     use JSONAPI.View, resource: Post, type: "not-included"
 
     @impl JSONAPI.View
-    def attributes, do: [:foo]
+    def attributes(_resource), do: [:foo]
 
     @impl JSONAPI.View
-    def relationships do
+    def relationships(_resource) do
       [author: JSONAPI.DocumentTest.UserView, best_comments: JSONAPI.DocumentTest.CommentView]
     end
   end
@@ -176,7 +176,7 @@ defmodule JSONAPI.DocumentTest do
     use JSONAPI.View, resource: Post
 
     @impl JSONAPI.View
-    def attributes, do: [:name]
+    def attributes(_resource), do: [:name]
 
     @impl JSONAPI.View
     def type, do: "expensive-post"
