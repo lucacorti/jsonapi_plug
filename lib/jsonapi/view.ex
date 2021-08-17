@@ -120,7 +120,7 @@ defmodule JSONAPI.View do
   @type data :: Resource.t() | [Resource.t()]
 
   @callback id(Resource.t()) :: Resource.id()
-  @callback attributes(Resource.t) :: [Resource.field()]
+  @callback attributes(Resource.t()) :: [Resource.field()]
   @callback links(Resource.t(), Conn.t() | nil) :: Document.links()
   @callback meta(Resource.t(), Conn.t() | nil) :: Document.meta()
   @callback relationships(Resource.t()) :: [{Resource.field(), t()}]
@@ -225,9 +225,11 @@ defmodule JSONAPI.View do
   @spec paginator(t()) :: Paginator.t() | nil
   def paginator(view), do: view.__paginator__() || Application.get_env(:jsonapi, :paginator)
 
-  @spec pagination_links(t(), [Resource.t()], Conn.t() | nil, Paginator.params(), options()) :: Document.links()
+  @spec pagination_links(t(), [Resource.t()], Conn.t() | nil, Paginator.params(), options()) ::
+          Document.links()
   def pagination_links(view, resources, conn, page, options) do
     paginator = paginator(view)
+
     if Code.ensure_loaded?(paginator) && function_exported?(paginator, :paginate, 5) do
       paginator.paginate(view, resources, conn, page, options)
     else
