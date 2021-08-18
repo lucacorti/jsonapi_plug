@@ -142,11 +142,15 @@ defmodule JSONAPI.View do
       @path unquote(path)
       @resource struct(unquote(resource))
 
+      @attributes Resource.attributes(@resource)
+      @relationships Enum.concat(Resource.has_one(@resource), Resource.has_many(@resource))
+      @resource_type Resource.type(@resource)
+
       @impl View
       def id(resource), do: Resource.id(resource)
 
       @impl View
-      def attributes(_resource), do: Resource.attributes(@resource)
+      def attributes(_resource), do: @attributes
 
       @impl View
       def links(_resource, _conn), do: %{}
@@ -155,11 +159,10 @@ defmodule JSONAPI.View do
       def meta(_resource, _conn), do: %{}
 
       @impl View
-      def relationships(_resource),
-        do: Enum.concat(Resource.has_one(@resource), Resource.has_many(@resource))
+      def relationships(_resource), do: @relationships
 
       @impl View
-      def type, do: Resource.type(@resource)
+      def type, do: @resource_type
 
       defoverridable View
  
@@ -289,7 +292,7 @@ defmodule JSONAPI.View do
     |> URI.to_string()
   end
 
-  def to_list_of_query_string_components(map) when is_map(map) do
+  defp to_list_of_query_string_components(map) when is_map(map) do
     Enum.flat_map(map, &do_to_list_of_query_string_components/1)
   end
 
