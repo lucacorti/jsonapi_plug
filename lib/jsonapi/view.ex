@@ -237,19 +237,14 @@ defmodule JSONAPI.View do
     end
   end
 
-  @spec path(t()) :: String.t()
-  def path(view), do: view.__path__() || view.type()
-
-  @spec type(t()) :: Resource.type()
-  def type(view), do: view.type()
-
   @spec url_for(t(), data() | nil, Conn.t() | nil) :: String.t()
   def url_for(view, resource, nil = _conn) when is_nil(resource) or is_list(resource),
-    do: URI.to_string(%URI{path: Enum.join([namespace(view), path(view)], "/")})
+    do:
+      URI.to_string(%URI{path: Enum.join([namespace(view), view.__path__() || view.type()], "/")})
 
   def url_for(view, resource, nil = _conn) do
     URI.to_string(%URI{
-      path: Enum.join([namespace(view), path(view), view.id(resource)], "/")
+      path: Enum.join([namespace(view), view.__path__() || view.type(), view.id(resource)], "/")
     })
   end
 
@@ -257,7 +252,7 @@ defmodule JSONAPI.View do
     URI.to_string(%URI{
       scheme: scheme(conn),
       host: host(conn),
-      path: Enum.join([namespace(view), path(view)], "/")
+      path: Enum.join([namespace(view), view.__path__() || view.type()], "/")
     })
   end
 
@@ -265,7 +260,7 @@ defmodule JSONAPI.View do
     URI.to_string(%URI{
       scheme: scheme(conn),
       host: host(conn),
-      path: Enum.join([namespace(view), path(view), view.id(resource)], "/")
+      path: Enum.join([namespace(view), view.__path__() || view.type(), view.id(resource)], "/")
     })
   end
 
@@ -323,15 +318,10 @@ defmodule JSONAPI.View do
     |> net_fields_for_type(view.attributes(resource))
   end
 
-  defp prepare_url(view, resources, conn, "" = _query), do: url_for(view, resources, conn)
+  defp requested_fields_for_type(view, %Conn{assigns: %{jsonapi_query: %Config{fields: fields}}}),
+    do: fields[view.type()]
 
-  defp prepare_url(view, resources, conn, query) do
-    view
-    |> url_for(resources, conn)
-    |> URI.parse()
-    |> struct(query: query)
-    |> URI.to_string()
-  end
+  defp requested_fields_for_type(_view, _conn), do: nil
 
   defp net_fields_for_type(requested_fields, fields) when requested_fields in [nil, %{}],
     do: fields
@@ -343,10 +333,15 @@ defmodule JSONAPI.View do
     |> MapSet.to_list()
   end
 
-  defp requested_fields_for_type(view, %Conn{assigns: %{jsonapi_query: %Config{fields: fields}}}),
-    do: fields[type(view)]
+  defp prepare_url(view, resources, conn, "" = _query), do: url_for(view, resources, conn)
 
-  defp requested_fields_for_type(_view, _conn), do: nil
+  defp prepare_url(view, resources, conn, query) do
+    view
+    |> url_for(resources, conn)
+    |> URI.parse()
+    |> struct(query: query)
+    |> URI.to_string()
+  end
 
   defp host(%Conn{host: host}),
     do: Application.get_env(:jsonapi, :host, host)
