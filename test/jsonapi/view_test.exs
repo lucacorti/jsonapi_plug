@@ -6,24 +6,25 @@ defmodule JSONAPI.ViewTest do
   alias Plug.Conn
 
   defmodule PostView do
-    use JSONAPI.View, resource: Post, type: "post", path: "posts", namespace: "/api"
+    use JSONAPI.View, resource: Post, type: "post", path: "posts", namespace: "api"
 
     @impl JSONAPI.View
     def attributes(_resource), do: [:title, :body]
   end
 
   defmodule CommentView do
-    use JSONAPI.View, resource: Comment, type: "comment", path: "comments", namespace: "/api"
+    use JSONAPI.View, resource: Comment, type: "comment", path: "comments", namespace: "api"
 
     @impl JSONAPI.View
     def attributes(_resource), do: [:body]
   end
 
   defmodule UserView do
-    use JSONAPI.View, resource: User, type: "user", path: "users"
+    use JSONAPI.View, resource: User, type: "user", namespace: "cake", path: "users"
 
     @impl JSONAPI.View
-    def attributes(_resource), do: [:age, :first_name, :last_name, :full_name, :password]
+    def attributes(_resource),
+      do: [:age, :first_name, :last_name, :full_name, :username, :password]
 
     def full_name(user, _conn), do: Enum.join([user.first_name, user.last_name], " ")
   end
@@ -60,15 +61,15 @@ defmodule JSONAPI.ViewTest do
     end
 
     test "uses macro configuration first" do
-      assert View.namespace(PostView) == "/api"
+      assert PostView.__namespace__() == "api"
     end
 
     test "uses global namespace if available" do
-      assert View.namespace(UserView) == "/cake"
+      assert UserView.__namespace__() == "cake"
     end
 
     test "can be blank" do
-      assert View.namespace(CarView) == ""
+      assert CarView.__namespace__() == ""
     end
   end
 
@@ -205,20 +206,71 @@ defmodule JSONAPI.ViewTest do
              })
   end
 
-  test "visible_fields/2 returns all field names by default" do
-    for field <- View.visible_fields(UserView, %User{}, %Conn{}),
-        do: assert(field in [:age, :first_name, :last_name, :full_name, :username, :password])
+  test "view returns all field names by default" do
+    assert %Document{
+             data: %ResourceObject{
+               id: "1",
+               type: "user",
+               attributes:
+                 %{
+                   age: _age,
+                   first_name: _first_name,
+                   last_name: _last_name,
+                   full_name: _full_name,
+                   username: _username,
+                   password: _password
+                 } = attributes
+             }
+           } =
+             UserView.render("show.json", %{
+               data: %User{id: 1},
+               conn: Conn.fetch_query_params(%Conn{})
+             })
+
+    assert 6 = map_size(attributes)
   end
 
-  test "visible_fields/2 trims returned field names to only those requested" do
-    conn = %Conn{assigns: %{jsonapi_query: %Config{fields: %{PostView.type() => [:body]}}}}
-    assert [:body] = View.visible_fields(PostView, %Post{}, conn)
+  test "view trims returned field names to only those requested" do
+    conn =
+      Conn.fetch_query_params(%Conn{
+        assigns: %{jsonapi_query: %Config{fields: %{PostView.type() => [:body]}}}
+      })
+
+    assert %Document{
+             data: %ResourceObject{
+               id: "1",
+               type: "post",
+               attributes:
+                 %{
+                   body: _body
+                 } = attributes
+             }
+           } = PostView.render("show.json", %{data: %Post{id: 1, body: "hi"}, conn: conn})
+
+    assert 1 = map_size(attributes)
   end
 
   test "attributes/2 can return only requested fields" do
-    conn = %Conn{assigns: %{jsonapi_query: %Config{fields: %{PostView.type() => [:body]}}}}
+    conn =
+      Conn.fetch_query_params(%Conn{
+        assigns: %{jsonapi_query: %Config{fields: %{PostView.type() => [:body]}}}
+      })
 
-    assert %{body: "Chunky"} ==
-             View.render_attributes(PostView, %Post{body: "Chunky", title: "Bacon"}, conn)
+    assert %Document{
+             data: %ResourceObject{
+               id: "1",
+               type: "post",
+               attributes:
+                 %{
+                   body: _body
+                 } = attributes
+             }
+           } =
+             PostView.render("show.json", %{
+               data: %Post{id: 1, body: "Chunky", title: "Bacon"},
+               conn: conn
+             })
+
+    assert 1 = map_size(attributes)
   end
 end

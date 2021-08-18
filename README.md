@@ -171,7 +171,7 @@ Under-the-hood `JSONAPI.EnsureSpec` relies on four individual plugs:
 config :jsonapi,
   host: "www.someotherhost.com",
   scheme: "https",
-  namespace: "/api",
+  namespace: "api",
   field_transformation: :underscore,
   paginator: nil
 ```
@@ -179,7 +179,7 @@ config :jsonapi,
 - **host**, **scheme**. By default these are pulled from the `conn`, but may be
   overridden.
 - **namespace**. This optional setting can be used to configure the namespace
-  your resources live at (e.g. given "http://example.com/api/cars", `"/api"`
+  your resources live at (e.g. given "http://example.com/api/cars", `"api"`
   would be the namespace). See also `JSONAPI.View` for setting on the resource's
   View itself.
 - **field_transformation**. This option describes how your API's fields word

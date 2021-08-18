@@ -112,7 +112,7 @@ defmodule JSONAPI.View do
   default style for presentation in names is to be underscored and not dashed.
   """
 
-  alias JSONAPI.{Config, Document, Paginator, Resource}
+  alias JSONAPI.{Document, Paginator, Resource}
   alias Plug.Conn
 
   @type t :: module()
@@ -201,68 +201,46 @@ defmodule JSONAPI.View do
     end
   end
 
-  @spec render_attributes(t(), Resource.t(), Conn.t() | nil) :: %{
-          Resource.field() => Document.value()
-        }
-  def render_attributes(view, resource, conn) do
-    view
-    |> visible_fields(resource, conn)
-    |> Enum.reduce(%{}, fn field, attributes ->
-      value =
-        if function_exported?(view, field, 2) do
-          apply(view, field, [resource, conn])
-        else
-          Map.get(resource, field)
-        end
-
-      Map.put(attributes, field, value)
-    end)
-  end
-
-  @spec namespace(t()) :: String.t()
-  def namespace(view), do: view.__namespace__() || Application.get_env(:jsonapi, :namespace, "")
-
-  @spec paginator(t()) :: Paginator.t() | nil
-  def paginator(view), do: view.__paginator__() || Application.get_env(:jsonapi, :paginator)
-
-  @spec pagination_links(t(), [Resource.t()], Conn.t() | nil, Paginator.params(), options()) ::
-          Document.links()
-  def pagination_links(view, resources, conn, page, options) do
-    paginator = paginator(view)
-
-    if Code.ensure_loaded?(paginator) && function_exported?(paginator, :paginate, 5) do
-      paginator.paginate(view, resources, conn, page, options)
-    else
-      %{}
-    end
-  end
+  @spec render(t(), data() | nil, Conn.t() | nil, Document.meta() | nil, options()) ::
+          Document.t()
+  def render(view, data, conn \\ nil, meta \\ nil, options \\ []),
+    do: Document.serialize(view, data, conn, meta, options)
 
   @spec url_for(t(), data() | nil, Conn.t() | nil) :: String.t()
-  def url_for(view, resource, nil = _conn) when is_nil(resource) or is_list(resource),
-    do:
-      URI.to_string(%URI{path: Enum.join([namespace(view), view.__path__() || view.type()], "/")})
+  def url_for(view, resource, conn) when is_nil(resource) or is_list(resource) do
+    render_url(conn, Enum.join([namespace(view), view.__path__() || view.type()], "/"))
+  end
 
-  def url_for(view, resource, nil = _conn) do
+  def url_for(view, resource, conn) do
+    render_url(
+      conn,
+      Enum.join([namespace(view), view.__path__() || view.type(), view.id(resource)], "/")
+    )
+  end
+
+  defp namespace(view), do: view.__namespace__() || Application.get_env(:jsonapi, :namespace, "")
+
+  defp render_url(%Conn{scheme: scheme, host: host}, "/" <> _ = path) do
     URI.to_string(%URI{
-      path: Enum.join([namespace(view), view.__path__() || view.type(), view.id(resource)], "/")
+      scheme: Application.get_env(:jsonapi, :scheme, to_string(scheme)),
+      host: Application.get_env(:jsonapi, :host, host),
+      path: path
     })
   end
 
-  def url_for(view, resource, %Conn{} = conn) when is_nil(resource) or is_list(resource) do
+  defp render_url(%Conn{scheme: scheme, host: host}, path) do
     URI.to_string(%URI{
-      scheme: scheme(conn),
-      host: host(conn),
-      path: Enum.join([namespace(view), view.__path__() || view.type()], "/")
+      scheme: Application.get_env(:jsonapi, :scheme, to_string(scheme)),
+      host: Application.get_env(:jsonapi, :host, host),
+      path: "/" <> path
     })
   end
 
-  def url_for(view, resource, %Conn{} = conn) do
-    URI.to_string(%URI{
-      scheme: scheme(conn),
-      host: host(conn),
-      path: Enum.join([namespace(view), view.__path__() || view.type(), view.id(resource)], "/")
-    })
-  end
+  defp render_url(_conn, "/" <> _ = path),
+    do: URI.to_string(%URI{path: path})
+
+  defp render_url(_conn, path),
+    do: URI.to_string(%URI{path: "/" <> path})
 
   @spec url_for_relationship(t(), Resource.t(), Conn.t() | nil, Resource.type()) :: String.t()
   def url_for_relationship(view, resource, conn, relationship_type) do
@@ -301,38 +279,6 @@ defmodule JSONAPI.View do
     url_for_pagination(view, resources, %Conn{conn | query_params: query_params}, nil)
   end
 
-  @spec render(
-          t(),
-          data() | nil,
-          Conn.t() | nil,
-          Document.meta() | nil,
-          options()
-        ) :: Document.t()
-  def render(view, data, conn \\ nil, meta \\ nil, options \\ []),
-    do: Document.serialize(view, data, conn, meta, options)
-
-  @spec visible_fields(t(), Resource.t(), Conn.t() | nil) :: [Resource.field()]
-  def visible_fields(view, resource, conn) do
-    view
-    |> requested_fields_for_type(conn)
-    |> net_fields_for_type(view.attributes(resource))
-  end
-
-  defp requested_fields_for_type(view, %Conn{assigns: %{jsonapi_query: %Config{fields: fields}}}),
-    do: fields[view.type()]
-
-  defp requested_fields_for_type(_view, _conn), do: nil
-
-  defp net_fields_for_type(requested_fields, fields) when requested_fields in [nil, %{}],
-    do: fields
-
-  defp net_fields_for_type(requested_fields, fields) do
-    fields
-    |> MapSet.new()
-    |> MapSet.intersection(MapSet.new(requested_fields))
-    |> MapSet.to_list()
-  end
-
   defp prepare_url(view, resources, conn, "" = _query), do: url_for(view, resources, conn)
 
   defp prepare_url(view, resources, conn, query) do
@@ -342,12 +288,6 @@ defmodule JSONAPI.View do
     |> struct(query: query)
     |> URI.to_string()
   end
-
-  defp host(%Conn{host: host}),
-    do: Application.get_env(:jsonapi, :host, host)
-
-  defp scheme(%Conn{scheme: scheme}),
-    do: Application.get_env(:jsonapi, :scheme, to_string(scheme))
 
   def to_list_of_query_string_components(map) when is_map(map) do
     Enum.flat_map(map, &do_to_list_of_query_string_components/1)

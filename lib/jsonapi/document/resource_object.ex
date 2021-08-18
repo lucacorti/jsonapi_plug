@@ -57,10 +57,36 @@ defmodule JSONAPI.Document.ResourceObject do
   defp serialize_attributes(%__MODULE__{} = resource_object, view, resource, conn) do
     attributes =
       view
-      |> View.render_attributes(resource, conn)
+      |> requested_fields_for_type(conn)
+      |> net_fields_for_type(view.attributes(resource))
+      |> Enum.reduce(%{}, fn field, attributes ->
+        value =
+          if function_exported?(view, field, 2) do
+            apply(view, field, [resource, conn])
+          else
+            Map.get(resource, field)
+          end
+
+        Map.put(attributes, field, value)
+      end)
       |> JSONAPI.transform_fields()
 
     %__MODULE__{resource_object | attributes: attributes}
+  end
+
+  defp requested_fields_for_type(view, %Conn{assigns: %{jsonapi_query: %Config{fields: fields}}}),
+    do: fields[view.type()]
+
+  defp requested_fields_for_type(_view, _conn), do: nil
+
+  defp net_fields_for_type(requested_fields, fields) when requested_fields in [nil, %{}],
+    do: fields
+
+  defp net_fields_for_type(requested_fields, fields) do
+    fields
+    |> MapSet.new()
+    |> MapSet.intersection(MapSet.new(requested_fields))
+    |> MapSet.to_list()
   end
 
   defp serialize_links(%__MODULE__{} = resource_object, view, resource, conn) do

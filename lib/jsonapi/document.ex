@@ -140,7 +140,7 @@ defmodule JSONAPI.Document do
     links =
       resources
       |> view.links(conn)
-      |> Map.merge(View.pagination_links(view, resources, conn, config.page, options))
+      |> Map.merge(pagination_links(view, resources, conn, config.page, options))
       |> Map.merge(%{self: View.url_for_pagination(view, resources, conn, config.page)})
 
     %__MODULE__{document | links: links}
@@ -153,6 +153,16 @@ defmodule JSONAPI.Document do
       |> Map.merge(%{self: View.url_for(view, resource, conn)})
 
     %__MODULE__{document | links: links}
+  end
+
+  defp pagination_links(view, resources, conn, page, options) do
+    paginator = view.__paginator__()
+
+    if Code.ensure_loaded?(paginator) && function_exported?(paginator, :paginate, 5) do
+      paginator.paginate(view, resources, conn, page, options)
+    else
+      %{}
+    end
   end
 
   defp serialize_meta(%__MODULE__{} = document, _resource, _view, _conn, _options, meta)
