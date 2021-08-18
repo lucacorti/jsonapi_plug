@@ -6,6 +6,7 @@ defmodule JSONAPI.DocumentTest do
     Document,
     Document.RelationshipObject,
     Document.ResourceObject,
+    Paginator,
     QueryParser,
     View
   }
@@ -59,24 +60,24 @@ defmodule JSONAPI.DocumentTest do
         |> Keyword.get(:total_pages, 0)
 
       %{
-        first: View.url_for_pagination(view, resources, conn, %{page | "page" => "1"}),
-        last: View.url_for_pagination(view, resources, conn, %{page | "page" => total_pages}),
+        first: Paginator.url_for(view, resources, conn, %{page | "page" => "1"}),
+        last: Paginator.url_for(view, resources, conn, %{page | "page" => total_pages}),
         next: next_link(resources, view, conn, number, size, total_pages),
         prev: previous_link(resources, view, conn, number, size),
-        self: View.url_for_pagination(view, resources, conn, %{size: size, page: number})
+        self: Paginator.url_for(view, resources, conn, %{size: size, page: number})
       }
     end
 
     defp next_link(resources, view, conn, page, size, total_pages)
          when page < total_pages,
-         do: View.url_for_pagination(view, resources, conn, %{size: size, page: page + 1})
+         do: Paginator.url_for(view, resources, conn, %{size: size, page: page + 1})
 
     defp next_link(_resources, _view, _conn, _page, _size, _total_pages),
       do: nil
 
     defp previous_link(resources, view, conn, page, size)
          when page > 1,
-         do: View.url_for_pagination(view, resources, conn, %{size: size, page: page - 1})
+         do: Paginator.url_for(view, resources, conn, %{size: size, page: page - 1})
 
     defp previous_link(_resources, _view, _conn, _page, _size),
       do: nil
@@ -654,9 +655,9 @@ defmodule JSONAPI.DocumentTest do
       Document.serialize(PaginatedPostView, posts, conn, nil, total_pages: 3, total_items: 3)
 
     page = conn.assigns.jsonapi_query.page
-    first = View.url_for_pagination(view, posts, conn, %{page | "page" => 1})
-    last = View.url_for_pagination(view, posts, conn, %{page | "page" => 3})
-    self = View.url_for_pagination(view, posts, conn, page)
+    first = Paginator.url_for(view, posts, conn, %{page | "page" => 1})
+    last = Paginator.url_for(view, posts, conn, %{page | "page" => 3})
+    self = Paginator.url_for(view, posts, conn, page)
 
     assert links[:first] == first
     assert links[:last] == last

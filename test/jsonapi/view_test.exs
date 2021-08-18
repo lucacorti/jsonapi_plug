@@ -2,7 +2,7 @@ defmodule JSONAPI.ViewTest do
   use ExUnit.Case
 
   alias JSONAPI.SupportTest.{Car, Comment, Post, User}
-  alias JSONAPI.{Config, Document, Document.ResourceObject, View}
+  alias JSONAPI.{Config, Document, Document.ResourceObject, Paginator, View}
   alias Plug.Conn
 
   defmodule PostView do
@@ -135,16 +135,16 @@ defmodule JSONAPI.ViewTest do
     end
   end
 
-  describe "url_for_pagination/3" do
+  describe "url_for/3" do
     setup do
       {:ok, conn: Conn.fetch_query_params(%Conn{})}
     end
 
     test "with pagination information", %{conn: conn} do
-      assert View.url_for_pagination(PostView, nil, conn, %{}) ==
+      assert Paginator.url_for(PostView, nil, conn, %{}) ==
                "http://www.example.com/api/posts"
 
-      assert View.url_for_pagination(PostView, nil, conn, %{number: 1, size: 10}) ==
+      assert Paginator.url_for(PostView, nil, conn, %{number: 1, size: 10}) ==
                "http://www.example.com/api/posts?page%5Bnumber%5D=1&page%5Bsize%5D=10"
     end
 
@@ -152,10 +152,13 @@ defmodule JSONAPI.ViewTest do
       conn_with_query_params =
         Kernel.update_in(conn.query_params, &Map.put(&1, "comments", [5, 2]))
 
-      assert View.url_for_pagination(PostView, nil, conn_with_query_params, %{number: 1, size: 10}) ==
+      assert Paginator.url_for(PostView, nil, conn_with_query_params, %{
+               number: 1,
+               size: 10
+             }) ==
                "http://www.example.com/api/posts?comments%5B%5D=5&comments%5B%5D=2&page%5Bnumber%5D=1&page%5Bsize%5D=10"
 
-      assert View.url_for_pagination(PostView, nil, conn_with_query_params, %{}) ==
+      assert Paginator.url_for(PostView, nil, conn_with_query_params, %{}) ==
                "http://www.example.com/api/posts?comments%5B%5D=5&comments%5B%5D=2"
     end
   end

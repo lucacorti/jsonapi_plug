@@ -130,7 +130,7 @@ defmodule JSONAPI.QueryParser do
     Enum.reduce(fields, config, fn {type, value}, config ->
       valid_fields =
         config
-        |> get_valid_fields_for_type(type)
+        |> get_valid_attributes_for_type(type)
         |> Enum.into(MapSet.new())
 
       requested_fields =
@@ -242,8 +242,8 @@ defmodule JSONAPI.QueryParser do
     end
   end
 
-  @spec get_valid_fields_for_type(Config.t(), String.t()) :: list(atom())
-  def get_valid_fields_for_type(%Config{view: view}, type) do
+  @spec get_valid_attributes_for_type(Config.t(), String.t()) :: list(atom())
+  def get_valid_attributes_for_type(%Config{view: view}, type) do
     if type == view.type() do
       view.attributes(view.__resource__())
     else

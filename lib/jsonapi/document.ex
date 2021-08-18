@@ -14,6 +14,7 @@ defmodule JSONAPI.Document do
     Document.LinksObject,
     Document.RelationshipObject,
     Document.ResourceObject,
+    Paginator,
     View
   }
 
@@ -141,7 +142,7 @@ defmodule JSONAPI.Document do
       resources
       |> view.links(conn)
       |> Map.merge(pagination_links(view, resources, conn, config.page, options))
-      |> Map.merge(%{self: View.url_for_pagination(view, resources, conn, config.page)})
+      |> Map.merge(%{self: Paginator.url_for(view, resources, conn, config.page)})
 
     %__MODULE__{document | links: links}
   end

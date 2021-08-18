@@ -57,8 +57,8 @@ defmodule JSONAPI.Document.ResourceObject do
   defp serialize_attributes(%__MODULE__{} = resource_object, view, resource, conn) do
     attributes =
       view
-      |> requested_fields_for_type(conn)
-      |> net_fields_for_type(view.attributes(resource))
+      |> requested_attributes_for_type(conn)
+      |> net_attributes_for_type(view.attributes(resource))
       |> Enum.reduce(%{}, fn field, attributes ->
         value =
           if function_exported?(view, field, 2) do
@@ -74,15 +74,17 @@ defmodule JSONAPI.Document.ResourceObject do
     %__MODULE__{resource_object | attributes: attributes}
   end
 
-  defp requested_fields_for_type(view, %Conn{assigns: %{jsonapi_query: %Config{fields: fields}}}),
-    do: fields[view.type()]
+  defp requested_attributes_for_type(view, %Conn{
+         assigns: %{jsonapi_query: %Config{fields: fields}}
+       }),
+       do: fields[view.type()]
 
-  defp requested_fields_for_type(_view, _conn), do: nil
+  defp requested_attributes_for_type(_view, _conn), do: nil
 
-  defp net_fields_for_type(requested_fields, fields) when requested_fields in [nil, %{}],
+  defp net_attributes_for_type(requested_fields, fields) when requested_fields in [nil, %{}],
     do: fields
 
-  defp net_fields_for_type(requested_fields, fields) do
+  defp net_attributes_for_type(requested_fields, fields) do
     fields
     |> MapSet.new()
     |> MapSet.intersection(MapSet.new(requested_fields))
