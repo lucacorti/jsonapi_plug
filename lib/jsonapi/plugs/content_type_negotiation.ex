@@ -13,13 +13,12 @@ defmodule JSONAPI.ContentTypeNegotiation do
   3. Registers a before send hook to set the content-type if not already set.
   """
 
-  import JSONAPI.ErrorView
-
-  import Plug.Conn
+  alias JSONAPI.ErrorView
+  alias Plug.Conn
 
   def init(opts), do: opts
 
-  def call(%{method: method} = conn, _opts) when method in ["DELETE", "GET", "HEAD"], do: conn
+  def call(%Conn{method: method} = conn, _opts) when method in ["DELETE", "GET", "HEAD"], do: conn
 
   def call(conn, _opts) do
     conn
@@ -31,7 +30,7 @@ defmodule JSONAPI.ContentTypeNegotiation do
   defp accepts({conn, content_type}) do
     accepts =
       conn
-      |> get_req_header("accept")
+      |> Conn.get_req_header("accept")
       |> List.first()
 
     {conn, content_type, accepts}
@@ -40,7 +39,7 @@ defmodule JSONAPI.ContentTypeNegotiation do
   defp content_type(conn) do
     content_type =
       conn
-      |> get_req_header("content-type")
+      |> Conn.get_req_header("content-type")
       |> List.first()
 
     {conn, content_type}
@@ -52,10 +51,10 @@ defmodule JSONAPI.ContentTypeNegotiation do
         add_header_to_resp(conn)
 
       validate_header(content_type) == false ->
-        send_error(conn, 415)
+        ErrorView.send_error(conn, 415)
 
       validate_header(accepts) == false ->
-        send_error(conn, 406)
+        ErrorView.send_error(conn, 406)
     end
   end
 
@@ -69,8 +68,8 @@ defmodule JSONAPI.ContentTypeNegotiation do
   defp validate_header(nil), do: true
 
   defp add_header_to_resp(conn) do
-    register_before_send(conn, fn conn ->
-      update_resp_header(
+    Conn.register_before_send(conn, fn conn ->
+      Conn.update_resp_header(
         conn,
         "content-type",
         JSONAPI.mime_type(),
