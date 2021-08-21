@@ -13,7 +13,7 @@ defmodule JSONAPI do
           opts: nil | keyword(),
           sort: nil | keyword(),
           view: View.t(),
-          page: nil | map()
+          page: map()
         }
   defstruct data: nil,
             fields: %{},

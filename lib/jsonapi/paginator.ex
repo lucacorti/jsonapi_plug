@@ -4,6 +4,7 @@ defmodule JSONAPI.Paginator do
   """
 
   alias JSONAPI.{Document, Resource, View}
+  alias JSONAPI.Document.LinksObject
   alias Plug.Conn
 
   @type t :: module()
@@ -24,9 +25,9 @@ defmodule JSONAPI.Paginator do
           View.t(),
           [Resource.t()],
           Conn.t() | nil,
-          params() | nil
+          params()
         ) ::
-          String.t()
+          LinksObject.link()
   def url_for(
         view,
         resources,

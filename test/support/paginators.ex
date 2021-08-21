@@ -27,24 +27,24 @@ defmodule JSONAPI.TestSupport.Paginators do
         |> Keyword.get(:total_pages, 0)
 
       %{
-        first: Paginator.url_for(view, resources, conn, %{page | "page" => "1"}),
-        last: Paginator.url_for(view, resources, conn, %{page | "page" => total_pages}),
+        first: Paginator.url_for(view, resources, conn, Map.put(page, "page", 1)),
+        last: Paginator.url_for(view, resources, conn, Map.put(page, "page", total_pages)),
         next: next_link(resources, view, conn, number, size, total_pages),
         prev: previous_link(resources, view, conn, number, size),
-        self: Paginator.url_for(view, resources, conn, %{size: size, page: number})
+        self: Paginator.url_for(view, resources, conn, %{"size" => size, "page" => number})
       }
     end
 
     defp next_link(resources, view, conn, page, size, total_pages)
          when page < total_pages,
-         do: Paginator.url_for(view, resources, conn, %{size: size, page: page + 1})
+         do: Paginator.url_for(view, resources, conn, %{"size" => size, "page" => page + 1})
 
     defp next_link(_resources, _view, _conn, _page, _size, _total_pages),
       do: nil
 
     defp previous_link(resources, view, conn, page, size)
          when page > 1,
-         do: Paginator.url_for(view, resources, conn, %{size: size, page: page - 1})
+         do: Paginator.url_for(view, resources, conn, %{"size" => size, "page" => page - 1})
 
     defp previous_link(_resources, _view, _conn, _page, _size),
       do: nil
