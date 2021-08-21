@@ -8,7 +8,6 @@ defmodule JSONAPI.Document do
   """
 
   alias JSONAPI.{
-    Config,
     Document.ErrorObject,
     Document.JSONAPIObject,
     Document.LinksObject,
@@ -135,15 +134,15 @@ defmodule JSONAPI.Document do
          %__MODULE__{} = document,
          view,
          resources,
-         %Conn{assigns: %{jsonapi_query: %Config{} = config}} = conn,
+         %Conn{assigns: %{jsonapi: %JSONAPI{} = jsonapi}} = conn,
          options
        )
        when is_list(resources) do
     links =
       resources
       |> view.links(conn)
-      |> Map.merge(pagination_links(view, resources, conn, config.page, options))
-      |> Map.merge(%{self: Paginator.url_for(view, resources, conn, config.page)})
+      |> Map.merge(pagination_links(view, resources, conn, jsonapi.page, options))
+      |> Map.merge(%{self: Paginator.url_for(view, resources, conn, jsonapi.page)})
 
     %__MODULE__{document | links: links}
   end
@@ -175,7 +174,7 @@ defmodule JSONAPI.Document do
     do: document
 
   @spec deserialize(Conn.t()) :: {:ok, t()} | {:error, :invalid}
-  def deserialize(%Conn{assigns: %{jsonapi_query: %Config{view: view}}, body_params: payload}) do
+  def deserialize(%Conn{assigns: %{jsonapi: %JSONAPI{view: view}}, body_params: payload}) do
     %__MODULE__{}
     |> deserialize_included(view, payload)
     |> deserialize_data(view, payload)

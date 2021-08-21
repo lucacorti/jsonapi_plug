@@ -90,7 +90,7 @@ plug JSONAPI.QueryParser,
   view: PostView
 ```
 
-This will add a `JSONAPI.Config` struct called `jsonapi_query` to your
+This will add a `JSONAPI` struct called `jsonapi` to your
 `conn.assigns`. If a user tries to sort, filter, include, or requests an
 invalid fieldset it will raise a `Plug` error that shows the proper error
 message.
@@ -254,7 +254,7 @@ or as the view pagination logic when using `JSONAPI.View`
 use JSONAPI.View, paginator: PageBasedPaginator
 ```
 
-Links can be generated using the `JSONAPI.Config.page` information stored in the connection assign `jsonapi_query` and by passing additional information to your paginator module by passing `options` from your controller.
+Links can be generated using the `JSONAPI.page` information stored in the connection assign `jsonapi` and by passing additional information to your paginator module by passing `options` from your controller.
 
 Actual pagination is expected to be handled in your application logic and is outside the scope of this library.
 

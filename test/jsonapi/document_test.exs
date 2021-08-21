@@ -2,7 +2,6 @@ defmodule JSONAPI.DocumentTest do
   use ExUnit.Case, async: false
 
   alias JSONAPI.{
-    Config,
     Document,
     Document.RelationshipObject,
     Document.ResourceObject,
@@ -49,7 +48,7 @@ defmodule JSONAPI.DocumentTest do
   end
 
   test "serialize handles singular objects" do
-    conn = Conn.assign(%Conn{}, :jsonapi_query, %Config{include: [best_comments: [:user]]})
+    conn = Conn.assign(%Conn{}, :jsonapi, %JSONAPI{include: [best_comments: [:user]]})
 
     post = %Post{
       id: 1,
@@ -101,7 +100,7 @@ defmodule JSONAPI.DocumentTest do
 
     conn =
       %Conn{}
-      |> Conn.assign(:jsonapi_query, %Config{include: [best_comments: [:user]]})
+      |> Conn.assign(:jsonapi, %JSONAPI{include: [best_comments: [:user]]})
       |> Conn.fetch_query_params()
 
     assert %Document{
@@ -130,7 +129,7 @@ defmodule JSONAPI.DocumentTest do
   end
 
   test "serialize handles an empty relationship" do
-    conn = Conn.assign(%Conn{}, :jsonapi_query, %Config{include: [:author]})
+    conn = Conn.assign(%Conn{}, :jsonapi, %JSONAPI{include: [:author]})
 
     post = %Post{
       id: 1,
@@ -166,7 +165,7 @@ defmodule JSONAPI.DocumentTest do
   end
 
   test "serialize handles a nil relationship" do
-    conn = Conn.assign(%Conn{}, :jsonapi_query, %Config{include: [:author]})
+    conn = Conn.assign(%Conn{}, :jsonapi, %JSONAPI{include: [:author]})
 
     post = %Post{
       id: 1,
@@ -238,7 +237,7 @@ defmodule JSONAPI.DocumentTest do
     conn =
       %Conn{
         assigns: %{
-          jsonapi_query: %Config{
+          jsonapi: %JSONAPI{
             include: [best_comments: :user]
           }
         }
@@ -266,7 +265,7 @@ defmodule JSONAPI.DocumentTest do
     conn =
       %Conn{
         assigns: %{
-          jsonapi_query: %Config{
+          jsonapi: %JSONAPI{
             include: [:company]
           }
         }
@@ -293,7 +292,7 @@ defmodule JSONAPI.DocumentTest do
     conn =
       %Conn{
         assigns: %{
-          jsonapi_query: %Config{
+          jsonapi: %JSONAPI{
             include: [company: :industry]
           }
         }
@@ -331,7 +330,7 @@ defmodule JSONAPI.DocumentTest do
     conn =
       %Conn{
         assigns: %{
-          jsonapi_query: %Config{
+          jsonapi: %JSONAPI{
             include: [company: [industry: :tags]]
           }
         }
@@ -473,13 +472,13 @@ defmodule JSONAPI.DocumentTest do
     conn =
       :get
       |> Plug.Test.conn("/my-type?page[page]=2&page[size]=1")
-      |> QueryParser.call(%Config{view: view, opts: []})
+      |> QueryParser.call(%JSONAPI{view: view, opts: []})
       |> Conn.fetch_query_params()
 
     %Document{links: links} =
       Document.serialize(PaginatedPostView, posts, conn, nil, total_pages: 3, total_items: 3)
 
-    page = conn.assigns.jsonapi_query.page
+    page = conn.assigns.jsonapi.page
     first = Paginator.url_for(view, posts, conn, %{page | "page" => 1})
     last = Paginator.url_for(view, posts, conn, %{page | "page" => 3})
     self = Paginator.url_for(view, posts, conn, page)
@@ -541,7 +540,7 @@ defmodule JSONAPI.DocumentTest do
     conn =
       :get
       |> Plug.Test.conn("/my-type?page[page]=2&page[size]=1")
-      |> QueryParser.call(%Config{view: view, opts: []})
+      |> QueryParser.call(%JSONAPI{view: view, opts: []})
       |> Conn.fetch_query_params()
 
     %Document{data: data, links: links} =

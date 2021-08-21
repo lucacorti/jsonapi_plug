@@ -24,14 +24,14 @@ defmodule JSONAPI.QueryParser do
   ```
 
   If your controller's index function receives a query with params inside those
-  bounds it will build a `JSONAPI.Config` that has all the validated and parsed
+  bounds it will build a `JSONAPI` that has all the validated and parsed
   fields for your usage. The final configuration will be added to assigns
-  `jsonapi_query`.
+  `jsonapi`.
 
-  The final output will be a `JSONAPI.Config` struct and will look similar to the
+  The final output will be a `JSONAPI` struct and will look similar to the
   following:
 
-      %JSONAPI.Config{
+      %JSONAPI{
         view: MyPostView,
         opts: [view: MyPostView, sort: ["created_at", "title"], filter: ["title"]],
         sort: [desc: :created_at] # Easily insertable into an ecto order_by,
@@ -53,7 +53,7 @@ defmodule JSONAPI.QueryParser do
 
   Sparse fieldsets are supported. By default your response will include all
   available fields. Note that the query to your database is left to you. Should
-  you want to query your DB for specific fields `JSONAPI.Config.fields` will
+  you want to query your DB for specific fields `JSONAPI.fields` will
   return the requested fields for each resource (see above example).
 
   ## Options
@@ -72,13 +72,13 @@ defmodule JSONAPI.QueryParser do
 
   @behaviour Plug
 
-  alias JSONAPI.{Config, Exceptions.InvalidQuery}
+  alias JSONAPI.{Exceptions.InvalidQuery}
   alias Plug.Conn
 
   @impl Plug
   def init(opts) do
     view = Keyword.fetch!(opts, :view)
-    struct(Config, opts: opts, view: view)
+    struct(JSONAPI, opts: opts, view: view)
   end
 
   @impl Plug
@@ -87,7 +87,7 @@ defmodule JSONAPI.QueryParser do
       conn
       |> Conn.fetch_query_params()
       |> Map.get(:query_params)
-      |> struct_from_map(%Config{})
+      |> struct_from_map(%JSONAPI{})
 
     config =
       opts
@@ -97,20 +97,20 @@ defmodule JSONAPI.QueryParser do
       |> parse_sort(config)
       |> parse_pagination(config)
 
-    Conn.assign(conn, :jsonapi_query, config)
+    Conn.assign(conn, :jsonapi, config)
   end
 
-  @spec parse_pagination(Config.t(), Config.t()) :: Config.t()
-  def parse_pagination(config, %Config{page: page}) when map_size(page) == 0,
+  @spec parse_pagination(JSONAPI.t(), JSONAPI.t()) :: JSONAPI.t()
+  def parse_pagination(config, %JSONAPI{page: page}) when map_size(page) == 0,
     do: config
 
-  def parse_pagination(%Config{} = config, %Config{page: page}),
-    do: %Config{config | page: page}
+  def parse_pagination(%JSONAPI{} = config, %JSONAPI{page: page}),
+    do: %JSONAPI{config | page: page}
 
-  @spec parse_filter(Config.t(), Config.t()) :: Config.t()
-  def parse_filter(config, %Config{filter: filter}) when map_size(filter) == 0, do: config
+  @spec parse_filter(JSONAPI.t(), JSONAPI.t()) :: JSONAPI.t()
+  def parse_filter(config, %JSONAPI{filter: filter}) when map_size(filter) == 0, do: config
 
-  def parse_filter(%Config{view: view, opts: opts} = config, %Config{filter: filter}) do
+  def parse_filter(%JSONAPI{view: view, opts: opts} = config, %JSONAPI{filter: filter}) do
     opts_filter = Keyword.get(opts, :filter, [])
 
     Enum.reduce(filter, config, fn {key, val}, config ->
@@ -118,15 +118,15 @@ defmodule JSONAPI.QueryParser do
         raise InvalidQuery, resource: view.type(), param: key, param_type: :filter
       end
 
-      %Config{config | filter: Keyword.put(config.filter, String.to_existing_atom(key), val)}
+      %JSONAPI{config | filter: Keyword.put(config.filter, String.to_existing_atom(key), val)}
     end)
   end
 
-  @spec parse_fields(Config.t(), Config.t()) :: Config.t() | no_return()
-  def parse_fields(%Config{} = config, %Config{fields: fields}) when fields == %{},
+  @spec parse_fields(JSONAPI.t(), JSONAPI.t()) :: JSONAPI.t() | no_return()
+  def parse_fields(%JSONAPI{} = config, %JSONAPI{fields: fields}) when fields == %{},
     do: config
 
-  def parse_fields(%Config{view: view} = config, %Config{fields: fields}) do
+  def parse_fields(%JSONAPI{view: view} = config, %JSONAPI{fields: fields}) do
     Enum.reduce(fields, config, fn {type, value}, config ->
       valid_fields =
         config
@@ -161,14 +161,14 @@ defmodule JSONAPI.QueryParser do
           raise_invalid_field_names(bad_fields, view.type())
       end
 
-      %Config{config | fields: Map.put(config.fields, type, MapSet.to_list(requested_fields))}
+      %JSONAPI{config | fields: Map.put(config.fields, type, MapSet.to_list(requested_fields))}
     end)
   end
 
-  @spec parse_sort(Config.t(), Config.t()) :: Config.t()
-  def parse_sort(config, %Config{sort: nil}), do: config
+  @spec parse_sort(JSONAPI.t(), JSONAPI.t()) :: JSONAPI.t()
+  def parse_sort(config, %JSONAPI{sort: nil}), do: config
 
-  def parse_sort(%Config{view: view, opts: opts} = config, %Config{sort: sort}) do
+  def parse_sort(%JSONAPI{view: view, opts: opts} = config, %JSONAPI{sort: sort}) do
     sort =
       sort
       |> String.split(",")
@@ -184,16 +184,16 @@ defmodule JSONAPI.QueryParser do
       end)
       |> List.flatten()
 
-    %Config{config | sort: sort}
+    %JSONAPI{config | sort: sort}
   end
 
   defp build_sort("", field), do: [asc: field]
   defp build_sort("-", field), do: [desc: field]
 
-  @spec parse_include(Config.t(), Config.t()) :: Config.t()
-  def parse_include(config, %Config{include: []}), do: config
+  @spec parse_include(JSONAPI.t(), JSONAPI.t()) :: JSONAPI.t()
+  def parse_include(config, %JSONAPI{include: []}), do: config
 
-  def parse_include(%Config{view: view} = config, %Config{include: include}) do
+  def parse_include(%JSONAPI{view: view} = config, %JSONAPI{include: include}) do
     valid_includes = view.relationships(view.__resource__())
 
     includes =
@@ -219,10 +219,10 @@ defmodule JSONAPI.QueryParser do
         end
       end)
 
-    %Config{config | include: includes}
+    %JSONAPI{config | include: includes}
   end
 
-  defp handle_nested_include(key, valid_include, %Config{view: view}) do
+  defp handle_nested_include(key, valid_include, %JSONAPI{view: view}) do
     keys =
       try do
         key
@@ -242,8 +242,8 @@ defmodule JSONAPI.QueryParser do
     end
   end
 
-  @spec get_valid_attributes_for_type(Config.t(), String.t()) :: list(atom())
-  def get_valid_attributes_for_type(%Config{view: view}, type) do
+  @spec get_valid_attributes_for_type(JSONAPI.t(), String.t()) :: list(atom())
+  def get_valid_attributes_for_type(%JSONAPI{view: view}, type) do
     if type == view.type() do
       view.attributes(view.__resource__())
     else

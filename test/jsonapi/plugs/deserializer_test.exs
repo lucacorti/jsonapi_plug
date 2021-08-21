@@ -2,7 +2,7 @@ defmodule JSONAPI.DeserializerTest do
   use ExUnit.Case
   use Plug.Test
 
-  alias JSONAPI.{Config, Deserializer}
+  alias JSONAPI.Deserializer
   alias JSONAPI.TestSupport.Views.CarView
 
   defmodule ExamplePlug do
@@ -21,7 +21,7 @@ defmodule JSONAPI.DeserializerTest do
       Plug.Test.conn("GET", "/")
       |> put_req_header("content-type", JSONAPI.mime_type())
       |> put_req_header("accept", JSONAPI.mime_type())
-      |> assign(:jsonapi_query, %Config{view: CarView})
+      |> assign(:jsonapi, %JSONAPI{view: CarView})
 
     result = ExamplePlug.call(conn, [])
     assert result.params == %{}
@@ -34,7 +34,7 @@ defmodule JSONAPI.DeserializerTest do
       Plug.Test.conn("POST", "/", req_body)
       |> put_req_header("content-type", JSONAPI.mime_type())
       |> put_req_header("accept", JSONAPI.mime_type())
-      |> assign(:jsonapi_query, %Config{view: CarView})
+      |> assign(:jsonapi, %JSONAPI{view: CarView})
 
     result = ExamplePlug.call(conn, [])
     assert result.params == %{"some-nonsense" => "yup"}
@@ -53,7 +53,7 @@ defmodule JSONAPI.DeserializerTest do
       Plug.Test.conn("POST", "/", req_body)
       |> put_req_header("content-type", JSONAPI.mime_type())
       |> put_req_header("accept", JSONAPI.mime_type())
-      |> assign(:jsonapi_query, %Config{view: CarView})
+      |> assign(:jsonapi, %JSONAPI{view: CarView})
 
     result = ExamplePlug.call(conn, [])
 
@@ -94,7 +94,7 @@ defmodule JSONAPI.DeserializerTest do
       Plug.Test.conn("POST", "/", req_body)
       |> put_req_header("content-type", JSONAPI.mime_type())
       |> put_req_header("accept", JSONAPI.mime_type())
-      |> assign(:jsonapi_query, %Config{view: CarView})
+      |> assign(:jsonapi, %JSONAPI{view: CarView})
 
     result = ExamplePlug.call(conn, [])
     assert result.params["some-nonsense"] == true
@@ -147,7 +147,7 @@ defmodule JSONAPI.DeserializerTest do
         Plug.Test.conn("POST", "/", req_body)
         |> put_req_header("content-type", JSONAPI.mime_type())
         |> put_req_header("accept", JSONAPI.mime_type())
-        |> assign(:jsonapi_query, %Config{view: CarView})
+        |> assign(:jsonapi, %JSONAPI{view: CarView})
 
       result = ExampleUnderscorePlug.call(conn, [])
       assert result.params["some_nonsense"] == true
@@ -207,7 +207,7 @@ defmodule JSONAPI.DeserializerTest do
         Plug.Test.conn("POST", "/", req_body)
         |> put_req_header("content-type", JSONAPI.mime_type())
         |> put_req_header("accept", JSONAPI.mime_type())
-        |> assign(:jsonapi_query, %Config{view: CarView})
+        |> assign(:jsonapi, %JSONAPI{view: CarView})
 
       result = ExampleCamelCasePlug.call(conn, [])
       assert result.params["someNonsense"] == true

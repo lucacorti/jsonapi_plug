@@ -3,7 +3,6 @@ defmodule JSONAPI.QueryParserTest do
 
   import JSONAPI.QueryParser
 
-  alias JSONAPI.Config
   alias JSONAPI.Exceptions.InvalidQuery
   alias JSONAPI.TestSupport.Views.{CommentView, MyPostView}
 
@@ -18,87 +17,87 @@ defmodule JSONAPI.QueryParserTest do
   end
 
   test "parse_sort/2 turns sorts into valid ecto sorts" do
-    config = struct(Config, opts: [sort: ~w(name title)], view: MyPostView)
+    config = struct(JSONAPI, opts: [sort: ~w(name title)], view: MyPostView)
 
-    assert %Config{sort: [asc: :name, asc: :title]} =
-             parse_sort(config, %Config{sort: "name,title"})
+    assert %JSONAPI{sort: [asc: :name, asc: :title]} =
+             parse_sort(config, %JSONAPI{sort: "name,title"})
 
-    assert %Config{sort: [asc: :name]} = parse_sort(config, %Config{sort: "name"})
-    assert %Config{sort: [desc: :name]} = parse_sort(config, %Config{sort: "-name"})
+    assert %JSONAPI{sort: [asc: :name]} = parse_sort(config, %JSONAPI{sort: "name"})
+    assert %JSONAPI{sort: [desc: :name]} = parse_sort(config, %JSONAPI{sort: "-name"})
 
-    assert %Config{sort: [asc: :name, desc: :title]} =
-             parse_sort(config, %Config{sort: "name,-title"})
+    assert %JSONAPI{sort: [asc: :name, desc: :title]} =
+             parse_sort(config, %JSONAPI{sort: "name,-title"})
   end
 
   test "parse_sort/2 raises on invalid sorts" do
-    config = struct(Config, opts: [], view: MyPostView)
+    config = struct(JSONAPI, opts: [], view: MyPostView)
 
     assert_raise InvalidQuery, "invalid sort, name for type my-type", fn ->
-      parse_sort(config, %Config{sort: "name"})
+      parse_sort(config, %JSONAPI{sort: "name"})
     end
   end
 
   test "parse_filter/2 turns filters key/val pairs" do
-    config = struct(Config, opts: [filter: ~w(name)], view: MyPostView)
+    config = struct(JSONAPI, opts: [filter: ~w(name)], view: MyPostView)
 
-    assert %Config{filter: [name: "jason"]} =
-             parse_filter(config, %Config{filter: %{"name" => "jason"}})
+    assert %JSONAPI{filter: [name: "jason"]} =
+             parse_filter(config, %JSONAPI{filter: %{"name" => "jason"}})
   end
 
   test "parse_filter/2 raises on invalid filters" do
-    config = struct(Config, opts: [], view: MyPostView)
+    config = struct(JSONAPI, opts: [], view: MyPostView)
 
     assert_raise InvalidQuery, "invalid filter, noop for type my-type", fn ->
-      parse_filter(config, %Config{filter: %{"noop" => "jason"}})
+      parse_filter(config, %JSONAPI{filter: %{"noop" => "jason"}})
     end
   end
 
   test "parse_include/2 turns an include string into a keyword list" do
-    config = struct(Config, view: MyPostView)
+    config = struct(JSONAPI, view: MyPostView)
 
-    assert %Config{include: [:author, comments: :user]} =
-             parse_include(config, %Config{include: "author,comments.user"})
+    assert %JSONAPI{include: [:author, comments: :user]} =
+             parse_include(config, %JSONAPI{include: "author,comments.user"})
 
-    assert %Config{include: [:author]} = parse_include(config, %Config{include: "author"})
+    assert %JSONAPI{include: [:author]} = parse_include(config, %JSONAPI{include: "author"})
 
-    assert %Config{include: [:comments, :author]} =
-             parse_include(config, %Config{include: "comments,author"})
+    assert %JSONAPI{include: [:comments, :author]} =
+             parse_include(config, %JSONAPI{include: "comments,author"})
 
-    assert %Config{include: [comments: :user]} =
-             parse_include(config, %Config{include: "comments.user"})
+    assert %JSONAPI{include: [comments: :user]} =
+             parse_include(config, %JSONAPI{include: "comments.user"})
 
-    assert %Config{include: [:best_friends]} =
-             parse_include(config, %Config{include: "best_friends"})
+    assert %JSONAPI{include: [:best_friends]} =
+             parse_include(config, %JSONAPI{include: "best_friends"})
 
-    assert %Config{include: [author: :top_posts]} =
-             parse_include(config, %Config{include: "author.top-posts"})
+    assert %JSONAPI{include: [author: :top_posts]} =
+             parse_include(config, %JSONAPI{include: "author.top-posts"})
   end
 
   test "parse_include/2 errors with invalid includes" do
-    config = struct(Config, view: MyPostView)
+    config = struct(JSONAPI, view: MyPostView)
 
     assert_raise InvalidQuery, "invalid include, user for type my-type", fn ->
-      parse_include(config, %Config{include: "user,comments.author"})
+      parse_include(config, %JSONAPI{include: "user,comments.author"})
     end
 
     assert_raise InvalidQuery, "invalid include, comments.author for type my-type", fn ->
-      parse_include(config, %Config{include: "comments.author"})
+      parse_include(config, %JSONAPI{include: "comments.author"})
     end
 
     assert_raise InvalidQuery, "invalid include, comments.author.user for type my-type", fn ->
-      parse_include(config, %Config{include: "comments.author.user"})
+      parse_include(config, %JSONAPI{include: "comments.author.user"})
     end
 
     assert_raise InvalidQuery, "invalid include, fake_rel for type my-type", fn ->
-      assert parse_include(config, %Config{include: "fake-rel"})
+      assert parse_include(config, %JSONAPI{include: "fake-rel"})
     end
   end
 
   test "parse_fields/2 turns a fields map into a map of validated fields" do
-    config = struct(Config, view: MyPostView)
+    config = struct(JSONAPI, view: MyPostView)
 
-    assert %Config{fields: %{"my-type" => [:text]}} =
-             parse_fields(config, %Config{fields: %{"my-type" => "text"}})
+    assert %JSONAPI{fields: %{"my-type" => [:text]}} =
+             parse_fields(config, %JSONAPI{fields: %{"my-type" => "text"}})
   end
 
   test "parse_fields/2 turns an empty fields map into an empty list" do
@@ -107,14 +106,14 @@ defmodule JSONAPI.QueryParserTest do
   end
 
   test "parse_fields/2 raises on invalid parsing" do
-    config = struct(Config, view: MyPostView)
+    config = struct(JSONAPI, view: MyPostView)
 
     assert_raise InvalidQuery, "invalid fields, blag for type my-type", fn ->
-      parse_fields(config, %Config{fields: %{"my-type" => "blag"}})
+      parse_fields(config, %JSONAPI{fields: %{"my-type" => "blag"}})
     end
 
     assert_raise InvalidQuery, "invalid fields, username for type my-type", fn ->
-      parse_fields(config, %Config{fields: %{"my-type" => "username"}})
+      parse_fields(config, %JSONAPI{fields: %{"my-type" => "username"}})
     end
   end
 
@@ -123,23 +122,23 @@ defmodule JSONAPI.QueryParserTest do
   end
 
   test "parse_pagination/2 turns a fields map into a map of pagination values" do
-    config = struct(Config, view: MyPostView)
-    assert %Config{page: %{}} = parse_pagination(config, config)
+    config = struct(JSONAPI, view: MyPostView)
+    assert %JSONAPI{page: %{}} = parse_pagination(config, config)
 
-    assert %Config{page: %{"limit" => "1"}} =
-             parse_pagination(config, %Config{page: %{"limit" => "1"}})
+    assert %JSONAPI{page: %{"limit" => "1"}} =
+             parse_pagination(config, %JSONAPI{page: %{"limit" => "1"}})
 
-    assert %Config{page: %{"offset" => "1"}} =
-             parse_pagination(config, %Config{page: %{"offset" => "1"}})
+    assert %JSONAPI{page: %{"offset" => "1"}} =
+             parse_pagination(config, %JSONAPI{page: %{"offset" => "1"}})
 
-    assert %Config{page: %{"page" => "1"}} =
-             parse_pagination(config, %Config{page: %{"page" => "1"}})
+    assert %JSONAPI{page: %{"page" => "1"}} =
+             parse_pagination(config, %JSONAPI{page: %{"page" => "1"}})
 
-    assert %Config{page: %{"size" => "1"}} =
-             parse_pagination(config, %Config{page: %{"size" => "1"}})
+    assert %JSONAPI{page: %{"size" => "1"}} =
+             parse_pagination(config, %JSONAPI{page: %{"size" => "1"}})
 
-    assert %Config{page: %{"cursor" => "cursor"}} =
-             parse_pagination(config, %Config{page: %{"cursor" => "cursor"}})
+    assert %JSONAPI{page: %{"cursor" => "cursor"}} =
+             parse_pagination(config, %JSONAPI{page: %{"cursor" => "cursor"}})
   end
 
   test "get_view_for_type/2 raises on invalid fields" do

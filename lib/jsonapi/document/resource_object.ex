@@ -5,7 +5,7 @@ defmodule JSONAPI.Document.ResourceObject do
   https://jsonapi.org/format/#resource_object-resource-objects
   """
 
-  alias JSONAPI.{Config, Document, Document.RelationshipObject, Resource, View}
+  alias JSONAPI.{Document, Document.RelationshipObject, Resource, View}
   alias Plug.Conn
 
   @type field :: atom()
@@ -31,10 +31,10 @@ defmodule JSONAPI.Document.ResourceObject do
   def serialize(
         view,
         resources,
-        %Conn{assigns: %{jsonapi_query: %Config{} = config}} = conn,
+        %Conn{assigns: %{jsonapi: %JSONAPI{} = jsonapi}} = conn,
         options
       ),
-      do: do_serialize(view, resources, conn, config.include, options)
+      do: do_serialize(view, resources, conn, jsonapi.include, options)
 
   def serialize(view, resources, conn, options),
     do: do_serialize(view, resources, conn, [], options)
@@ -75,7 +75,7 @@ defmodule JSONAPI.Document.ResourceObject do
   end
 
   defp requested_attributes_for_type(view, %Conn{
-         assigns: %{jsonapi_query: %Config{fields: fields}}
+         assigns: %{jsonapi: %JSONAPI{fields: fields}}
        }),
        do: fields[view.type()]
 

@@ -3,7 +3,7 @@ defmodule JSONAPI.ViewTest do
 
   alias JSONAPI.TestSupport.Resources.{Comment, Post, User}
   alias JSONAPI.TestSupport.Views.{CarView, CommentView, PostView, UserView}
-  alias JSONAPI.{Config, Document, Document.ResourceObject, Paginator, View}
+  alias JSONAPI.{Document, Document.ResourceObject, Paginator, View}
   alias Plug.Conn
 
   setup do
@@ -213,7 +213,7 @@ defmodule JSONAPI.ViewTest do
   test "view trims returned field names to only those requested" do
     conn =
       Conn.fetch_query_params(%Conn{
-        assigns: %{jsonapi_query: %Config{fields: %{PostView.type() => [:body]}}}
+        assigns: %{jsonapi: %JSONAPI{fields: %{PostView.type() => [:body]}}}
       })
 
     assert %Document{
@@ -233,7 +233,7 @@ defmodule JSONAPI.ViewTest do
   test "attributes/2 can return only requested fields" do
     conn =
       Conn.fetch_query_params(%Conn{
-        assigns: %{jsonapi_query: %Config{fields: %{PostView.type() => [:body]}}}
+        assigns: %{jsonapi: %JSONAPI{fields: %{PostView.type() => [:body]}}}
       })
 
     assert %Document{
