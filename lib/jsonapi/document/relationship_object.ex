@@ -42,4 +42,16 @@ defmodule JSONAPI.Document.RelationshipObject do
     do: %__MODULE__{relationship | meta: meta}
 
   defp serialize_meta(relationship, _meta), do: relationship
+
+  @spec deserialize(View.t(), Document.payload()) :: t()
+  def deserialize(view, payload) do
+    %__MODULE__{}
+    |> deserialize_data(view, payload)
+  end
+
+  defp deserialize_data(relationship_object, _view, %{"data" => %{"id" => id, "type" => type}}) do
+    %__MODULE__{relationship_object | data: %{id: id, type: type}}
+  end
+
+  defp deserialize_data(relationship_object, _view, _payload), do: relationship_object
 end

@@ -188,9 +188,4 @@ defmodule JSONAPI.Document.ResourceObject do
     |> List.flatten()
     |> Enum.uniq()
   end
-
-  @spec deserialize(View.t(), Document.payload()) :: {:ok, t()} | {:error, :invalid}
-  def deserialize(_view, _payload) do
-    {:ok, %__MODULE__{id: "0", type: "a"}}
-  end
 end

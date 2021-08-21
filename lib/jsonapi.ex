@@ -3,13 +3,11 @@ defmodule JSONAPI do
   A module for working with the JSON API specification in Elixir
   """
 
-  @mime_type "application/vnd.api+json"
-
   @doc """
   This returns the MIME type for JSONAPIs
   """
   @spec mime_type :: String.t()
-  def mime_type, do: @mime_type
+  def mime_type, do: "application/vnd.api+json"
 
   @doc """
   Replace dashes between words in `value` with underscores

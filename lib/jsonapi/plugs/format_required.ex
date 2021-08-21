@@ -26,11 +26,17 @@ defmodule JSONAPI.FormatRequired do
 
   def call(%Conn{params: %{"data" => %{"type" => _, "id" => _}}} = conn, _), do: conn
 
-  def call(%Conn{method: "PATCH", params: %{"data" => %{"attributes" => _, "type" => _}}} = conn, _),
-   do: ErrorView.send_error(conn, ErrorView.missing_data_id_param())
+  def call(
+        %Conn{method: "PATCH", params: %{"data" => %{"attributes" => _, "type" => _}}} = conn,
+        _
+      ),
+      do: ErrorView.send_error(conn, ErrorView.missing_data_id_param())
 
-  def call(%Conn{method: "PATCH", params: %{"data" => %{"attributes" => _, "id" => _}}} = conn, _),
-     do: ErrorView.send_error(conn, ErrorView.missing_data_type_param())
+  def call(
+        %Conn{method: "PATCH", params: %{"data" => %{"attributes" => _, "id" => _}}} = conn,
+        _
+      ),
+      do: ErrorView.send_error(conn, ErrorView.missing_data_type_param())
 
   def call(%Conn{params: %{"data" => %{"attributes" => _}}} = conn, _),
     do: ErrorView.send_error(conn, ErrorView.missing_data_type_param())

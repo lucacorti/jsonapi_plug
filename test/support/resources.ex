@@ -1,34 +1,37 @@
-defmodule JSONAPI.SupportTest do
+defmodule JSONAPI.TestSupport.Resources do
   @moduledoc false
+
+  alias JSONAPI.Resource.{Identifiable, Serializable}
+  alias JSONAPI.TestSupport.Views.{CommentView, CompanyView, UserView}
 
   defmodule Tag do
     @moduledoc false
-    @derive {JSONAPI.Resource.Identifiable, id_attribute: :id, type: "tag"}
-    @derive {JSONAPI.Resource.Serializable, attributes: [:name]}
+    @derive {Identifiable, id_attribute: :id, type: "tag"}
+    @derive {Serializable, attributes: [:name]}
     defstruct id: nil, name: nil
   end
 
   defmodule Industry do
     @moduledoc false
-    @derive {JSONAPI.Resource.Identifiable, id_attribute: :id, type: "industry"}
-    @derive {JSONAPI.Resource.Serializable, attributes: [:name], has_many: [tags: Tag]}
+    @derive {Identifiable, id_attribute: :id, type: "industry"}
+    @derive {Serializable, attributes: [:name], has_many: [tags: Tag]}
     defstruct id: nil, name: nil, tags: []
   end
 
   defmodule Company do
     @moduledoc false
-    @derive {JSONAPI.Resource.Identifiable, id_attribute: :id, type: "company"}
-    @derive {JSONAPI.Resource.Serializable, attributes: [:name], has_one: [industry: Company]}
+    @derive {Identifiable, id_attribute: :id, type: "company"}
+    @derive {Serializable, attributes: [:name], has_one: [industry: Company]}
     defstruct id: nil, name: nil, industry: nil
   end
 
   defmodule User do
     @moduledoc false
-    @derive {JSONAPI.Resource.Identifiable, id_attribute: :id, type: "user"}
+    @derive {Identifiable, id_attribute: :id, type: "user"}
     @derive {
-      JSONAPI.Resource.Serializable,
+      Serializable,
       attributes: [:age, :username, :password, :first_name, :last_name],
-      has_one: [company: Company]
+      has_one: [company: CompanyView]
     }
     defstruct id: nil,
               age: nil,
@@ -41,29 +44,29 @@ defmodule JSONAPI.SupportTest do
 
   defmodule Car do
     @moduledoc false
-    @derive {JSONAPI.Resource.Identifiable, id_attribute: :id, type: "car"}
-    @derive JSONAPI.Resource.Serializable
+    @derive {Identifiable, id_attribute: :id, type: "car"}
+    @derive Serializable
     defstruct id: nil
   end
 
   defmodule Comment do
     @moduledoc false
-    @derive {JSONAPI.Resource.Identifiable, id_attribute: :id, type: "comment"}
+    @derive {Identifiable, id_attribute: :id, type: "comment"}
     @derive {
-      JSONAPI.Resource.Serializable,
-      attributes: [:text, :body], has_one: [user: User], has_one: [post: Post]
+      Serializable,
+      attributes: [:text, :body], has_one: [user: UserView, post: PostView]
     }
     defstruct id: nil, text: nil, body: nil, user: nil, post: []
   end
 
   defmodule Post do
     @moduledoc false
-    @derive {JSONAPI.Resource.Identifiable, id_attribute: :id, type: "post"}
+    @derive {Identifiable, id_attribute: :id, type: "post"}
     @derive {
-      JSONAPI.Resource.Serializable,
+      Serializable,
       attributes: [:text, :title, :body],
-      has_one: [author: User, other_user: User],
-      has_many: [best_comments: Comment]
+      has_one: [author: UserView, other_user: UserView],
+      has_many: [best_comments: CommentView]
     }
     defstruct id: nil,
               title: nil,

@@ -15,6 +15,7 @@ defmodule JSONAPI.Document do
     Document.RelationshipObject,
     Document.ResourceObject,
     Paginator,
+    Resource,
     View
   }
 
@@ -66,7 +67,7 @@ defmodule JSONAPI.Document do
   @type links :: %{atom() => LinksObject.link()}
 
   @type t :: %__MODULE__{
-          data: data() | nil,
+          data: data() | View.data() | nil,
           errors: errors() | nil,
           included: included() | nil,
           jsonapi: jsonapi() | nil,
@@ -173,23 +174,26 @@ defmodule JSONAPI.Document do
   defp serialize_meta(%__MODULE__{} = document, _resource, _view, _conn, _options, _meta),
     do: document
 
-  @spec deserialize(View.t(), payload()) :: {:ok, t()} | {:error, :invalid}
-  def deserialize(view, payload) do
+  @spec deserialize(Conn.t()) :: {:ok, t()} | {:error, :invalid}
+  def deserialize(%Conn{assigns: %{jsonapi_query: %Config{view: view}}, body_params: payload}) do
     %__MODULE__{}
-    |> deserialize_data(view, payload)
     |> deserialize_included(view, payload)
+    |> deserialize_data(view, payload)
     |> deserialize_meta(view, payload)
     |> validate()
   end
 
-  defp deserialize_data(%__MODULE__{} = document, view, %{"data" => data})
+  defp deserialize_data(%__MODULE__{included: included} = document, view, %{"data" => data})
        when is_list(data) do
-    %__MODULE__{document | data: Enum.map(data, &ResourceObject.deserialize(view, &1))}
+    %__MODULE__{
+      document
+      | data: Enum.map(data, &Resource.deserialize(view.__resource__(), &1, included))
+    }
   end
 
-  defp deserialize_data(%__MODULE__{} = document, view, %{"data" => data})
+  defp deserialize_data(%__MODULE__{included: included} = document, view, %{"data" => data})
        when is_map(data) do
-    %__MODULE__{document | data: ResourceObject.deserialize(view, data)}
+    %__MODULE__{document | data: Resource.deserialize(view.__resource__(), data, included)}
   end
 
   defp deserialize_data(%__MODULE__{} = document, _view, _payload),
@@ -197,7 +201,10 @@ defmodule JSONAPI.Document do
 
   defp deserialize_included(%__MODULE__{} = document, view, %{"included" => included})
        when is_list(included) do
-    %__MODULE__{document | included: Enum.map(included, &ResourceObject.deserialize(view, &1))}
+    %__MODULE__{
+      document
+      | included: Enum.map(included, &Resource.deserialize(view.__resource__(), &1, []))
+    }
   end
 
   defp deserialize_included(%__MODULE__{} = document, _view, _payload),

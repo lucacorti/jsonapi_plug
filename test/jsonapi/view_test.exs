@@ -1,37 +1,10 @@
 defmodule JSONAPI.ViewTest do
   use ExUnit.Case
 
-  alias JSONAPI.SupportTest.{Car, Comment, Post, User}
+  alias JSONAPI.TestSupport.Resources.{Comment, Post, User}
+  alias JSONAPI.TestSupport.Views.{CarView, CommentView, PostView, UserView}
   alias JSONAPI.{Config, Document, Document.ResourceObject, Paginator, View}
   alias Plug.Conn
-
-  defmodule PostView do
-    use JSONAPI.View, resource: Post, type: "post", path: "posts", namespace: "api"
-
-    @impl JSONAPI.View
-    def attributes(_resource), do: [:title, :body]
-  end
-
-  defmodule CommentView do
-    use JSONAPI.View, resource: Comment, type: "comment", path: "comments", namespace: "api"
-
-    @impl JSONAPI.View
-    def attributes(_resource), do: [:body]
-  end
-
-  defmodule UserView do
-    use JSONAPI.View, resource: User, type: "user", namespace: "cake", path: "users"
-
-    @impl JSONAPI.View
-    def attributes(_resource),
-      do: [:age, :first_name, :last_name, :full_name, :username, :password]
-
-    def full_name(user, _conn), do: Enum.join([user.first_name, user.last_name], " ")
-  end
-
-  defmodule CarView do
-    use JSONAPI.View, resource: Car, type: "cars", namespace: ""
-  end
 
   setup do
     Application.put_env(:jsonapi, :field_transformation, :underscore)
@@ -61,31 +34,33 @@ defmodule JSONAPI.ViewTest do
     end
 
     test "uses macro configuration first" do
-      assert PostView.__namespace__() == "api"
+      assert PostView.__namespace__() == nil
     end
 
     test "uses global namespace if available" do
       assert UserView.__namespace__() == "cake"
     end
 
-    test "can be blank" do
-      assert CarView.__namespace__() == ""
+    test "namespace cant be blank" do
+      assert CarView.__namespace__() == nil
     end
   end
 
   describe "url_for/3 when host and scheme not configured" do
     test "url_for/3" do
-      assert View.url_for(PostView, nil, nil) == "/api/posts"
-      assert View.url_for(PostView, [], nil) == "/api/posts"
-      assert View.url_for(PostView, %Post{id: 1}, nil) == "/api/posts/1"
-      assert View.url_for(PostView, [], %Conn{}) == "http://www.example.com/api/posts"
-      assert View.url_for(PostView, %Post{id: 1}, %Conn{}) == "http://www.example.com/api/posts/1"
+      assert View.url_for(PostView, nil, nil) == "/other-api/posts"
+      assert View.url_for(PostView, [], nil) == "/other-api/posts"
+      assert View.url_for(PostView, %Post{id: 1}, nil) == "/other-api/posts/1"
+      assert View.url_for(PostView, [], %Conn{}) == "http://www.example.com/other-api/posts"
+
+      assert View.url_for(PostView, %Post{id: 1}, %Conn{}) ==
+               "http://www.example.com/other-api/posts/1"
 
       assert View.url_for_relationship(PostView, [], %Conn{}, "comments") ==
-               "http://www.example.com/api/posts/relationships/comments"
+               "http://www.example.com/other-api/posts/relationships/comments"
 
       assert View.url_for_relationship(PostView, %Post{id: 1}, %Conn{}, "comments") ==
-               "http://www.example.com/api/posts/1/relationships/comments"
+               "http://www.example.com/other-api/posts/1/relationships/comments"
     end
   end
 
@@ -102,15 +77,15 @@ defmodule JSONAPI.ViewTest do
 
     test "uses configured host instead of that on Conn" do
       assert View.url_for_relationship(PostView, [], %Conn{}, "comments") ==
-               "http://www.otherhost.com/api/posts/relationships/comments"
+               "http://www.otherhost.com/other-api/posts/relationships/comments"
 
       assert View.url_for_relationship(PostView, %Post{id: 1}, %Conn{}, "comments") ==
-               "http://www.otherhost.com/api/posts/1/relationships/comments"
+               "http://www.otherhost.com/other-api/posts/1/relationships/comments"
 
-      assert View.url_for(PostView, [], %Conn{}) == "http://www.otherhost.com/api/posts"
+      assert View.url_for(PostView, [], %Conn{}) == "http://www.otherhost.com/other-api/posts"
 
       assert View.url_for(PostView, %Post{id: 1}, %Conn{}) ==
-               "http://www.otherhost.com/api/posts/1"
+               "http://www.otherhost.com/other-api/posts/1"
     end
   end
 
@@ -124,14 +99,16 @@ defmodule JSONAPI.ViewTest do
     end
 
     test "uses configured scheme instead of that on Conn" do
-      assert View.url_for(PostView, [], %Conn{}) == "ftp://www.example.com/api/posts"
-      assert View.url_for(PostView, %Post{id: 1}, %Conn{}) == "ftp://www.example.com/api/posts/1"
+      assert View.url_for(PostView, [], %Conn{}) == "ftp://www.example.com/other-api/posts"
+
+      assert View.url_for(PostView, %Post{id: 1}, %Conn{}) ==
+               "ftp://www.example.com/other-api/posts/1"
 
       assert View.url_for_relationship(PostView, [], %Conn{}, "comments") ==
-               "ftp://www.example.com/api/posts/relationships/comments"
+               "ftp://www.example.com/other-api/posts/relationships/comments"
 
       assert View.url_for_relationship(PostView, %Post{id: 1}, %Conn{}, "comments") ==
-               "ftp://www.example.com/api/posts/1/relationships/comments"
+               "ftp://www.example.com/other-api/posts/1/relationships/comments"
     end
   end
 
@@ -142,10 +119,10 @@ defmodule JSONAPI.ViewTest do
 
     test "with pagination information", %{conn: conn} do
       assert Paginator.url_for(PostView, nil, conn, %{}) ==
-               "http://www.example.com/api/posts"
+               "http://www.example.com/other-api/posts"
 
       assert Paginator.url_for(PostView, nil, conn, %{number: 1, size: 10}) ==
-               "http://www.example.com/api/posts?page%5Bnumber%5D=1&page%5Bsize%5D=10"
+               "http://www.example.com/other-api/posts?page%5Bnumber%5D=1&page%5Bsize%5D=10"
     end
 
     test "with query parameters", %{conn: conn} do
@@ -156,10 +133,10 @@ defmodule JSONAPI.ViewTest do
                number: 1,
                size: 10
              }) ==
-               "http://www.example.com/api/posts?comments%5B%5D=5&comments%5B%5D=2&page%5Bnumber%5D=1&page%5Bsize%5D=10"
+               "http://www.example.com/other-api/posts?comments%5B%5D=5&comments%5B%5D=2&page%5Bnumber%5D=1&page%5Bsize%5D=10"
 
       assert Paginator.url_for(PostView, nil, conn_with_query_params, %{}) ==
-               "http://www.example.com/api/posts?comments%5B%5D=5&comments%5B%5D=2"
+               "http://www.example.com/other-api/posts?comments%5B%5D=5&comments%5B%5D=2"
     end
   end
 

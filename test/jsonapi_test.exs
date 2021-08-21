@@ -7,7 +7,8 @@ defmodule JSONAPITest do
   doctest JSONAPI
 
   alias JSONAPI.View
-  alias JSONAPI.SupportTest.{Company, Industry, Post, Tag, User}
+  alias JSONAPI.TestSupport.Resources.{Company, Industry, Post, Tag, User}
+  alias JSONAPI.TestSupport.Views.PostView
   alias Plug.Conn
 
   @default_data %Post{
@@ -18,87 +19,13 @@ defmodule JSONAPITest do
     other_user: %User{username: "josh", id: 3}
   }
 
-  defmodule PostView do
-    use JSONAPI.View, resource: Post
-
-    @impl JSONAPI.View
-    def attributes(_resource), do: [:text, :body, :excerpt, :first_character]
-
-    @impl JSONAPI.View
-    def type, do: "my-type"
-
-    @impl JSONAPI.View
-    def relationships(_resource) do
-      [
-        author: JSONAPITest.UserView,
-        other_user: JSONAPITest.UserView
-      ]
-    end
-
-    def excerpt(post, _conn), do: String.slice(post.text, 0..1)
-
-    def first_character(post, _conn), do: String.first(post.text)
-  end
-
-  defmodule UserView do
-    use JSONAPI.View, resource: User
-
-    @impl JSONAPI.View
-    def attributes(_resource), do: [:username]
-
-    @impl JSONAPI.View
-    def type, do: "user"
-
-    @impl JSONAPI.View
-    def relationships(_resource), do: [company: JSONAPITest.CompanyView]
-  end
-
-  defmodule CompanyView do
-    use JSONAPI.View, resource: Company
-
-    @impl JSONAPI.View
-    def attributes(_resource), do: [:name]
-
-    @impl JSONAPI.View
-    def type, do: "company"
-
-    @impl JSONAPI.View
-    def relationships(_resource), do: [industry: JSONAPITest.IndustryView]
-  end
-
-  defmodule IndustryView do
-    use JSONAPI.View, resource: Industry
-
-    @impl JSONAPI.View
-    def attributes(_resource), do: [:name]
-
-    @impl JSONAPI.View
-    def type, do: "industry"
-
-    @impl JSONAPI.View
-    def relationships(_resource), do: [tags: JSONAPITest.TagView]
-  end
-
-  defmodule TagView do
-    use JSONAPI.View, resource: Tag
-
-    @impl JSONAPI.View
-    def attributes(_resource), do: [:name]
-
-    @impl JSONAPI.View
-    def type, do: "tag"
-
-    @impl JSONAPI.View
-    def relationships(_resource), do: []
-  end
-
   defmodule MyPostPlug do
     use Plug.Builder
 
     alias Plug.Conn
 
     plug JSONAPI.QueryParser,
-      view: JSONAPITest.PostView,
+      view: PostView,
       sort: [:text],
       filter: [:text]
 
@@ -137,7 +64,7 @@ defmodule JSONAPITest do
              "data" => [
                %{
                  "id" => "1",
-                 "type" => "my-type",
+                 "type" => "post",
                  "attributes" => %{
                    "body" => "Hi",
                    "text" => "Hello",
@@ -167,7 +94,7 @@ defmodule JSONAPITest do
              }
            } = Jason.decode!(conn.resp_body)
 
-    assert map_size(relationships) == 2
+    assert map_size(relationships) == 3
   end
 
   test "handles includes properly" do
@@ -182,7 +109,7 @@ defmodule JSONAPITest do
              "data" => [
                %{
                  "id" => "1",
-                 "type" => "my-type",
+                 "type" => "post",
                  "relationships" =>
                    %{
                      "author" => %{
@@ -205,8 +132,8 @@ defmodule JSONAPITest do
              "links" => _links
            } = Jason.decode!(conn.resp_body)
 
-    assert map_size(relationships) == 2
-    assert Enum.sort(Map.keys(relationships)) == ["author", "other_user"]
+    assert map_size(relationships) == 3
+    assert Enum.sort(Map.keys(relationships)) == ["author", "best_comments", "other_user"]
 
     assert Enum.find(included, fn
              %{"id" => "2", "type" => "user"} -> true
@@ -297,7 +224,7 @@ defmodule JSONAPITest do
              "data" => [
                %{
                  "id" => "1",
-                 "type" => "my-type",
+                 "type" => "post",
                  "relationships" => %{
                    "author" =>
                      %{
@@ -362,7 +289,7 @@ defmodule JSONAPITest do
     test "handles sparse fields properly" do
       conn =
         :get
-        |> conn("/posts?include=other_user.company&fields[my-type]=text,excerpt,first_character")
+        |> conn("/posts?include=other_user.company&fields[post]=text,excerpt,first_character")
         |> Conn.assign(:data, [@default_data])
         |> Conn.fetch_query_params()
         |> MyPostPlug.call([])
@@ -395,7 +322,7 @@ defmodule JSONAPITest do
     test "handles sparse fields properly" do
       conn =
         :get
-        |> conn("/posts?include=other_user.company&fields[my-type]=text,first-character")
+        |> conn("/posts?include=other_user.company&fields[post]=text,first-character")
         |> Conn.assign(:data, [@default_data])
         |> Conn.fetch_query_params()
         |> MyPostPlug.call([])

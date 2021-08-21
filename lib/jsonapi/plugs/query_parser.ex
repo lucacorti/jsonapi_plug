@@ -20,7 +20,7 @@ defmodule JSONAPI.QueryParser do
   plug JSONAPI.QueryParser,
     filter: ~w(title),
     sort: ~w(created_at title),
-    view: MyView
+    view: MyPostView
   ```
 
   If your controller's index function receives a query with params inside those
@@ -32,8 +32,8 @@ defmodule JSONAPI.QueryParser do
   following:
 
       %JSONAPI.Config{
-        view: MyView,
-        opts: [view: MyView, sort: ["created_at", "title"], filter: ["title"]],
+        view: MyPostView,
+        opts: [view: MyPostView, sort: ["created_at", "title"], filter: ["title"]],
         sort: [desc: :created_at] # Easily insertable into an ecto order_by,
         filter: [title: "my title"] # Easily reduceable into ecto where clauses
         include: [comments: :user] # Easily insertable into a Repo.preload,

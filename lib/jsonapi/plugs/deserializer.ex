@@ -47,6 +47,7 @@ defmodule JSONAPI.Deserializer do
       plug JSONAPI.UnderscoreParameters
   """
 
+  alias JSONAPI.Document
   alias Plug.Conn
 
   @spec init(Keyword.t()) :: Keyword.t()
@@ -54,14 +55,23 @@ defmodule JSONAPI.Deserializer do
 
   @spec call(Conn.t(), Keyword.t()) :: Conn.t()
   def call(%Conn{} = conn, _opts) do
-    content_type = Conn.get_req_header(conn, "content-type")
+    conn =
+      if JSONAPI.mime_type() in Conn.get_req_header(conn, "content-type") do
+        %Conn{conn | params: process(conn.params)}
+      else
+        conn
+      end
 
-    if JSONAPI.mime_type() in content_type do
-      %Conn{conn | params: process(conn.params)}
-    else
-      conn
+    case Document.deserialize(conn) do
+      {:ok, document} ->
+        Conn.assign(conn, :jsonapi_data, document)
+
+      {:error, _reason} ->
+        conn
     end
   end
+
+  def call(conn, _opts), do: conn
 
   @spec process(map()) :: map()
   def process(%{"data" => nil}), do: nil

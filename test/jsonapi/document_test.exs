@@ -11,193 +11,18 @@ defmodule JSONAPI.DocumentTest do
     View
   }
 
-  alias JSONAPI.SupportTest.{Comment, Company, Industry, Post, Tag, User}
+  alias JSONAPI.TestSupport.Resources.{Comment, Company, Industry, Post, Tag, User}
+
+  alias JSONAPI.TestSupport.Views.{
+    CommentView,
+    ExpensiveResourceView,
+    NotIncludedView,
+    PaginatedPostView,
+    PostView,
+    UserView
+  }
 
   alias Plug.Conn
-
-  defmodule PostView do
-    use JSONAPI.View, resource: Post
-
-    @impl JSONAPI.View
-    def attributes(_resource), do: [:text, :body, :full_description, :inserted_at]
-
-    @impl JSONAPI.View
-    def meta(%Post{} = post, _conn), do: %{meta_text: "meta_#{post.text}"}
-
-    @impl JSONAPI.View
-    def type, do: "my-type"
-
-    @impl JSONAPI.View
-    def relationships(_resource) do
-      [
-        author: JSONAPI.DocumentTest.UserView,
-        best_comments: JSONAPI.DocumentTest.CommentView
-      ]
-    end
-  end
-
-  defmodule PageBasedPaginator do
-    @moduledoc """
-    Page based pagination strategy
-    """
-
-    @behaviour JSONAPI.Paginator
-
-    @impl true
-    def paginate(view, resources, conn, page, options) do
-      number =
-        page
-        |> Map.get("page", "0")
-        |> String.to_integer()
-
-      size =
-        page
-        |> Map.get("size", "0")
-        |> String.to_integer()
-
-      total_pages =
-        options
-        |> Keyword.get(:total_pages, 0)
-
-      %{
-        first: Paginator.url_for(view, resources, conn, %{page | "page" => "1"}),
-        last: Paginator.url_for(view, resources, conn, %{page | "page" => total_pages}),
-        next: next_link(resources, view, conn, number, size, total_pages),
-        prev: previous_link(resources, view, conn, number, size),
-        self: Paginator.url_for(view, resources, conn, %{size: size, page: number})
-      }
-    end
-
-    defp next_link(resources, view, conn, page, size, total_pages)
-         when page < total_pages,
-         do: Paginator.url_for(view, resources, conn, %{size: size, page: page + 1})
-
-    defp next_link(_resources, _view, _conn, _page, _size, _total_pages),
-      do: nil
-
-    defp previous_link(resources, view, conn, page, size)
-         when page > 1,
-         do: Paginator.url_for(view, resources, conn, %{size: size, page: page - 1})
-
-    defp previous_link(_resources, _view, _conn, _page, _size),
-      do: nil
-  end
-
-  defmodule PaginatedPostView do
-    use JSONAPI.View, resource: Post, paginator: PageBasedPaginator
-
-    @impl JSONAPI.View
-    def attributes(_resource), do: [:text, :body, :full_description, :inserted_at]
-
-    @impl JSONAPI.View
-    def type, do: "post"
-  end
-
-  defmodule UserView do
-    use JSONAPI.View, resource: User
-
-    @impl JSONAPI.View
-    def attributes(_resource), do: [:username, :first_name, :last_name]
-
-    @impl JSONAPI.View
-    def type, do: "user"
-
-    @impl JSONAPI.View
-    def relationships(_resource) do
-      [company: JSONAPI.DocumentTest.CompanyView]
-    end
-  end
-
-  defmodule CompanyView do
-    use JSONAPI.View, resource: Company
-
-    @impl JSONAPI.View
-    def attributes(_resource), do: [:name]
-
-    @impl JSONAPI.View
-    def type, do: "company"
-
-    @impl JSONAPI.View
-    def relationships(_resource) do
-      [industry: JSONAPI.DocumentTest.IndustryView]
-    end
-  end
-
-  defmodule IndustryView do
-    use JSONAPI.View, resource: Industry
-
-    @impl JSONAPI.View
-    def attributes(_resource), do: [:name]
-
-    @impl JSONAPI.View
-    def type, do: "industry"
-
-    @impl JSONAPI.View
-    def relationships(_resource) do
-      [tags: JSONAPI.DocumentTest.TagView]
-    end
-  end
-
-  defmodule TagView do
-    use JSONAPI.View, resource: Tag
-
-    @impl JSONAPI.View
-    def attributes(_resource), do: [:name]
-
-    @impl JSONAPI.View
-    def type, do: "tag"
-
-    @impl JSONAPI.View
-    def relationships(_resource), do: []
-  end
-
-  defmodule CommentView do
-    use JSONAPI.View, resource: Comment
-
-    @impl JSONAPI.View
-    def attributes(_resource), do: [:text]
-
-    @impl JSONAPI.View
-    def relationships(_resource), do: [user: JSONAPI.DocumentTest.UserView]
-  end
-
-  defmodule NotIncludedView do
-    use JSONAPI.View, resource: Post, type: "not-included"
-
-    @impl JSONAPI.View
-    def attributes(_resource), do: [:foo]
-
-    @impl JSONAPI.View
-    def relationships(_resource) do
-      [author: JSONAPI.DocumentTest.UserView, best_comments: JSONAPI.DocumentTest.CommentView]
-    end
-  end
-
-  defmodule ExpensiveResourceView do
-    use JSONAPI.View, resource: Post
-
-    @impl JSONAPI.View
-    def attributes(_resource), do: [:name]
-
-    @impl JSONAPI.View
-    def type, do: "expensive-post"
-
-    @impl JSONAPI.View
-    def links(nil, _conn), do: %{}
-
-    @impl JSONAPI.View
-    def links(data, _conn) do
-      %{
-        queue: "/expensive-post/queue/#{data.id}",
-        promotions: %{
-          href: "/promotions?rel=#{data.id}",
-          meta: %{
-            title: "Stuff you might be interested in"
-          }
-        }
-      }
-    end
-  end
 
   setup do
     Application.put_env(:jsonapi, :field_transformation, :underscore)
@@ -386,7 +211,7 @@ defmodule JSONAPI.DocumentTest do
              data: %ResourceObject{
                relationships: %{
                  author: %RelationshipObject{
-                   links: %{self: "/my-type/1/relationships/author"}
+                   links: %{self: "/posts/1/relationships/author"}
                  }
                }
              }
@@ -394,7 +219,7 @@ defmodule JSONAPI.DocumentTest do
   end
 
   test "serialize handles a relationship self link on an index request" do
-    assert %Document{links: %{self: "http://www.example.com/my-type"}} =
+    assert %Document{links: %{self: "http://www.example.com/posts"}} =
              Document.serialize(PostView, [], Conn.fetch_query_params(%Conn{}))
   end
 
@@ -424,7 +249,7 @@ defmodule JSONAPI.DocumentTest do
              Document.serialize(PostView, post, conn)
 
     assert relationships.author.links.self ==
-             "http://www.example.com/my-type/1/relationships/author"
+             "http://www.example.com/posts/1/relationships/author"
 
     assert Enum.count(included) == 4
   end
@@ -451,7 +276,7 @@ defmodule JSONAPI.DocumentTest do
     encoded = Document.serialize(UserView, user, conn)
 
     assert encoded.data.relationships.company.links.self ==
-             "http://www.example.com/user/1/relationships/company"
+             "http://www.example.com/cake/users/1/relationships/company"
 
     assert Enum.count(encoded.included) == 1
   end
@@ -478,7 +303,7 @@ defmodule JSONAPI.DocumentTest do
     encoded = Document.serialize(UserView, user, conn)
 
     assert encoded.data.relationships.company.links.self ==
-             "http://www.example.com/user/1/relationships/company"
+             "http://www.example.com/cake/users/1/relationships/company"
 
     assert Enum.count(encoded.included) == 2
   end
@@ -516,7 +341,7 @@ defmodule JSONAPI.DocumentTest do
     encoded = Document.serialize(UserView, user, conn)
 
     assert encoded.data.relationships.company.links.self ==
-             "http://www.example.com/user/1/relationships/company"
+             "http://www.example.com/cake/users/1/relationships/company"
 
     assert Enum.count(encoded.included) == 4
   end
@@ -573,7 +398,7 @@ defmodule JSONAPI.DocumentTest do
 
       assert %RelationshipObject{
                data: [%{id: "5"} | _],
-               links: %{self: "/my-type/1/relationships/bestComments"}
+               links: %{self: "/posts/1/relationships/bestComments"}
              } = relationships["bestComments"]
     end
   end
@@ -627,7 +452,7 @@ defmodule JSONAPI.DocumentTest do
 
       assert %RelationshipObject{
                data: [%{id: "5"} | _],
-               links: %{self: "/my-type/1/relationships/best-comments"}
+               links: %{self: "/posts/1/relationships/best-comments"}
              } = relationships["best-comments"]
     end
   end

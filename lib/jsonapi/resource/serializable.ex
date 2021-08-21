@@ -10,8 +10,8 @@ defprotocol JSONAPI.Resource.Serializable do
 
     defimpl JSONAPI.Resource.Serializable do
       def attributes(_resource): [:a, :c]
-      def has_one(_resource), do: [b: MyOtherResource]
-      def has_many(_resource), do: [d: MyDifferentResource]
+      def has_one(_resource), do: [b: MyOtherResourceView]
+      def has_many(_resource), do: [d: MyDifferentResourceView]
     end
   end
   ```
@@ -22,8 +22,8 @@ defprotocol JSONAPI.Resource.Serializable do
   defmodule MyResource do
     @derive {JSONAPI.Resource.Serializable,
       attributes: [:a, :c],
-      has_one: [b: MyOtherResource]
-      has_many: [d: MyDifferentResource]
+      has_one: [b: MyOtherResourceView]
+      has_many: [d: MyDifferentResourceView]
     }
     defstruct id: nil, a: nil, b: [], c: :test
   end
