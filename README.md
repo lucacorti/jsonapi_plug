@@ -43,7 +43,7 @@ defp deps do [
 
 ### Usage
 
-Simply add `use JSONAPI.View` either to the top of your view, or to the web.ex view section and add the proper functions to your view like so.
+Simply add `use JSONAPI.View` either to the top of your view and add render functions to your view:
 
 ```elixir
 defmodule MyApp.PostView do
@@ -70,14 +70,16 @@ defmodule MyApp.PostView do
   def excerpt(resource, _conn) do
     String.slice(resource.body, 0..5)
   end
+
+  def render("index.json" %{data: data, conn: conn, meta: meta}) do
+    JSONAPI.View.render(__MODULE__, data, conn, meta)
+  end
+
+  def render("show.json" %{data: data, conn: conn, meta: meta}) do
+    JSONAPI.View.render(__MODULE__, data, conn, meta)
+  end
 end
 ```
-
-You can now call `render(conn, MyApp.PostView, "show.json", %{data: my_data, meta: meta})`
-or `"index.json"` normally.
-
-If you'd like to use this without Phoenix simply `use JSONAPI.View` and call
-`JSONAPI.View.render(MyApp.PostView, data, conn, meta)`.
 
 ## Parsing and validating a JSONAPI Request
 

@@ -140,10 +140,6 @@ defmodule JSONAPI.ViewTest do
     end
   end
 
-  test "render/2 is defined when 'Phoenix' is loaded" do
-    assert {:render, 2} in CommentView.__info__(:functions)
-  end
-
   test "show renders with data, conn" do
     %Document{
       data: %ResourceObject{
@@ -151,18 +147,13 @@ defmodule JSONAPI.ViewTest do
           body: "hi"
         }
       }
-    } = CommentView.render("show.json", %{data: %Comment{id: 1, body: "hi"}, conn: %Conn{}})
+    } = View.render(CommentView, %Comment{id: 1, body: "hi"}, %Conn{})
   end
 
   test "show renders with data, conn, meta" do
     %Document{
       meta: %{total_pages: 100}
-    } =
-      CommentView.render("show.json", %{
-        data: %Comment{id: 1, body: "hi"},
-        conn: %Conn{},
-        meta: %{total_pages: 100}
-      })
+    } = View.render(CommentView, %Comment{id: 1, body: "hi"}, %Conn{}, %{total_pages: 100})
   end
 
   test "index renders with data, conn" do
@@ -171,19 +162,21 @@ defmodule JSONAPI.ViewTest do
                %ResourceObject{attributes: %{body: "hi"}} | _
              ]
            } =
-             CommentView.render("index.json", %{
-               data: [%Comment{id: 1, body: "hi"}],
-               conn: Conn.fetch_query_params(%Conn{})
-             })
+             View.render(
+               CommentView,
+               [%Comment{id: 1, body: "hi"}],
+               Conn.fetch_query_params(%Conn{})
+             )
   end
 
   test "index renders with data, conn, meta" do
     assert %Document{meta: %{total_pages: 100}} =
-             CommentView.render("index.json", %{
-               data: [%Comment{id: 1, body: "hi"}],
-               conn: Conn.fetch_query_params(%Conn{}),
-               meta: %{total_pages: 100}
-             })
+             View.render(
+               CommentView,
+               [%Comment{id: 1, body: "hi"}],
+               Conn.fetch_query_params(%Conn{}),
+               %{total_pages: 100}
+             )
   end
 
   test "view returns all field names by default" do
@@ -201,11 +194,7 @@ defmodule JSONAPI.ViewTest do
                    password: _password
                  } = attributes
              }
-           } =
-             UserView.render("show.json", %{
-               data: %User{id: 1},
-               conn: Conn.fetch_query_params(%Conn{})
-             })
+           } = View.render(UserView, %User{id: 1}, Conn.fetch_query_params(%Conn{}))
 
     assert 6 = map_size(attributes)
   end
@@ -220,12 +209,9 @@ defmodule JSONAPI.ViewTest do
              data: %ResourceObject{
                id: "1",
                type: "post",
-               attributes:
-                 %{
-                   body: _body
-                 } = attributes
+               attributes: %{body: _body} = attributes
              }
-           } = PostView.render("show.json", %{data: %Post{id: 1, body: "hi"}, conn: conn})
+           } = View.render(PostView, %Post{id: 1, body: "hi"}, conn)
 
     assert 1 = map_size(attributes)
   end
@@ -245,11 +231,7 @@ defmodule JSONAPI.ViewTest do
                    body: _body
                  } = attributes
              }
-           } =
-             PostView.render("show.json", %{
-               data: %Post{id: 1, body: "Chunky", title: "Bacon"},
-               conn: conn
-             })
+           } = View.render(PostView, %Post{id: 1, body: "Chunky", title: "Bacon"}, conn)
 
     assert 1 = map_size(attributes)
   end

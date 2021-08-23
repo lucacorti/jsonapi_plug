@@ -123,7 +123,7 @@ defmodule JSONAPI.View do
   @callback attributes(Resource.t()) :: [Resource.field()]
   @callback links(Resource.t(), Conn.t() | nil) :: Document.links()
   @callback meta(Resource.t(), Conn.t() | nil) :: Document.meta()
-  @callback namespace :: String.t()
+  @callback namespace :: String.t() | nil
   @callback paginator :: Paginator.t() | nil
   @callback path :: String.t() | nil
   @callback relationships(Resource.t()) :: [{Resource.field(), t()}]
@@ -141,20 +141,23 @@ defmodule JSONAPI.View do
 
       @behaviour View
 
-      @namespace unquote(namespace)
-      @paginator unquote(paginator)
-      @path unquote(path)
-      @resource struct(unquote(resource))
+      @__namespace__ unquote(namespace)
+      @__paginator__ unquote(paginator)
+      @__path__ unquote(path)
+      @__resource__ struct(unquote(resource))
 
-      @attributes Resource.attributes(@resource)
-      @relationships Enum.concat(Resource.has_one(@resource), Resource.has_many(@resource))
-      @resource_type Resource.type(@resource)
+      @__attributes__ Resource.attributes(@__resource__)
+      @__relationships__ Enum.concat(
+                           Resource.has_one(@__resource__),
+                           Resource.has_many(@__resource__)
+                         )
+      @__resource_type__ Resource.type(@__resource__)
 
       @impl View
       def id(resource), do: Resource.id(resource)
 
       @impl View
-      def attributes(_resource), do: @attributes
+      def attributes(_resource), do: @__attributes__
 
       @impl View
       def links(_resource, _conn), do: %{}
@@ -163,54 +166,24 @@ defmodule JSONAPI.View do
       def meta(_resource, _conn), do: %{}
 
       @impl View
-      def namespace, do: @namespace
+      def namespace, do: @__namespace__
 
       @impl View
-      def paginator, do: @paginator
+      def paginator, do: @__paginator__
 
       @impl View
-      def path, do: @path
+      def path, do: @__path__
 
       @impl View
-      def relationships(_resource), do: @relationships
+      def relationships(_resource), do: @__relationships__
 
       @impl View
-      def resource, do: @resource
+      def resource, do: @__resource__
 
       @impl View
-      def type, do: @resource_type
+      def type, do: @__resource_type__
 
       defoverridable View
- 
-      def index(models, conn, _params, meta \\ nil, options \\ []),
-        do: Serializer.serialize(__MODULE__, models, conn, meta, options)
- 
-      def show(model, conn, _params, meta \\ nil, options \\ []),
-        do: Serializer.serialize(__MODULE__, model, conn, meta, options)
-
-      def index(data, conn, _params, meta \\ nil, options \\ []),
-        do: View.render(__MODULE__, data, conn, meta, options)
-
-      def show(data, conn, _params, meta \\ nil, options \\ []),
-        do: View.render(__MODULE__, data, conn, meta, options)
-
-      if Code.ensure_loaded?(Phoenix) do
-        def render("show.json", %{data: resource, conn: conn, meta: meta}),
-          do: View.render(__MODULE__, resource, conn, meta)
-
-        def render("show.json", %{data: resource, conn: conn}),
-          do: View.render(__MODULE__, resource, conn)
-
-        def render("index.json", %{data: resource, conn: conn, meta: meta}),
-          do: View.render(__MODULE__, resource, conn, meta)
-
-        def render("index.json", %{data: resource, conn: conn}),
-          do: View.render(__MODULE__, resource, conn)
-      else
-        raise ArgumentError,
-              "Attempted to call function that depends on Phoenix. " <>
-                "Make sure Phoenix is part of your dependencies"
-      end
     end
   end
 

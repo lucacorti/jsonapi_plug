@@ -6,8 +6,7 @@ defmodule JSONAPI.Mixfile do
       app: :jsonapi,
       version: "1.3.0",
       package: package(),
-      compilers: compilers(Mix.env()),
-      description: description(),
+      description: "JSON:API 1.0 implementation for Plug based projects and applications",
       elixir: "~> 1.9",
       elixirc_paths: elixirc_paths(Mix.env()),
       build_embedded: Mix.env() == :prod,
@@ -23,10 +22,6 @@ defmodule JSONAPI.Mixfile do
       ]
     ]
   end
-
-  # Use Phoenix compiler depending on environment.
-  defp compilers(:test), do: [:phoenix] ++ Mix.compilers()
-  defp compilers(_), do: Mix.compilers()
 
   # Specifies which paths to compile per environment.
   defp elixirc_paths(:test), do: ["lib", "test/support"]
@@ -50,31 +45,17 @@ defmodule JSONAPI.Mixfile do
       {:dialyxir, "~> 1.0", only: :dev, runtime: false},
       {:ex_doc, "~> 0.20", only: :dev, runtime: false},
       {:jason, "~> 1.0"},
-      {:phoenix, "~> 1.0", only: :test},
       {:plug, "~> 1.0"}
     ]
   end
 
   defp package do
     [
-      maintainers: [
-        "Jason Stiebs",
-        "Mitchell Henke",
-        "Jake Robers",
-        "Sean Callan",
-        "James Herdman"
-      ],
+      maintainers: ["dottori.it"],
       licenses: ["MIT"],
       links: %{
-        github: "https://github.com/dottori-it/jsonapi",
-        docs: "http://hexdocs.pm/jsonapi/"
+        github: "https://github.com/dottori-it/jsonapi"
       }
     ]
-  end
-
-  defp description do
-    """
-    Fully functional JSON:API 1.0 Serializer as well as a QueryParser for Plug based projects and applications.
-    """
   end
 end

@@ -42,8 +42,6 @@ defmodule JSONAPI.UnderscoreParameters do
 
   Your API's pipeline might look something like this:
 
-      # e.g. a Phoenix app
-
       pipeline :api do
         plug JSONAPI.EnsureSpec
         plug JSONAPI.UnderscoreParameters
