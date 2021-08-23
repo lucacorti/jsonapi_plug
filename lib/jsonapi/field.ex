@@ -1,5 +1,9 @@
 defmodule JSONAPI.Field do
-  @moduledoc "JSON:API Field"
+  @moduledoc """
+  JSON:API Field related functions
+
+  https://jsonapi.org/format/#document-resource-object-fields
+  """
 
   @doc """
   Replace dashes between words in `value` with underscores
