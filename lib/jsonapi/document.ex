@@ -173,13 +173,12 @@ defmodule JSONAPI.Document do
   defp serialize_meta(%__MODULE__{} = document, _resource, _view, _conn, _options, _meta),
     do: document
 
-  @spec deserialize(Conn.t()) :: {:ok, t()} | {:error, :invalid}
-  def deserialize(%Conn{assigns: %{jsonapi: %JSONAPI{view: view}}, body_params: payload}) do
+  @spec deserialize(View.t(), payload()) :: t()
+  def deserialize(view, payload) do
     %__MODULE__{}
     |> deserialize_included(view, payload)
     |> deserialize_data(view, payload)
     |> deserialize_meta(view, payload)
-    |> validate()
   end
 
   defp deserialize_data(%__MODULE__{included: included} = document, view, %{"data" => data})
@@ -200,10 +199,21 @@ defmodule JSONAPI.Document do
 
   defp deserialize_included(%__MODULE__{} = document, view, %{"included" => included})
        when is_list(included) do
-    %__MODULE__{
-      document
-      | included: Enum.map(included, &Resource.deserialize(view.__resource__(), &1, []))
-    }
+    Enum.reduce(included, document, fn
+      %{"data" => %{"type" => type}} = data, %__MODULE__{included: included} = document ->
+        case View.for_related_type(view, type) do
+          nil ->
+            document
+
+          included_view ->
+            resource = included_view.__resource__()
+
+            %__MODULE__{
+              document
+              | included: [Resource.deserialize(resource, data, []) | included || []]
+            }
+        end
+    end)
   end
 
   defp deserialize_included(%__MODULE__{} = document, _view, _payload),
@@ -215,17 +225,6 @@ defmodule JSONAPI.Document do
 
   defp deserialize_meta(%__MODULE__{} = document, _view, _payload),
     do: document
-
-  defp validate(%__MODULE__{errors: errors, included: included, meta: meta} = document)
-       when (is_list(errors) and not is_list(included)) or is_map(meta),
-       do: {:ok, document}
-
-  defp validate(%__MODULE__{data: data, errors: errors, meta: meta} = document)
-       when is_map(data) or (is_list(data) and not is_list(errors)) or is_map(meta),
-       do: {:ok, document}
-
-  defp validate(%__MODULE__{} = _document),
-    do: {:error, :invalid}
 
   defimpl Jason.Encoder,
     for: [

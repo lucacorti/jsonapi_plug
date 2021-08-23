@@ -204,6 +204,19 @@ defmodule JSONAPI.View do
     end
   end
 
+  @spec for_related_type(t(), Resource.type()) :: t() | nil
+  def for_related_type(view, type) do
+    case Enum.find(
+           view.relationships(view.__resource__()),
+           fn {_relationship, relationship_view} ->
+             relationship_view.type() == type
+           end
+         ) do
+      {_relationship, view} -> view
+      _ -> nil
+    end
+  end
+
   @spec render(t(), data() | nil, Conn.t() | nil, Document.meta() | nil, options()) ::
           Document.t()
   def render(view, data, conn \\ nil, meta \\ nil, options \\ []),

@@ -58,8 +58,16 @@ defmodule JSONAPI.Resource do
     |> deserialize_relationships(data, included)
   end
 
-  defp deserialize_attributes(resource, %{"attributes" => attributes}) do
-    struct(resource, JSONAPI.transform_fields(attributes))
+  defp deserialize_attributes(resource, %{"attributes" => attributes})
+       when is_map(attributes) do
+    attrs =
+      resource
+      |> Map.from_struct()
+      |> Enum.map(fn {attribute, value} ->
+        {attribute, Map.get(attributes, to_string(attribute), value)}
+      end)
+
+    struct(resource, attrs)
   end
 
   defp deserialize_attributes(resource, _data), do: resource

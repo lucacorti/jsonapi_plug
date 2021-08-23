@@ -4,7 +4,7 @@ defmodule JSONAPI.QueryParserTest do
   import JSONAPI.QueryParser
 
   alias JSONAPI.Exceptions.InvalidQuery
-  alias JSONAPI.TestSupport.Views.{CommentView, MyPostView}
+  alias JSONAPI.TestSupport.Views.MyPostView
 
   setup do
     Application.put_env(:jsonapi, :field_transformation, :underscore)
@@ -117,10 +117,6 @@ defmodule JSONAPI.QueryParserTest do
     end
   end
 
-  test "get_view_for_type/2 using view.type as key" do
-    assert get_view_for_type(MyPostView, "comment") == CommentView
-  end
-
   test "parse_pagination/2 turns a fields map into a map of pagination values" do
     config = struct(JSONAPI, view: MyPostView)
     assert %JSONAPI{page: %{}} = parse_pagination(config, config)
@@ -139,12 +135,6 @@ defmodule JSONAPI.QueryParserTest do
 
     assert %JSONAPI{page: %{"cursor" => "cursor"}} =
              parse_pagination(config, %JSONAPI{page: %{"cursor" => "cursor"}})
-  end
-
-  test "get_view_for_type/2 raises on invalid fields" do
-    assert_raise InvalidQuery, "invalid fields, cupcake for type my-type", fn ->
-      get_view_for_type(MyPostView, "cupcake")
-    end
   end
 
   test "put_as_tree/3 builds the path" do

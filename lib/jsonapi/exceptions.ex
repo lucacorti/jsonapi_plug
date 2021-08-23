@@ -25,4 +25,14 @@ defmodule JSONAPI.Exceptions do
       }
     end
   end
+
+  @spec raise_invalid_include_query(String.t(), String.t()) :: no_return()
+  def raise_invalid_include_query(param, resource_type) do
+    raise InvalidQuery, resource: resource_type, param: param, param_type: :include
+  end
+
+  @spec raise_invalid_field_names(String.t(), String.t()) :: no_return()
+  def raise_invalid_field_names(bad_fields, resource_type) do
+    raise InvalidQuery, resource: resource_type, param: bad_fields, param_type: :fields
+  end
 end

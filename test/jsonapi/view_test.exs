@@ -2,7 +2,7 @@ defmodule JSONAPI.ViewTest do
   use ExUnit.Case
 
   alias JSONAPI.TestSupport.Resources.{Comment, Post, User}
-  alias JSONAPI.TestSupport.Views.{CarView, CommentView, PostView, UserView}
+  alias JSONAPI.TestSupport.Views.{CarView, CommentView, MyPostView, PostView, UserView}
   alias JSONAPI.{Document, Document.ResourceObject, Paginator, View}
   alias Plug.Conn
 
@@ -252,5 +252,13 @@ defmodule JSONAPI.ViewTest do
              })
 
     assert 1 = map_size(attributes)
+  end
+
+  test "for_related_type/2 using view.type as key" do
+    assert View.for_related_type(MyPostView, "comment") == CommentView
+  end
+
+  test "for_type/2 returns nil on invalid fields" do
+    assert View.for_related_type(MyPostView, "cupcake") == nil
   end
 end

@@ -72,7 +72,7 @@ defmodule JSONAPI.QueryParser do
 
   @behaviour Plug
 
-  alias JSONAPI.{Exceptions.InvalidQuery}
+  alias JSONAPI.{Exceptions, Resource, View}
   alias Plug.Conn
 
   @impl Plug
@@ -89,7 +89,7 @@ defmodule JSONAPI.QueryParser do
       |> Map.get(:query_params)
       |> struct_from_map(%JSONAPI{})
 
-    config =
+    jsonapi =
       opts
       |> parse_fields(config)
       |> parse_include(config)
@@ -97,7 +97,7 @@ defmodule JSONAPI.QueryParser do
       |> parse_sort(config)
       |> parse_pagination(config)
 
-    Conn.assign(conn, :jsonapi, config)
+    Conn.assign(conn, :jsonapi, jsonapi)
   end
 
   @spec parse_pagination(JSONAPI.t(), JSONAPI.t()) :: JSONAPI.t()
@@ -115,7 +115,7 @@ defmodule JSONAPI.QueryParser do
 
     Enum.reduce(filter, config, fn {key, val}, config ->
       unless key in opts_filter do
-        raise InvalidQuery, resource: view.type(), param: key, param_type: :filter
+        raise Exceptions.InvalidQuery, resource: view.type(), param: key, param_type: :filter
       end
 
       %JSONAPI{config | filter: Keyword.put(config.filter, String.to_existing_atom(key), val)}
@@ -140,7 +140,7 @@ defmodule JSONAPI.QueryParser do
           |> Enum.map(&JSONAPI.underscore/1)
           |> Enum.into(MapSet.new(), &String.to_existing_atom/1)
         rescue
-          ArgumentError -> raise_invalid_field_names(value, view.type())
+          ArgumentError -> Exceptions.raise_invalid_field_names(value, view.type())
         end
 
       size = MapSet.size(requested_fields)
@@ -154,11 +154,10 @@ defmodule JSONAPI.QueryParser do
             |> MapSet.to_list()
             |> Enum.join(",")
 
-          raise_invalid_field_names(bad_fields, config.view.type())
+          Exceptions.raise_invalid_field_names(bad_fields, config.view.type())
 
         _ ->
           %{acc | fields: Map.put(acc.fields, type, MapSet.to_list(requested_fields))}
-          raise_invalid_field_names(bad_fields, view.type())
       end
 
       %JSONAPI{config | fields: Map.put(config.fields, type, MapSet.to_list(requested_fields))}
@@ -177,7 +176,7 @@ defmodule JSONAPI.QueryParser do
         [_, direction, field] = Regex.run(~r/(-?)(\S*)/, field)
 
         unless field in valid_sort do
-          raise InvalidQuery, resource: view.type(), param: field, param_type: :sort
+          raise Exceptions.InvalidQuery, resource: view.type(), param: field, param_type: :sort
         end
 
         build_sort(direction, String.to_existing_atom(field))
@@ -208,13 +207,13 @@ defmodule JSONAPI.QueryParser do
             try do
               String.to_existing_atom(inc)
             rescue
-              ArgumentError -> raise_invalid_include_query(inc, view.type())
+              ArgumentError -> Exceptions.raise_invalid_include_query(inc, view.type())
             end
 
           if Enum.any?(valid_includes, fn {key, _val} -> key == inc end) do
             [inc]
           else
-            raise_invalid_include_query(inc, view.type())
+            Exceptions.raise_invalid_include_query(inc, view.type())
           end
         end
       end)
@@ -229,7 +228,7 @@ defmodule JSONAPI.QueryParser do
         |> String.split(".")
         |> Enum.map(&String.to_existing_atom/1)
       rescue
-        ArgumentError -> raise_invalid_include_query(key, view.type())
+        ArgumentError -> Exceptions.raise_invalid_include_query(key, view.type())
       end
 
     last = List.last(keys)
@@ -238,37 +237,20 @@ defmodule JSONAPI.QueryParser do
     if member_of_tree?(keys, valid_include) do
       put_as_tree([], path, last)
     else
-      raise_invalid_include_query(key, view.type())
+      Exceptions.raise_invalid_include_query(key, view.type())
     end
   end
 
-  @spec get_valid_attributes_for_type(JSONAPI.t(), String.t()) :: list(atom())
+  @spec get_valid_attributes_for_type(JSONAPI.t(), Resource.type()) :: [Resource.field()]
   def get_valid_attributes_for_type(%JSONAPI{view: view}, type) do
     if type == view.type() do
       view.attributes(view.__resource__())
     else
-      get_view_for_type(view, type).attributes(view.__resource__())
+      case View.for_related_type(view, type) do
+        nil -> Exceptions.raise_invalid_field_names(type, view.type())
+        view -> view.attributes(view.__resource__())
+      end
     end
-  end
-
-  @spec get_view_for_type(module(), String.t()) :: module() | no_return()
-  def get_view_for_type(view, type) do
-    case Enum.find(view.relationships(view.__resource__()), fn {_relationship, relationship_view} ->
-           relationship_view.type() == type
-         end) do
-      {_, view} -> view
-      nil -> raise_invalid_field_names(type, view.type())
-    end
-  end
-
-  @spec raise_invalid_include_query(String.t(), String.t()) :: no_return()
-  defp raise_invalid_include_query(param, resource_type) do
-    raise InvalidQuery, resource: resource_type, param: param, param_type: :include
-  end
-
-  @spec raise_invalid_field_names(String.t(), String.t()) :: no_return()
-  defp raise_invalid_field_names(bad_fields, resource_type) do
-    raise InvalidQuery, resource: resource_type, param: bad_fields, param_type: :fields
   end
 
   defp struct_from_map(params, struct) do

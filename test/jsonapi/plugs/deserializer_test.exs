@@ -2,42 +2,36 @@ defmodule JSONAPI.DeserializerTest do
   use ExUnit.Case
   use Plug.Test
 
-  alias JSONAPI.Deserializer
-  alias JSONAPI.TestSupport.Views.CarView
+  alias JSONAPI.Document
+  alias JSONAPI.QueryParser
+  alias JSONAPI.TestSupport.Resources.{Car, User}
+  alias JSONAPI.TestSupport.Views.{CarView, UserView}
+  alias Plug.Conn
 
   defmodule ExamplePlug do
     use Plug.Builder
     plug Plug.Parsers, parsers: [:json], json_decoder: Jason
     plug JSONAPI.Deserializer
-    plug :return
-
-    def return(conn, _opts) do
-      send_resp(conn, 200, "success")
-    end
   end
 
   test "Ignores bodyless requests" do
-    conn =
-      Plug.Test.conn("GET", "/")
-      |> put_req_header("content-type", JSONAPI.mime_type())
-      |> put_req_header("accept", JSONAPI.mime_type())
-      |> assign(:jsonapi, %JSONAPI{view: CarView})
-
-    result = ExamplePlug.call(conn, [])
-    assert result.params == %{}
+    assert %Conn{assigns: %{jsonapi: %JSONAPI{data: nil}}} =
+             Plug.Test.conn("GET", "/")
+             |> put_req_header("content-type", JSONAPI.mime_type())
+             |> put_req_header("accept", JSONAPI.mime_type())
+             |> QueryParser.call(%JSONAPI{view: UserView, opts: []})
+             |> ExamplePlug.call([])
   end
 
   test "ignores non-jsonapi.org format params" do
     req_body = Jason.encode!(%{"some-nonsense" => "yup"})
 
-    conn =
-      Plug.Test.conn("POST", "/", req_body)
-      |> put_req_header("content-type", JSONAPI.mime_type())
-      |> put_req_header("accept", JSONAPI.mime_type())
-      |> assign(:jsonapi, %JSONAPI{view: CarView})
-
-    result = ExamplePlug.call(conn, [])
-    assert result.params == %{"some-nonsense" => "yup"}
+    assert %Conn{assigns: %{jsonapi: %JSONAPI{data: nil}}} =
+             Plug.Test.conn("POST", "/", req_body)
+             |> put_req_header("content-type", JSONAPI.mime_type())
+             |> put_req_header("accept", JSONAPI.mime_type())
+             |> QueryParser.call(%JSONAPI{view: CarView, opts: []})
+             |> ExamplePlug.call([])
   end
 
   test "works with basic list of data" do
@@ -49,18 +43,21 @@ defmodule JSONAPI.DeserializerTest do
         ]
       })
 
-    conn =
-      Plug.Test.conn("POST", "/", req_body)
-      |> put_req_header("content-type", JSONAPI.mime_type())
-      |> put_req_header("accept", JSONAPI.mime_type())
-      |> assign(:jsonapi, %JSONAPI{view: CarView})
-
-    result = ExamplePlug.call(conn, [])
-
-    assert result.params == [
-             %{"id" => "1", "type" => "car"},
-             %{"id" => "2", "type" => "car"}
-           ]
+    assert %Conn{
+             assigns: %{
+               jsonapi: %JSONAPI{
+                 data: [
+                   %Car{id: "1"},
+                   %Car{id: "2"}
+                 ]
+               }
+             }
+           } =
+             Plug.Test.conn("POST", "/", req_body)
+             |> put_req_header("content-type", JSONAPI.mime_type())
+             |> put_req_header("accept", JSONAPI.mime_type())
+             |> QueryParser.call(%JSONAPI{view: CarView, opts: []})
+             |> ExamplePlug.call([])
   end
 
   test "deserializes attribute key names" do
@@ -90,19 +87,12 @@ defmodule JSONAPI.DeserializerTest do
         }
       })
 
-    conn =
-      Plug.Test.conn("POST", "/", req_body)
-      |> put_req_header("content-type", JSONAPI.mime_type())
-      |> put_req_header("accept", JSONAPI.mime_type())
-      |> assign(:jsonapi, %JSONAPI{view: CarView})
-
-    result = ExamplePlug.call(conn, [])
-    assert result.params["some-nonsense"] == true
-    assert result.params["some-map"]["nested-key"] == true
-    assert result.params["baz-id"] == "2"
-
-    # Preserves query params
-    assert result.params["filter"]["dog-breed"] == "Corgi"
+    assert %Conn{assigns: %{jsonapi: %JSONAPI{data: %Car{id: "1"}}}} =
+             Plug.Test.conn("POST", "/", req_body)
+             |> put_req_header("content-type", JSONAPI.mime_type())
+             |> put_req_header("accept", JSONAPI.mime_type())
+             |> QueryParser.call(%JSONAPI{view: CarView, opts: []})
+             |> ExamplePlug.call([])
   end
 
   describe "underscore" do
@@ -143,16 +133,12 @@ defmodule JSONAPI.DeserializerTest do
           }
         })
 
-      conn =
-        Plug.Test.conn("POST", "/", req_body)
-        |> put_req_header("content-type", JSONAPI.mime_type())
-        |> put_req_header("accept", JSONAPI.mime_type())
-        |> assign(:jsonapi, %JSONAPI{view: CarView})
-
-      result = ExampleUnderscorePlug.call(conn, [])
-      assert result.params["some_nonsense"] == true
-      assert result.params["some_map"]["nested_key"] == true
-      assert result.params["baz_id"] == "2"
+      assert %Conn{assigns: %{jsonapi: %JSONAPI{data: %Car{id: "1"}}}} =
+               Plug.Test.conn("POST", "/", req_body)
+               |> put_req_header("content-type", JSONAPI.mime_type())
+               |> put_req_header("accept", JSONAPI.mime_type())
+               |> QueryParser.call(%JSONAPI{view: CarView, opts: []})
+               |> ExampleUnderscorePlug.call([])
     end
   end
 
@@ -203,288 +189,197 @@ defmodule JSONAPI.DeserializerTest do
           }
         })
 
-      conn =
-        Plug.Test.conn("POST", "/", req_body)
-        |> put_req_header("content-type", JSONAPI.mime_type())
-        |> put_req_header("accept", JSONAPI.mime_type())
-        |> assign(:jsonapi, %JSONAPI{view: CarView})
-
-      result = ExampleCamelCasePlug.call(conn, [])
-      assert result.params["someNonsense"] == true
-      assert result.params["someMap"]["nested_key"] == true
-      assert result.params["bazId"] == "2"
+      assert %Conn{assigns: %{jsonapi: %JSONAPI{data: %Car{id: "1"}}}} =
+               Plug.Test.conn("POST", "/", req_body)
+               |> put_req_header("content-type", JSONAPI.mime_type())
+               |> put_req_header("accept", JSONAPI.mime_type())
+               |> QueryParser.call(%JSONAPI{view: CarView, opts: []})
+               |> ExampleCamelCasePlug.call([])
     end
   end
 
   test "converts attributes and relationships to flattened data structure" do
-    incoming = %{
-      "data" => %{
-        "id" => "1",
-        "type" => "user",
-        "attributes" => %{
-          "foo-bar" => true
-        },
-        "relationships" => %{
-          "baz" => %{
-            "data" => %{
-              "id" => "2",
-              "type" => "baz"
-            }
-          },
-          "boo" => %{
-            "data" => nil
-          }
-        }
-      }
-    }
-
-    result = Deserializer.process(incoming)
-
-    assert result == %{
-             "id" => "1",
-             "type" => "user",
-             "foo-bar" => true,
-             "baz-id" => "2",
-             "boo-id" => nil
-           }
+    assert %Document{data: %User{id: "1"}} =
+             Document.deserialize(UserView, %{
+               "data" => %{
+                 "id" => "1",
+                 "type" => "user",
+                 "attributes" => %{
+                   "foo-bar" => true
+                 },
+                 "relationships" => %{
+                   "baz" => %{
+                     "data" => %{
+                       "id" => "2",
+                       "type" => "baz"
+                     }
+                   },
+                   "boo" => %{
+                     "data" => nil
+                   }
+                 }
+               }
+             })
   end
 
   test "converts to many relationship" do
-    incoming = %{
-      "data" => %{
-        "id" => "1",
-        "type" => "user",
-        "attributes" => %{
-          "foo-bar" => true
-        },
-        "relationships" => %{
-          "baz" => %{
-            "data" => [
-              %{"id" => "2", "type" => "baz"},
-              %{"id" => "3", "type" => "baz"}
-            ]
-          }
-        }
-      }
-    }
-
-    result = Deserializer.process(incoming)
-
-    assert result == %{
-             "id" => "1",
-             "type" => "user",
-             "foo-bar" => true,
-             "baz-id" => ["2", "3"]
-           }
+    assert %Document{data: %User{id: "1"}} =
+             Document.deserialize(UserView, %{
+               "data" => %{
+                 "id" => "1",
+                 "type" => "user",
+                 "attributes" => %{
+                   "foo-bar" => true
+                 },
+                 "relationships" => %{
+                   "baz" => %{
+                     "data" => [
+                       %{"id" => "2", "type" => "baz"},
+                       %{"id" => "3", "type" => "baz"}
+                     ]
+                   }
+                 }
+               }
+             })
   end
 
   test "converts polymorphic" do
-    incoming = %{
-      "data" => %{
-        "id" => "1",
-        "type" => "user",
-        "attributes" => %{
-          "foo-bar" => true
-        },
-        "relationships" => %{
-          "baz" => %{
-            "data" => [
-              %{"id" => "2", "type" => "baz"},
-              %{"id" => "3", "type" => "yooper"}
-            ]
-          }
-        }
-      }
-    }
-
-    result = Deserializer.process(incoming)
-
-    assert result == %{
-             "id" => "1",
-             "type" => "user",
-             "foo-bar" => true,
-             "baz-id" => "2",
-             "yooper-id" => "3"
-           }
+    assert %Document{data: %User{id: "1"}} =
+             Document.deserialize(UserView, %{
+               "data" => %{
+                 "id" => "1",
+                 "type" => "user",
+                 "attributes" => %{
+                   "foo-bar" => true
+                 },
+                 "relationships" => %{
+                   "baz" => %{
+                     "data" => [
+                       %{"id" => "2", "type" => "baz"},
+                       %{"id" => "3", "type" => "yooper"}
+                     ]
+                   }
+                 }
+               }
+             })
   end
 
   test "processes single includes" do
-    incoming = %{
-      "data" => %{
-        "id" => "1",
-        "type" => "user",
-        "attributes" => %{
-          "name" => "Jerome"
-        }
-      },
-      "included" => [
-        %{
-          "data" => %{
-            "attributes" => %{
-              "name" => "Tara"
-            },
-            "id" => "234",
-            "type" => "friend"
-          }
-        }
-      ]
-    }
-
-    result = Deserializer.process(incoming)
-
-    assert result == %{
-             "friend" => [
-               %{
-                 "name" => "Tara",
-                 "id" => "234",
-                 "type" => "friend"
-               }
-             ],
-             "id" => "1",
-             "type" => "user",
-             "name" => "Jerome"
-           }
+    assert %Document{data: %User{id: "1", first_name: "Jerome"}} =
+             Document.deserialize(UserView, %{
+               "data" => %{
+                 "id" => "1",
+                 "type" => "user",
+                 "attributes" => %{
+                   "first_name" => "Jerome"
+                 }
+               },
+               "included" => [
+                 %{
+                   "data" => %{
+                     "attributes" => %{
+                       "name" => "Tara"
+                     },
+                     "id" => "234",
+                     "type" => "friend"
+                   }
+                 }
+               ]
+             })
   end
 
   test "processes has many includes" do
-    incoming = %{
-      "data" => %{
-        "id" => "1",
-        "type" => "user",
-        "attributes" => %{
-          "name" => "Jerome"
-        }
-      },
-      "included" => [
-        %{
-          "data" => %{
-            "id" => "234",
-            "type" => "friend",
-            "attributes" => %{
-              "name" => "Tara"
-            },
-            "relationships" => %{
-              "baz" => %{
-                "data" => %{
-                  "id" => "2",
-                  "type" => "baz"
-                }
-              },
-              "boo" => %{
-                "data" => nil
-              }
-            }
-          }
-        },
-        %{
-          "data" => %{
-            "attributes" => %{
-              "name" => "Wild Bill"
-            },
-            "id" => "0012",
-            "type" => "friend"
-          }
-        },
-        %{
-          "data" => %{
-            "attributes" => %{
-              "title" => "Sr"
-            },
-            "id" => "456",
-            "type" => "organization"
-          }
-        }
-      ]
-    }
-
-    result = Deserializer.process(incoming)
-
-    assert result == %{
-             "friend" => [
-               %{
-                 "name" => "Wild Bill",
-                 "id" => "0012",
-                 "type" => "friend"
+    assert %Document{data: %User{id: "1", first_name: "Jerome"}} =
+             Document.deserialize(UserView, %{
+               "data" => %{
+                 "id" => "1",
+                 "type" => "user",
+                 "attributes" => %{
+                   "first_name" => "Jerome"
+                 }
                },
-               %{
-                 "name" => "Tara",
-                 "id" => "234",
-                 "type" => "friend",
-                 "baz-id" => "2",
-                 "boo-id" => nil
-               }
-             ],
-             "organization" => [
-               %{
-                 "title" => "Sr",
-                 "id" => "456",
-                 "type" => "organization"
-               }
-             ],
-             "id" => "1",
-             "type" => "user",
-             "name" => "Jerome"
-           }
+               "included" => [
+                 %{
+                   "data" => %{
+                     "id" => "234",
+                     "type" => "friend",
+                     "attributes" => %{
+                       "name" => "Tara"
+                     },
+                     "relationships" => %{
+                       "baz" => %{
+                         "data" => %{
+                           "id" => "2",
+                           "type" => "baz"
+                         }
+                       },
+                       "boo" => %{
+                         "data" => nil
+                       }
+                     }
+                   }
+                 },
+                 %{
+                   "data" => %{
+                     "attributes" => %{
+                       "name" => "Wild Bill"
+                     },
+                     "id" => "0012",
+                     "type" => "friend"
+                   }
+                 },
+                 %{
+                   "data" => %{
+                     "attributes" => %{
+                       "title" => "Sr"
+                     },
+                     "id" => "456",
+                     "type" => "organization"
+                   }
+                 }
+               ]
+             })
   end
 
   test "processes simple array of data" do
-    incoming = %{
-      "data" => [
-        %{"id" => "1", "type" => "user"},
-        %{"id" => "2", "type" => "user"}
-      ]
-    }
-
-    result = Deserializer.process(incoming)
-
-    assert result == [
-             %{"id" => "1", "type" => "user"},
-             %{"id" => "2", "type" => "user"}
-           ]
+    assert %Document{
+             data: [
+               %User{id: "1"},
+               %User{id: "2"}
+             ]
+           } =
+             Document.deserialize(UserView, %{
+               "data" => [
+                 %{"id" => "1", "type" => "user"},
+                 %{"id" => "2", "type" => "user"}
+               ]
+             })
   end
 
   test "processes empty keys" do
-    incoming = %{
-      "data" => %{
-        "id" => "1",
-        "type" => "user",
-        "attributes" => nil
-      },
-      "relationships" => nil,
-      "included" => nil
-    }
-
-    result = Deserializer.process(incoming)
-
-    assert result == %{
-             "id" => "1",
-             "type" => "user"
-           }
+    assert %Document{data: %User{id: "1"}} =
+             Document.deserialize(UserView, %{
+               "data" => %{
+                 "id" => "1",
+                 "type" => "user",
+                 "attributes" => nil
+               },
+               "relationships" => nil,
+               "included" => nil
+             })
   end
 
   test "processes empty data" do
-    incoming = %{
-      "data" => %{
-        "id" => "1",
-        "type" => "user"
-      }
-    }
-
-    result = Deserializer.process(incoming)
-
-    assert result == %{
-             "id" => "1",
-             "type" => "user"
-           }
+    assert %Document{data: %User{id: "1"}} =
+             Document.deserialize(UserView, %{
+               "data" => %{
+                 "id" => "1",
+                 "type" => "user"
+               }
+             })
   end
 
   test "processes nil data" do
-    incoming = %{
-      "data" => nil
-    }
-
-    result = Deserializer.process(incoming)
-
-    assert result == nil
+    assert %Document{data: nil} = Document.deserialize(UserView, %{"data" => nil})
   end
 end
