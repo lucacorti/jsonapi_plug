@@ -132,6 +132,7 @@ defmodule JSONAPI.View do
 
   defmacro __using__(opts \\ []) do
     {resource, opts} = Keyword.pop(opts, :resource)
+
     unless resource do
       raise "You must pass the :resource option to use JSONAPI.View"
     end
