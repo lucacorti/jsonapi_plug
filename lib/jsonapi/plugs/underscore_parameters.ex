@@ -50,6 +50,7 @@ defmodule JSONAPI.UnderscoreParameters do
       end
   """
 
+  alias JSONAPI.Field
   alias Plug.Conn
 
   @doc false
@@ -58,7 +59,7 @@ defmodule JSONAPI.UnderscoreParameters do
   @doc false
   def call(%Conn{params: params} = conn, _opts) do
     if JSONAPI.mime_type() in Conn.get_req_header(conn, "content-type") do
-      %Conn{conn | params: JSONAPI.expand_fields(params, &JSONAPI.underscore/1)}
+      %Conn{conn | params: Field.expand(params, &Field.underscore/1)}
     else
       conn
     end

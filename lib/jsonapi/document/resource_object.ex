@@ -5,7 +5,7 @@ defmodule JSONAPI.Document.ResourceObject do
   https://jsonapi.org/format/#resource_object-resource-objects
   """
 
-  alias JSONAPI.{Document, Document.RelationshipObject, Resource, View}
+  alias JSONAPI.{Document, Document.RelationshipObject, Field, Resource, View}
   alias Plug.Conn
 
   @type field :: atom()
@@ -69,7 +69,7 @@ defmodule JSONAPI.Document.ResourceObject do
 
         Map.put(attributes, field, value)
       end)
-      |> JSONAPI.transform_fields()
+      |> Field.transform()
 
     %__MODULE__{resource_object | attributes: attributes}
   end
@@ -136,7 +136,7 @@ defmodule JSONAPI.Document.ResourceObject do
          options
        ) do
     relationship = Map.get(resource, relationship_name)
-    relationship_type = JSONAPI.transform_fields(relationship_name)
+    relationship_type = Field.transform(relationship_name)
     relationship_url = View.url_for_relationship(view, resource, conn, relationship_type)
 
     relationship_object =

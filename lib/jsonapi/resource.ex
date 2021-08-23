@@ -6,7 +6,8 @@ defmodule JSONAPI.Resource do
   protocols to provide Resource related functionality.
   """
 
-  alias JSONAPI.Resource.{Identifiable, Loadable, NotLoaded, Serializable}
+  alias JSONAPI.Field
+  alias JSONAPI.Resource.{Identifiable, Loadable, Serializable}
   alias JSONAPI.{Document, Resource, View}
 
   @typedoc "Resource"
@@ -53,9 +54,9 @@ defmodule JSONAPI.Resource do
   @spec deserialize(t(), Document.payload(), [t()]) :: t()
   def deserialize(resource, %{"id" => id} = data, included) do
     resource
-    |> struct(Keyword.put([], Identifiable.id_attribute(resource), id))
     |> deserialize_attributes(data)
     |> deserialize_relationships(data, included)
+    |> struct(Keyword.put([], Identifiable.id_attribute(resource), id))
   end
 
   defp deserialize_attributes(resource, %{"attributes" => attributes})
@@ -63,8 +64,14 @@ defmodule JSONAPI.Resource do
     attrs =
       resource
       |> Map.from_struct()
-      |> Enum.map(fn {attribute, value} ->
-        {attribute, Map.get(attributes, to_string(attribute), value)}
+      |> Enum.map(fn {attribute, _default} ->
+        case Map.fetch(attributes, to_string(attribute)) do
+          {:ok, value} ->
+            {attribute, value}
+
+          :error ->
+            {attribute, %Field.NotLoaded{}}
+        end
       end)
 
     struct(resource, attrs)
@@ -80,8 +87,7 @@ defmodule JSONAPI.Resource do
   defp deserialize_relationships(resource, _data, _included), do: resource
 
   defp deserialize_relationship({relationship, data}, included) when is_list(data) do
-    {JSONAPI.transform_fields(relationship),
-     Enum.map(data, &deserialize_relationship(&1, included))}
+    {relationship, Enum.map(data, &deserialize_relationship(&1, included))}
   end
 
   defp deserialize_relationship(
@@ -92,11 +98,11 @@ defmodule JSONAPI.Resource do
       case Enum.find(included, fn resource ->
              id == Resource.id(resource) && type == Resource.type(resource)
            end) do
-        nil -> %NotLoaded{id: id, type: type}
+        nil -> %Field.NotLoaded{id: id, type: type}
         resource -> resource
       end
 
-    {JSONAPI.transform_fields(relationship), resource}
+    {relationship, resource}
   end
 
   @doc """

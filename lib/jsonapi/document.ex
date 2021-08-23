@@ -21,7 +21,7 @@ defmodule JSONAPI.Document do
   alias Plug.Conn
 
   @type payload :: %{String.t() => value()}
-  @type value :: String.t() | integer() | float() | [value()] | %{String.t() => meta()} | nil
+  @type value :: String.t() | integer() | float() | [value()] | %{String.t() => value()} | nil
 
   @typedoc """
   Primary Data

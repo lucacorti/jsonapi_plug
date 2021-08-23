@@ -72,7 +72,7 @@ defmodule JSONAPI.QueryParser do
 
   @behaviour Plug
 
-  alias JSONAPI.{Exceptions, Resource, View}
+  alias JSONAPI.{Exceptions, Field, Resource, View}
   alias Plug.Conn
 
   @impl Plug
@@ -137,7 +137,7 @@ defmodule JSONAPI.QueryParser do
         try do
           value
           |> String.split(",")
-          |> Enum.map(&JSONAPI.underscore/1)
+          |> Enum.map(&Field.underscore/1)
           |> Enum.into(MapSet.new(), &String.to_existing_atom/1)
         rescue
           ArgumentError -> Exceptions.raise_invalid_field_names(value, view.type())
@@ -198,7 +198,7 @@ defmodule JSONAPI.QueryParser do
     includes =
       include
       |> String.split(",")
-      |> Enum.map(&JSONAPI.underscore/1)
+      |> Enum.map(&Field.underscore/1)
       |> Enum.flat_map(fn inc ->
         if inc =~ ~r/\w+\.\w+/ do
           handle_nested_include(inc, valid_includes, config)

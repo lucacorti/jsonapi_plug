@@ -2,8 +2,6 @@ defmodule JSONAPITest do
   use ExUnit.Case
   use Plug.Test
 
-  import JSONAPI
-
   doctest JSONAPI
 
   alias JSONAPI.View
