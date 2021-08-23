@@ -157,7 +157,7 @@ defmodule JSONAPI.Document do
   end
 
   defp pagination_links(view, resources, conn, page, options) do
-    paginator = view.__paginator__()
+    paginator = view.paginator()
 
     if Code.ensure_loaded?(paginator) && function_exported?(paginator, :paginate, 5) do
       paginator.paginate(view, resources, conn, page, options)
@@ -185,13 +185,13 @@ defmodule JSONAPI.Document do
        when is_list(data) do
     %__MODULE__{
       document
-      | data: Enum.map(data, &Resource.deserialize(view.__resource__(), &1, included))
+      | data: Enum.map(data, &Resource.deserialize(view.resource(), &1, included))
     }
   end
 
   defp deserialize_data(%__MODULE__{included: included} = document, view, %{"data" => data})
        when is_map(data) do
-    %__MODULE__{document | data: Resource.deserialize(view.__resource__(), data, included)}
+    %__MODULE__{document | data: Resource.deserialize(view.resource(), data, included)}
   end
 
   defp deserialize_data(%__MODULE__{} = document, _view, _payload),
@@ -206,7 +206,7 @@ defmodule JSONAPI.Document do
             document
 
           included_view ->
-            resource = included_view.__resource__()
+            resource = included_view.resource()
 
             %__MODULE__{
               document

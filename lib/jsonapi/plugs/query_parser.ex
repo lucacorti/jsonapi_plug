@@ -193,7 +193,7 @@ defmodule JSONAPI.QueryParser do
   def parse_include(config, %JSONAPI{include: []}), do: config
 
   def parse_include(%JSONAPI{view: view} = config, %JSONAPI{include: include}) do
-    valid_includes = view.relationships(view.__resource__())
+    valid_includes = view.relationships(view.resource())
 
     includes =
       include
@@ -244,11 +244,11 @@ defmodule JSONAPI.QueryParser do
   @spec get_valid_attributes_for_type(JSONAPI.t(), Resource.type()) :: [Resource.field()]
   def get_valid_attributes_for_type(%JSONAPI{view: view}, type) do
     if type == view.type() do
-      view.attributes(view.__resource__())
+      view.attributes(view.resource())
     else
       case View.for_related_type(view, type) do
         nil -> Exceptions.raise_invalid_field_names(type, view.type())
-        view -> view.attributes(view.__resource__())
+        view -> view.attributes(view.resource())
       end
     end
   end
@@ -283,7 +283,7 @@ defmodule JSONAPI.QueryParser do
   defp member_of_tree?([path | tail], include) when is_list(include) do
     if Keyword.has_key?(include, path) do
       view = include[path]
-      member_of_tree?(tail, view.relationships(view.__resource__()))
+      member_of_tree?(tail, view.relationships(view.resource()))
     else
       false
     end

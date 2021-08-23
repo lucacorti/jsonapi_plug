@@ -112,7 +112,7 @@ defmodule JSONAPI.View do
   default style for presentation in names is to be underscored and not dashed.
   """
 
-  alias JSONAPI.{Document, Resource}
+  alias JSONAPI.{Document, Paginator, Resource}
   alias Plug.Conn
 
   @type t :: module()
@@ -123,7 +123,11 @@ defmodule JSONAPI.View do
   @callback attributes(Resource.t()) :: [Resource.field()]
   @callback links(Resource.t(), Conn.t() | nil) :: Document.links()
   @callback meta(Resource.t(), Conn.t() | nil) :: Document.meta()
+  @callback namespace :: String.t()
+  @callback paginator :: Paginator.t() | nil
+  @callback path :: String.t() | nil
   @callback relationships(Resource.t()) :: [{Resource.field(), t()}]
+  @callback resource :: Resource.t()
   @callback type :: Resource.type()
 
   defmacro __using__(opts \\ []) do
@@ -159,7 +163,19 @@ defmodule JSONAPI.View do
       def meta(_resource, _conn), do: %{}
 
       @impl View
+      def namespace, do: @namespace
+
+      @impl View
+      def paginator, do: @paginator
+
+      @impl View
+      def path, do: @path
+
+      @impl View
       def relationships(_resource), do: @relationships
+
+      @impl View
+      def resource, do: @resource
 
       @impl View
       def type, do: @resource_type
@@ -171,12 +187,6 @@ defmodule JSONAPI.View do
  
       def show(model, conn, _params, meta \\ nil, options \\ []),
         do: Serializer.serialize(__MODULE__, model, conn, meta, options)
-
-      def __namespace__, do: @namespace
-      def __paginator__, do: @paginator
-      def __path__, do: @path
-      def __resource__, do: @resource
-      def __type__, do: @type
 
       def index(data, conn, _params, meta \\ nil, options \\ []),
         do: View.render(__MODULE__, data, conn, meta, options)
@@ -207,7 +217,7 @@ defmodule JSONAPI.View do
   @spec for_related_type(t(), Resource.type()) :: t() | nil
   def for_related_type(view, type) do
     case Enum.find(
-           view.relationships(view.__resource__()),
+           view.relationships(view.resource()),
            fn {_relationship, relationship_view} ->
              relationship_view.type() == type
            end
@@ -224,18 +234,18 @@ defmodule JSONAPI.View do
 
   @spec url_for(t(), data() | nil, Conn.t() | nil) :: String.t()
   def url_for(view, resource, conn) when is_nil(resource) or is_list(resource) do
-    render_url(conn, Enum.join([namespace(view), view.__path__() || view.type()], "/"))
+    render_url(conn, Enum.join([namespace(view), view.path() || view.type()], "/"))
   end
 
   def url_for(view, resource, conn) do
     render_url(
       conn,
-      Enum.join([namespace(view), view.__path__() || view.type(), view.id(resource)], "/")
+      Enum.join([namespace(view), view.path() || view.type(), view.id(resource)], "/")
     )
   end
 
   @spec namespace(t()) :: String.t()
-  def namespace(view), do: view.__namespace__() || Application.get_env(:jsonapi, :namespace, "")
+  def namespace(view), do: view.namespace() || Application.get_env(:jsonapi, :namespace, "")
 
   defp render_url(%Conn{scheme: scheme, host: host}, "/" <> _ = path) do
     URI.to_string(%URI{
