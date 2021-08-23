@@ -45,7 +45,7 @@ defmodule JSONAPI.UnderscoreParameters do
       # e.g. a Phoenix app
 
       pipeline :api do
-        plug JSONAPI.EnforceSpec
+        plug JSONAPI.EnsureSpec
         plug JSONAPI.UnderscoreParameters
       end
   """
