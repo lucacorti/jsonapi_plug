@@ -7,7 +7,9 @@ defmodule JSONAPI.Field.NotLoaded do
 
   @type t :: %__MODULE__{
           id: Resource.id(),
-          type: Resource.type()
+          type: Resource.type(),
+          field: Resource.field()
         }
-  defstruct [:id, :type]
+  @enforce_keys [:field]
+  defstruct [:id, :type, :field]
 end

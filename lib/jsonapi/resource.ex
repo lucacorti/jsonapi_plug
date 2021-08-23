@@ -70,7 +70,7 @@ defmodule JSONAPI.Resource do
             {attribute, value}
 
           :error ->
-            {attribute, %Field.NotLoaded{}}
+            {attribute, %Field.NotLoaded{field: attribute}}
         end
       end)
 
@@ -98,7 +98,7 @@ defmodule JSONAPI.Resource do
       case Enum.find(included, fn resource ->
              id == Resource.id(resource) && type == Resource.type(resource)
            end) do
-        nil -> %Field.NotLoaded{id: id, type: type}
+        nil -> %Field.NotLoaded{field: String.to_existing_atom(relationship), id: id, type: type}
         resource -> resource
       end
 
