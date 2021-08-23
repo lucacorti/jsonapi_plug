@@ -5,6 +5,22 @@ defmodule JSONAPI.Field do
   https://jsonapi.org/format/#document-resource-object-fields
   """
 
+  defmodule NotLoaded do
+    @moduledoc """
+    Placeholder for missing JSON:API fields
+    """
+
+    alias JSONAPI.Resource
+
+    @type t :: %__MODULE__{
+            id: Resource.id() | nil,
+            type: Resource.type() | nil,
+            field: Resource.field()
+          }
+    @enforce_keys [:field]
+    defstruct [:id, :type, :field]
+  end
+
   @doc """
   Replace underscores or dashes between words in `value` with camelCasing
 
