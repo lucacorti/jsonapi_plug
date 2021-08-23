@@ -1,6 +1,8 @@
 defmodule JSONAPI.Paginator do
   @moduledoc """
-  Pagination strategy behaviour
+  JSON:API Pagination strategy
+
+  https://jsonapi.org/format/#fetching-pagination
   """
 
   alias JSONAPI.{Document, Resource, View}

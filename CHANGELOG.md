@@ -199,4 +199,4 @@ you have any trouble with these deprecations please file an issue.
 
 ## v0.0.1 (2015-06-21)
 
-- Support for basic JSONAPI Docs. Links support still missing
+- Support for basic JSON:API Docs. Links support still missing

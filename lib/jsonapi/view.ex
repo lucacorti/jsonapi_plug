@@ -46,7 +46,7 @@ defmodule JSONAPI.View do
       end
 
       defmodule DogView do
-        use JSONAPI.View, resource: Dog, namespace: "/pupperz-api"
+        use JSONAPI.View, resource: Dog, namespace: "pupperz-api"
       end
 
   You can now call `UserView.show(user, conn, conn.params)` and it will render
@@ -104,7 +104,7 @@ defmodule JSONAPI.View do
     * `:scheme` (atom) - Enables configuration of the HTTP scheme for generated URLS.  Defaults to `scheme` from the provided `conn`.
 
     * `:namespace` (binary) - Allows the namespace of a given resource. This may be
-      configured globally or overridden on the View itself. Note that if you have
+      configured globally or set on the View itself. Note that if you have
       a globally defined namespace and need to *remove* the namespace for a
       resource, set the namespace to a blank String.
 
@@ -234,7 +234,8 @@ defmodule JSONAPI.View do
     )
   end
 
-  defp namespace(view), do: view.__namespace__() || Application.get_env(:jsonapi, :namespace, "")
+  @spec namespace(t()) :: String.t()
+  def namespace(view), do: view.__namespace__() || Application.get_env(:jsonapi, :namespace, "")
 
   defp render_url(%Conn{scheme: scheme, host: host}, "/" <> _ = path) do
     URI.to_string(%URI{

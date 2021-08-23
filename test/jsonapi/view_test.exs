@@ -24,7 +24,7 @@ defmodule JSONAPI.ViewTest do
 
   describe "namespace/0" do
     setup do
-      Application.put_env(:jsonapi, :namespace, "/cake")
+      Application.put_env(:jsonapi, :namespace, "cake")
 
       on_exit(fn ->
         Application.delete_env(:jsonapi, :namespace)
@@ -34,15 +34,15 @@ defmodule JSONAPI.ViewTest do
     end
 
     test "uses macro configuration first" do
-      assert PostView.__namespace__() == nil
+      assert View.namespace(PostView) == "cake"
     end
 
     test "uses global namespace if available" do
-      assert UserView.__namespace__() == "cake"
+      assert View.namespace(UserView) == "cake"
     end
 
     test "namespace cant be blank" do
-      assert CarView.__namespace__() == nil
+      assert View.namespace(CarView) == "cake"
     end
   end
 

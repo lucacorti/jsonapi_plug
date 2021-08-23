@@ -76,8 +76,8 @@ defmodule JSONAPI.Document do
   defstruct [:data, :errors, :included, :jsonapi, :links, :meta]
 
   @doc """
-  Takes a view, resource and a optional plug connection and returns a fully JSONAPI Serialized document.
-  This assumes you are using the JSONAPI.View and have resource structs.
+  Takes a view, resource and a optional plug connection and returns a JSON:API document.
+  This assumes you are using `JSONAPI.View` and pass structs implementing `JSONAPI.Resource`.
 
   Please refer to `JSONAPI.View` for more information. If you are in interested in relationships
   and includes you may also want to reference the `JSONAPI.QueryParser`.

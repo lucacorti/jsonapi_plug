@@ -1,13 +1,13 @@
 # JSONAPI Elixir
 
-A project that will render your data models into [JSONAPI Documents](http://jsonapi.org/format) and parse/verify JSONAPI query strings.
+A project that will render your data models into [JSON:API Documents](http://jsonapi.org/format) and parse/verify JSON:API query strings.
 
-## JSONAPI Support
+## JSON:API Support
 
 This library implements [version 1.0](https://jsonapi.org/format/1.0/)
 of the JSON:API spec.
 
-- [x] Basic [JSONAPI Document](http://jsonapi.org/format/#document-top-level) encoding
+- [x] Basic [JSON:API Document](http://jsonapi.org/format/#document-top-level) encoding
 - [x] Basic support for [compound documents](http://jsonapi.org/format/#document-compound-documents)
 - [x] [Links](http://jsonapi.org/format/#document-links)
 - [x] Relationship links
@@ -106,7 +106,7 @@ Please see its documentation for details.
 
 ## Camelized or Dasherized Fields
 
-JSONAPI has recommended in the past the use of dashes (`-`) in place of underscore (`_`) as a
+JSON:API has recommended in the past the use of dashes (`-`) in place of underscore (`_`) as a
 word separator for document member keys. However, as of [JSON API Spec (v1.1)](https://jsonapi.org/format/1.1/), it is now recommended that member names are camelCased. This library provides various configuration options for maximum flexibility including serializing outgoing parameters and deserializing incoming paramenters.
 
 Transforming fields requires two steps:
@@ -149,7 +149,7 @@ Transforming fields requires two steps:
 
 ## Spec Enforcement
 
-We include a set of Plugs to make enforcing the JSONAPI spec for requests easy. To add spec enforcement to your application, add `JSONAPI.EnsureSpec` to your pipeline:
+We include a set of Plugs to make enforcing the JSON:API spec for requests easy. To add spec enforcement to your application, add `JSONAPI.EnsureSpec` to your pipeline:
 
 ```elixir
 plug JSONAPI.EnsureSpec
