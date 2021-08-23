@@ -1,5 +1,5 @@
 defmodule JSONAPI.FieldTest do
-  use ExUnit.Case
+  use ExUnit.Case, async: true
 
   import JSONAPI.Field
 
