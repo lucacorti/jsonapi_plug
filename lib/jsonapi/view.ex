@@ -131,7 +131,11 @@ defmodule JSONAPI.View do
   @callback type :: Resource.type()
 
   defmacro __using__(opts \\ []) do
-    {resource, opts} = Keyword.pop!(opts, :resource)
+    {resource, opts} = Keyword.pop(opts, :resource)
+    unless resource do
+      raise "You must pass the :resource option to use JSONAPI.View"
+    end
+
     {namespace, opts} = Keyword.pop(opts, :namespace)
     {path, opts} = Keyword.pop(opts, :path)
     {paginator, _opts} = Keyword.pop(opts, :paginator)
