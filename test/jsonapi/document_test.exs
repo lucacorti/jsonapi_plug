@@ -472,7 +472,7 @@ defmodule JSONAPI.DocumentTest do
     conn =
       :get
       |> Plug.Test.conn("/my-type?page[page]=2&page[size]=1")
-      |> QueryParser.call(%JSONAPI{view: view, opts: []})
+      |> QueryParser.call(%JSONAPI{view: view})
       |> Conn.fetch_query_params()
 
     %Document{links: links} =
@@ -540,7 +540,7 @@ defmodule JSONAPI.DocumentTest do
     conn =
       :get
       |> Plug.Test.conn("/my-type?page[page]=2&page[size]=1")
-      |> QueryParser.call(%JSONAPI{view: view, opts: []})
+      |> QueryParser.call(%JSONAPI{view: view})
       |> Conn.fetch_query_params()
 
     %Document{data: data, links: links} =

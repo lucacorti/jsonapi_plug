@@ -30,7 +30,7 @@ defmodule JSONAPI.QueryParserTest do
   end
 
   test "parse_sort/2 raises on invalid sorts" do
-    config = struct(JSONAPI, opts: [], view: MyPostView)
+    config = struct(JSONAPI, view: MyPostView)
 
     assert_raise InvalidQuery, "invalid sort, name for type my-type", fn ->
       parse_sort(config, %JSONAPI{sort: "name"})
@@ -45,7 +45,7 @@ defmodule JSONAPI.QueryParserTest do
   end
 
   test "parse_filter/2 raises on invalid filters" do
-    config = struct(JSONAPI, opts: [], view: MyPostView)
+    config = struct(JSONAPI, view: MyPostView)
 
     assert_raise InvalidQuery, "invalid filter, noop for type my-type", fn ->
       parse_filter(config, %JSONAPI{filter: %{"noop" => "jason"}})

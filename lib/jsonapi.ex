@@ -10,7 +10,7 @@ defmodule JSONAPI do
           fields: map(),
           filter: keyword(),
           include: keyword(),
-          opts: nil | keyword(),
+          opts: keyword(),
           sort: nil | keyword(),
           view: View.t(),
           page: map()
@@ -19,7 +19,7 @@ defmodule JSONAPI do
             fields: %{},
             filter: [],
             include: [],
-            opts: nil,
+            opts: [],
             sort: nil,
             view: nil,
             page: %{}

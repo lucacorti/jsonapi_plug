@@ -19,7 +19,7 @@ defmodule JSONAPI.DeserializerTest do
              Plug.Test.conn("GET", "/")
              |> put_req_header("content-type", JSONAPI.mime_type())
              |> put_req_header("accept", JSONAPI.mime_type())
-             |> QueryParser.call(%JSONAPI{view: UserView, opts: []})
+             |> QueryParser.call(%JSONAPI{view: UserView})
              |> ExamplePlug.call([])
   end
 
@@ -30,7 +30,7 @@ defmodule JSONAPI.DeserializerTest do
              Plug.Test.conn("POST", "/", req_body)
              |> put_req_header("content-type", JSONAPI.mime_type())
              |> put_req_header("accept", JSONAPI.mime_type())
-             |> QueryParser.call(%JSONAPI{view: CarView, opts: []})
+             |> QueryParser.call(%JSONAPI{view: CarView})
              |> ExamplePlug.call([])
   end
 
@@ -58,7 +58,7 @@ defmodule JSONAPI.DeserializerTest do
              Plug.Test.conn("POST", "/", req_body)
              |> put_req_header("content-type", JSONAPI.mime_type())
              |> put_req_header("accept", JSONAPI.mime_type())
-             |> QueryParser.call(%JSONAPI{view: CarView, opts: []})
+             |> QueryParser.call(%JSONAPI{view: CarView})
              |> ExamplePlug.call([])
   end
 
@@ -93,7 +93,7 @@ defmodule JSONAPI.DeserializerTest do
              Plug.Test.conn("POST", "/", req_body)
              |> put_req_header("content-type", JSONAPI.mime_type())
              |> put_req_header("accept", JSONAPI.mime_type())
-             |> QueryParser.call(%JSONAPI{view: CarView, opts: []})
+             |> QueryParser.call(%JSONAPI{view: CarView})
              |> ExamplePlug.call([])
   end
 
@@ -139,7 +139,7 @@ defmodule JSONAPI.DeserializerTest do
                Plug.Test.conn("POST", "/", req_body)
                |> put_req_header("content-type", JSONAPI.mime_type())
                |> put_req_header("accept", JSONAPI.mime_type())
-               |> QueryParser.call(%JSONAPI{view: CarView, opts: []})
+               |> QueryParser.call(%JSONAPI{view: CarView})
                |> ExampleUnderscorePlug.call([])
     end
   end
@@ -195,7 +195,7 @@ defmodule JSONAPI.DeserializerTest do
                Plug.Test.conn("POST", "/", req_body)
                |> put_req_header("content-type", JSONAPI.mime_type())
                |> put_req_header("accept", JSONAPI.mime_type())
-               |> QueryParser.call(%JSONAPI{view: CarView, opts: []})
+               |> QueryParser.call(%JSONAPI{view: CarView})
                |> ExampleCamelCasePlug.call([])
     end
   end
