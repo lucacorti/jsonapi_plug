@@ -51,18 +51,14 @@ defmodule JSONAPI.Field do
     |> camelize()
   end
 
-  def camelize(value) when value == "", do: value
+  def camelize(""), do: ""
 
   def camelize(value) when is_binary(value) do
-    with words <-
-           Regex.split(
-             ~r{(?<=[a-zA-Z0-9])[-_](?=[a-zA-Z0-9])},
-             to_string(value)
-           ) do
-      [h | t] = words |> Enum.filter(&(&1 != ""))
+    [h | t] =
+      Regex.split(~r{(?<=[a-zA-Z0-9])[-_](?=[a-zA-Z0-9])}, to_string(value))
+      |> Enum.filter(&(&1 != ""))
 
-      Enum.join([String.downcase(h) | camelize_list(t)])
-    end
+    Enum.join([String.downcase(h) | camelize_list(t)])
   end
 
   defp camelize_list([]), do: []
@@ -119,7 +115,7 @@ defmodule JSONAPI.Field do
       "corgi_age"
 
   """
-  @spec underscore(String.t()) :: String.t()
+  @spec underscore(atom() | String.t()) :: String.t()
   def underscore(value) when is_binary(value) do
     value
     |> String.replace(~r/([a-zA-Z\d])-([a-zA-Z\d])/, "\\1_\\2")
@@ -127,7 +123,6 @@ defmodule JSONAPI.Field do
     |> String.downcase()
   end
 
-  @spec underscore(atom) :: String.t()
   def underscore(value) when is_atom(value) do
     value
     |> to_string()
