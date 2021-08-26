@@ -13,12 +13,12 @@ defmodule JSONAPI.Field do
     alias JSONAPI.Resource
 
     @type t :: %__MODULE__{
+            field: Resource.field(),
             id: Resource.id() | nil,
-            type: Resource.type() | nil,
-            field: Resource.field()
+            type: Resource.type() | nil
           }
     @enforce_keys [:field]
-    defstruct [:id, :type, :field]
+    defstruct [:field, :id, :type]
   end
 
   @doc """
@@ -53,7 +53,7 @@ defmodule JSONAPI.Field do
 
   def camelize(""), do: ""
 
-  def camelize(value) when is_binary(value) do
+  def camelize(value) do
     [h | t] =
       Regex.split(~r{(?<=[a-zA-Z0-9])[-_](?=[a-zA-Z0-9])}, to_string(value))
       |> Enum.filter(&(&1 != ""))
@@ -88,7 +88,7 @@ defmodule JSONAPI.Field do
     |> dasherize()
   end
 
-  def dasherize(value) when is_binary(value) do
+  def dasherize(value) do
     String.replace(value, ~r/([a-zA-Z0-9])_([a-zA-Z0-9])/, "\\1-\\2")
   end
 
@@ -116,125 +116,16 @@ defmodule JSONAPI.Field do
 
   """
   @spec underscore(atom() | String.t()) :: String.t()
-  def underscore(value) when is_binary(value) do
-    value
-    |> String.replace(~r/([a-zA-Z\d])-([a-zA-Z\d])/, "\\1_\\2")
-    |> String.replace(~r/([a-z\d])([A-Z])/, "\\1_\\2")
-    |> String.downcase()
-  end
-
   def underscore(value) when is_atom(value) do
     value
     |> to_string()
     |> underscore()
   end
 
-  @doc """
-  iex> expand(%{"foo-bar" => "baz"}, &underscore/1)
-  %{"foo_bar" => "baz"}
-
-  iex> expand(%{"foo_bar" => "baz"}, &dasherize/1)
-  %{"foo-bar" => "baz"}
-
-  iex> expand(%{"foo-bar" => "baz"}, &camelize/1)
-  %{"fooBar" => "baz"}
-
-  iex> expand({"foo-bar", "dollar-sol"}, &underscore/1)
-  {"foo_bar", "dollar-sol"}
-
-  iex> expand({"foo-bar", %{"a-d" => "z-8"}}, &underscore/1)
-  {"foo_bar", %{"a_d" => "z-8"}}
-
-  iex> expand(%{"f-b" => %{"a-d" => "z"}, "c-d" => "e"}, &underscore/1)
-  %{"f_b" => %{"a_d" => "z"}, "c_d" => "e"}
-
-  iex> expand(%{"f-b" => %{"a-d" => %{"z-w" => "z"}}, "c-d" => "e"}, &underscore/1)
-  %{"f_b" => %{"a_d" => %{"z_w" => "z"}}, "c_d" => "e"}
-
-  iex> expand(:"foo-bar", &underscore/1)
-  "foo_bar"
-
-  iex> expand(:foo_bar, &dasherize/1)
-  "foo-bar"
-
-  iex> expand(:"foo-bar", &camelize/1)
-  "fooBar"
-
-  iex> expand(%{"f-b" => "a-d"}, &underscore/1)
-  %{"f_b" => "a-d"}
-
-  iex> expand(%{"inserted-at" => ~N[2019-01-17 03:27:24.776957]}, &underscore/1)
-  %{"inserted_at" => ~N[2019-01-17 03:27:24.776957]}
-
-  iex> expand(%{"xValue" => 123}, &underscore/1)
-  %{"x_value" => 123}
-
-  iex> expand(%{"attributes" => %{"corgiName" => "Wardel"}}, &underscore/1)
-  %{"attributes" => %{"corgi_name" => "Wardel"}}
-
-  iex> expand(%{"attributes" => %{"corgiName" => ["Wardel"]}}, &underscore/1)
-  %{"attributes" => %{"corgi_name" => ["Wardel"]}}
-
-  iex> expand(%{"attributes" => %{"someField" => ["SomeValue", %{"nestedField" => "Value"}]}}, &underscore/1)
-  %{"attributes" => %{"some_field" => ["SomeValue", %{"nested_field" => "Value"}]}}
-
-  iex> expand([%{"fooBar" => "a"}, %{"fooBar" => "b"}], &underscore/1)
-  [%{"foo_bar" => "a"}, %{"foo_bar" => "b"}]
-
-  iex> expand([%{"foo_bar" => "a"}, %{"foo_bar" => "b"}], &camelize/1)
-  [%{"fooBar" => "a"}, %{"fooBar" => "b"}]
-
-  iex> expand(%{"fooAttributes" => [%{"fooBar" => "a"}, %{"fooBar" => "b"}]}, &underscore/1)
-  %{"foo_attributes" => [%{"foo_bar" => "a"}, %{"foo_bar" => "b"}]}
-
-  iex> expand(%{"foo_attributes" => [%{"foo_bar" => "a"}, %{"foo_bar" => "b"}]}, &camelize/1)
-  %{"fooAttributes" => [%{"fooBar" => "a"}, %{"fooBar" => "b"}]}
-
-  iex> expand(%{"foo_attributes" => [%{"foo_bar" => [1, 2]}]}, &camelize/1)
-  %{"fooAttributes" => [%{"fooBar" => [1, 2]}]}
-  """
-  @spec expand(String.t() | atom() | tuple() | map() | list(), function()) :: tuple()
-  def expand(%{__struct__: _} = value, _fun), do: value
-
-  def expand(map, fun) when is_map(map) do
-    Enum.into(map, %{}, &expand(&1, fun))
-  end
-
-  def expand(values, fun) when is_list(values) do
-    Enum.map(values, &expand(&1, fun))
-  end
-
-  def expand({key, value}, fun) when is_map(value) do
-    {fun.(key), expand(value, fun)}
-  end
-
-  def expand({key, values}, fun) when is_list(values) do
-    {
-      fun.(key),
-      Enum.map(values, fn
-        string when is_binary(string) -> string
-        value -> expand(value, fun)
-      end)
-    }
-  end
-
-  def expand({key, value}, fun) do
-    {fun.(key), value}
-  end
-
-  def expand(value, fun) when is_binary(value) or is_atom(value) do
-    fun.(value)
-  end
-
-  def expand(value, _fun) do
+  def underscore(value) do
     value
-  end
-
-  def transform(fields) do
-    case Application.get_env(:jsonapi, :field_transformation) do
-      :camelize -> expand(fields, &camelize/1)
-      :dasherize -> expand(fields, &dasherize/1)
-      _ -> fields
-    end
+    |> String.replace(~r/([a-zA-Z\d])-([a-zA-Z\d])/, "\\1_\\2")
+    |> String.replace(~r/([a-z\d])([A-Z])/, "\\1_\\2")
+    |> String.downcase()
   end
 end

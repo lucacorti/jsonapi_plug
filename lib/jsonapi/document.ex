@@ -12,6 +12,7 @@ defmodule JSONAPI.Document do
     Document.JSONAPIObject,
     Document.LinksObject,
     Document.RelationshipObject,
+    Document.ResourceLinkage,
     Document.ResourceObject,
     Paginator,
     Resource,
@@ -232,6 +233,7 @@ defmodule JSONAPI.Document do
       ErrorObject,
       JSONAPIObject,
       LinksObject,
+      ResourceLinkage,
       ResourceObject,
       RelationshipObject
     ] do

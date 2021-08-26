@@ -56,12 +56,10 @@ defmodule JSONAPI.Deserializer do
   @spec call(Conn.t(), Keyword.t()) :: Conn.t()
   def call(%Conn{assigns: %{jsonapi: %JSONAPI{view: view} = jsonapi}} = conn, _opts) do
     if JSONAPI.mime_type() in Conn.get_req_header(conn, "content-type") do
-      %Conn{
-        conn
-        | assigns: %{
-            jsonapi: %JSONAPI{jsonapi | data: Document.deserialize(view, conn.body_params)}
-          }
-      }
+      Conn.assign(conn, :jsonapi, %JSONAPI{
+        jsonapi
+        | document: Document.deserialize(view, conn.body_params)
+      })
     else
       conn
     end

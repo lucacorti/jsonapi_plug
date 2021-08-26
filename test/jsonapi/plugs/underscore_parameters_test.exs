@@ -2,6 +2,9 @@ defmodule JSONAPI.UnderscoreParametersTest do
   use ExUnit.Case, async: true
   use Plug.Test
 
+  import JSONAPI.{Field, UnderscoreParameters}
+  doctest JSONAPI.UnderscoreParameters
+
   alias JSONAPI.UnderscoreParameters
   alias Plug.Conn
 

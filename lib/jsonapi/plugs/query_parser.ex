@@ -165,7 +165,7 @@ defmodule JSONAPI.QueryParser do
   end
 
   @spec parse_sort(JSONAPI.t(), JSONAPI.t()) :: JSONAPI.t()
-  def parse_sort(config, %JSONAPI{sort: nil}), do: config
+  def parse_sort(config, %JSONAPI{sort: []}), do: config
 
   def parse_sort(%JSONAPI{view: view, opts: opts} = config, %JSONAPI{sort: sort}) do
     sort =

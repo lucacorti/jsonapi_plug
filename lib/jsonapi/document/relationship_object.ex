@@ -2,16 +2,14 @@ defmodule JSONAPI.Document.RelationshipObject do
   @moduledoc """
   JSON:API Relationship Object
 
-  https://jsonapi.org/format/#relationship-resource-object-relationships
+  https://jsonapi.org/format/#document-resource-object-relationships
   """
 
-  alias JSONAPI.{Document, Document.LinksObject, Resource, View}
+  alias JSONAPI.{Document, Document.LinksObject, Document.ResourceLinkage, View}
   alias Plug.Conn
 
-  @type data :: %{id: Resource.id(), type: Resource.type()}
-
   @type t :: %__MODULE__{
-          data: data() | [data()] | nil,
+          data: ResourceLinkage.t() | [ResourceLinkage.t()] | nil,
           links: Document.links() | nil,
           meta: Document.meta() | nil
         }
@@ -32,7 +30,8 @@ defmodule JSONAPI.Document.RelationshipObject do
   defp serialize_data(%__MODULE__{} = relationship, view, resource),
     do: %__MODULE__{relationship | data: relationship_data(view, resource)}
 
-  defp relationship_data(view, resource), do: %{id: view.id(resource), type: view.type()}
+  defp relationship_data(view, resource),
+    do: %ResourceLinkage{id: view.id(resource), type: view.type()}
 
   defp serialize_links(%__MODULE__{} = relationship, view, resources, conn, url) do
     %__MODULE__{relationship | links: %{self: url, related: View.url_for(view, resources, conn)}}

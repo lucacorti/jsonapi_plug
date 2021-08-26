@@ -139,16 +139,16 @@ defmodule JSONAPI.DocumentTest do
       best_comments: []
     }
 
-    %Document{
-      data: %ResourceObject{
-        id: id,
-        type: type,
-        attributes: attributes,
-        links: links,
-        relationships: relationships
-      },
-      included: included
-    } = Document.serialize(PostView, post, conn)
+    assert %Document{
+             data: %ResourceObject{
+               id: id,
+               type: type,
+               attributes: attributes,
+               links: links,
+               relationships: relationships
+             },
+             included: included
+           } = Document.serialize(PostView, post, conn)
 
     assert ^id = PostView.id(post)
     assert ^type = PostView.type()

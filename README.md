@@ -71,11 +71,11 @@ defmodule MyApp.PostView do
     String.slice(resource.body, 0..5)
   end
 
-  def render("index.json" %{data: data, conn: conn, meta: meta}) do
+  def render("index.json", %{data: data, conn: conn, meta: meta}) do
     JSONAPI.View.render(__MODULE__, data, conn, meta)
   end
 
-  def render("show.json" %{data: data, conn: conn, meta: meta}) do
+  def render("show.json", %{data: data, conn: conn, meta: meta}) do
     JSONAPI.View.render(__MODULE__, data, conn, meta)
   end
 end
@@ -159,13 +159,13 @@ plug JSONAPI.EnsureSpec
 
 Under-the-hood `JSONAPI.EnsureSpec` relies on four individual plugs:
 
-- `JSONAPI.ContentTypeNegotiation` — Requires the `Content-Type` and `Accept` headers are set correctly.
+- `JSONAPI.ContentTypeNegotiation` — Requires the `content-type` and `accept` headers are set correctly.
 
-- `JSONAPI.FormatRequired` — Verifies that the JSON body matches the expected `%{data: %{attributes: attributes}}` format.
+- `JSONAPI.FormatRequired` — Verifies that the JSON body matches the expected `{"data": {"attributes": { ... } } }` format.
 
-- `JSONAPI.IdRequired` — Confirm the `id` key is present in `%{data: data}` and that it matches the resource's `id` in the URI.
+- `JSONAPI.IdRequired` — Confirm the `id` key is present in `{"data": { "id": ... }}` and that it matches the resource's `id` in the URI.
 
-- `JSONAPI.ResponseContentType` — Ensures that you return the correct `Content-Type` header.
+- `JSONAPI.ResponseContentType` — Ensures that you return the correct `content-type` header.
 
 ## Configuration
 

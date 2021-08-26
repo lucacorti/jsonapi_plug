@@ -67,9 +67,8 @@ defmodule JSONAPI.Document.ResourceObject do
             Map.get(resource, field)
           end
 
-        Map.put(attributes, field, value)
+        Map.put(attributes, transform_field(field), value)
       end)
-      |> Field.transform()
 
     %__MODULE__{resource_object | attributes: attributes}
   end
@@ -136,7 +135,7 @@ defmodule JSONAPI.Document.ResourceObject do
          options
        ) do
     relationship = Map.get(resource, relationship_name)
-    relationship_type = Field.transform(relationship_name)
+    relationship_type = transform_field(relationship_name)
     relationship_url = View.url_for_relationship(view, resource, conn, relationship_type)
 
     relationship_object =
@@ -187,5 +186,13 @@ defmodule JSONAPI.Document.ResourceObject do
     end)
     |> List.flatten()
     |> Enum.uniq()
+  end
+
+  defp transform_field(field) do
+    case Application.get_env(:jsonapi, :field_transformation) do
+      :camelize -> Field.camelize(field)
+      :dasherize -> Field.dasherize(field)
+      _ -> field
+    end
   end
 end

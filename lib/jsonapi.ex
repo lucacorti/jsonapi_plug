@@ -3,24 +3,24 @@ defmodule JSONAPI do
   Struct containing JSON API information for a request
   """
 
-  alias JSONAPI.View
+  alias JSONAPI.{Document, View}
 
   @type t :: %__MODULE__{
-          data: nil | map(),
+          document: Document.t() | nil,
           fields: map(),
           filter: keyword(),
           include: keyword(),
           opts: keyword(),
-          sort: nil | keyword(),
+          sort: keyword(),
           view: View.t(),
           page: map()
         }
-  defstruct data: nil,
+  defstruct document: nil,
             fields: %{},
             filter: [],
             include: [],
             opts: [],
-            sort: nil,
+            sort: [],
             view: nil,
             page: %{}
 
