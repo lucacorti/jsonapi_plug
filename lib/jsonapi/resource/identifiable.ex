@@ -25,14 +25,14 @@ defprotocol JSONAPI.Resource.Identifiable do
   ```
   """
 
-  alias JSONAPI.Resource
+  alias JSONAPI.{Resource, Resource.Field}
 
   @doc """
   Resource id attribute
 
   Returns the attribute to use as JSONAPI Resource ID
   """
-  @spec id_attribute(Resource.t()) :: Resource.field()
+  @spec id_attribute(Resource.t()) :: Field.name()
   def id_attribute(resource)
 
   @doc """

@@ -2,7 +2,7 @@ defmodule JSONAPI.FormatRequiredTest do
   use ExUnit.Case
   use Plug.Test
 
-  alias JSONAPI.FormatRequired
+  alias JSONAPI.Plug.FormatRequired
   alias Plug.{Conn, Parsers}
 
   test "halts and returns an error for missing data param" do

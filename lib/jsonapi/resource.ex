@@ -7,7 +7,7 @@ defmodule JSONAPI.Resource do
   """
 
   alias JSONAPI.Field
-  alias JSONAPI.Resource.{Identifiable, Loadable, Serializable}
+  alias JSONAPI.Resource.{Field, Identifiable, Loadable, Serializable}
   alias JSONAPI.{Document, Resource, View}
 
   @typedoc "Resource"
@@ -15,9 +15,6 @@ defmodule JSONAPI.Resource do
 
   @typedoc "Resource ID"
   @type id :: String.t()
-
-  @typedoc "Resource field"
-  @type field :: atom()
 
   @typedoc "Resource Type"
   @type type :: String.t()
@@ -27,7 +24,7 @@ defmodule JSONAPI.Resource do
 
   Returns the JSON:API Resource ID
   """
-  @spec id(Resource.t()) :: Resource.id()
+  @spec id(t()) :: id()
   def id(resource) do
     case Map.fetch(resource, Identifiable.id_attribute(resource)) do
       {:ok, id} -> to_string(id)
@@ -40,7 +37,7 @@ defmodule JSONAPI.Resource do
 
   Returns the JSON:API Resource Type
   """
-  @spec type(t()) :: id()
+  @spec type(t()) :: type()
   def type(resource), do: to_string(Identifiable.type(resource))
 
   @doc """
@@ -48,7 +45,7 @@ defmodule JSONAPI.Resource do
 
   Returns the JSON:API Resource Attributes
   """
-  @spec attributes(t()) :: [field()]
+  @spec attributes(t()) :: [Field.name()]
   def attributes(resource), do: Serializable.attributes(resource)
 
   @spec deserialize(t(), Document.payload(), [t()]) :: t()
@@ -110,7 +107,7 @@ defmodule JSONAPI.Resource do
 
   Returns the JSON:API Resource One-to-One relationships
   """
-  @spec has_one(t()) :: [{field(), View.t()}]
+  @spec has_one(t()) :: [{Field.name(), View.t()}]
   def has_one(resource),
     do: Serializable.has_one(resource)
 
@@ -119,7 +116,7 @@ defmodule JSONAPI.Resource do
 
   Returns the JSON:API Resource One-to-Many relationships
   """
-  @spec has_many(t()) :: [{field(), View.t()}]
+  @spec has_many(t()) :: [{Field.name(), View.t()}]
   def has_many(resource),
     do: Serializable.has_many(resource)
 

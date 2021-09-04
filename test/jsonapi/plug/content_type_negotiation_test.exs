@@ -2,7 +2,7 @@ defmodule JSONAPI.ContentTypeNegotiationTest do
   use ExUnit.Case
   use Plug.Test
 
-  alias JSONAPI.ContentTypeNegotiation
+  alias JSONAPI.Plug.ContentTypeNegotiation
   alias Plug.Conn
 
   test "passes request through" do
@@ -137,7 +137,7 @@ defmodule JSONAPI.ContentTypeNegotiationTest do
       :post
       |> conn("/example", "")
       |> Conn.put_req_header("content-type", JSONAPI.mime_type())
-      |> Conn.put_req_header("accept", "#{JSONAPI.mime_type()} charset=utf-8")
+      |> Conn.put_req_header("accept", "#{JSONAPI.mime_type()}; charset=utf-8")
       |> ContentTypeNegotiation.call([])
 
     assert conn.halted
@@ -185,8 +185,6 @@ defmodule JSONAPI.ContentTypeNegotiationTest do
 
     assert conn.halted
 
-    assert Conn.get_resp_header(conn, "content-type") == [
-             "#{JSONAPI.mime_type()}; charset=utf-8"
-           ]
+    assert Conn.get_resp_header(conn, "content-type") == [JSONAPI.mime_type()]
   end
 end

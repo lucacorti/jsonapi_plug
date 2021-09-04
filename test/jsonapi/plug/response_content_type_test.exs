@@ -2,7 +2,7 @@ defmodule JSONAPI.ResponseContentTypeTest do
   use ExUnit.Case
   use Plug.Test
 
-  alias JSONAPI.ResponseContentType
+  alias JSONAPI.Plug.ResponseContentType
 
   test "sets response content type" do
     conn =

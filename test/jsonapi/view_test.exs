@@ -1,142 +1,131 @@
 defmodule JSONAPI.ViewTest do
   use ExUnit.Case
 
+  alias JSONAPI.TestSupport.APIs.{
+    DasherizingAPI,
+    DefaultAPI,
+    OtherHostAPI,
+    OtherNamespaceAPI,
+    OtherSchemeAPI,
+    UnderscoringAPI
+  }
+
   alias JSONAPI.TestSupport.Resources.{Comment, Post, User}
-  alias JSONAPI.TestSupport.Views.{CarView, CommentView, MyPostView, PostView, UserView}
-  alias JSONAPI.{Document, Document.ResourceObject, Paginator, View}
+  alias JSONAPI.TestSupport.Views.{CommentView, MyPostView, PostView, UserView}
+  alias JSONAPI.{Document, Document.ResourceObject, Paginator, Plug.Request, View}
   alias Plug.Conn
 
   setup do
-    Application.put_env(:jsonapi, :field_transformation, :underscore)
-    Application.put_env(:jsonapi, :namespace, "/other-api")
-
-    on_exit(fn ->
-      Application.delete_env(:jsonapi, :field_transformation)
-      Application.delete_env(:jsonapi, :namespace)
-    end)
-
-    {:ok, []}
+    {:ok, conn: JSONAPI.Plug.call(%Conn{}, api: DasherizingAPI)}
   end
 
   test "type/0 when specified via using macro" do
     assert PostView.type() == "post"
   end
 
-  describe "namespace/0" do
-    setup do
-      Application.put_env(:jsonapi, :namespace, "cake")
-
-      on_exit(fn ->
-        Application.delete_env(:jsonapi, :namespace)
-      end)
-
-      {:ok, []}
-    end
-
-    test "uses macro configuration first" do
-      assert View.namespace(PostView) == "cake"
-    end
-
-    test "uses global namespace if available" do
-      assert View.namespace(UserView) == "cake"
-    end
-
-    test "namespace cant be blank" do
-      assert View.namespace(CarView) == "cake"
-    end
-  end
-
   describe "url_for/3 when host and scheme not configured" do
-    test "url_for/3" do
-      assert View.url_for(PostView, nil, nil) == "/other-api/posts"
-      assert View.url_for(PostView, [], nil) == "/other-api/posts"
-      assert View.url_for(PostView, %Post{id: 1}, nil) == "/other-api/posts/1"
-      assert View.url_for(PostView, [], %Conn{}) == "http://www.example.com/other-api/posts"
+    setup do
+      {
+        :ok,
+        conn:
+          Plug.Test.conn(:get, "/")
+          |> JSONAPI.Plug.call(api: OtherNamespaceAPI)
+      }
+    end
 
-      assert View.url_for(PostView, %Post{id: 1}, %Conn{}) ==
-               "http://www.example.com/other-api/posts/1"
+    test "url_for/3", %{conn: conn} do
+      assert View.url_for(PostView, nil, conn) == "http://www.example.com/somespace/posts"
+      assert View.url_for(PostView, [], conn) == "http://www.example.com/somespace/posts"
 
-      assert View.url_for_relationship(PostView, [], %Conn{}, "comments") ==
-               "http://www.example.com/other-api/posts/relationships/comments"
+      assert View.url_for(PostView, %Post{id: 1}, conn) ==
+               "http://www.example.com/somespace/posts/1"
 
-      assert View.url_for_relationship(PostView, %Post{id: 1}, %Conn{}, "comments") ==
-               "http://www.example.com/other-api/posts/1/relationships/comments"
+      assert View.url_for(PostView, [], nil) == "/posts"
+
+      assert View.url_for(PostView, %Post{id: 1}, nil) ==
+               "/posts/1"
+
+      assert View.url_for_relationship(PostView, [], nil, "comments") ==
+               "/posts/relationships/comments"
+
+      assert View.url_for_relationship(PostView, %Post{id: 1}, nil, "comments") ==
+               "/posts/1/relationships/comments"
     end
   end
 
   describe "url_for/3 when host configured" do
     setup do
-      Application.put_env(:jsonapi, :host, "www.otherhost.com")
-
-      on_exit(fn ->
-        Application.delete_env(:jsonapi, :host)
-      end)
-
-      {:ok, []}
+      {
+        :ok,
+        conn:
+          Plug.Test.conn(:get, "/")
+          |> JSONAPI.Plug.call(api: OtherHostAPI)
+      }
     end
 
-    test "uses configured host instead of that on Conn" do
-      assert View.url_for_relationship(PostView, [], %Conn{}, "comments") ==
-               "http://www.otherhost.com/other-api/posts/relationships/comments"
+    test "uses API host instead of that on Conn", %{conn: conn} do
+      assert View.url_for_relationship(PostView, [], conn, "comments") ==
+               "http://www.otherhost.com/posts/relationships/comments"
 
-      assert View.url_for_relationship(PostView, %Post{id: 1}, %Conn{}, "comments") ==
-               "http://www.otherhost.com/other-api/posts/1/relationships/comments"
+      assert View.url_for_relationship(PostView, %Post{id: 1}, conn, "comments") ==
+               "http://www.otherhost.com/posts/1/relationships/comments"
 
-      assert View.url_for(PostView, [], %Conn{}) == "http://www.otherhost.com/other-api/posts"
+      assert View.url_for(PostView, [], conn) == "http://www.otherhost.com/posts"
 
-      assert View.url_for(PostView, %Post{id: 1}, %Conn{}) ==
-               "http://www.otherhost.com/other-api/posts/1"
+      assert View.url_for(PostView, %Post{id: 1}, conn) ==
+               "http://www.otherhost.com/posts/1"
     end
   end
 
   describe "url_for/3 when scheme configured" do
     setup do
-      Application.put_env(:jsonapi, :scheme, "ftp")
-
-      on_exit(fn -> Application.delete_env(:jsonapi, :scheme) end)
-
-      {:ok, []}
+      {:ok, conn: JSONAPI.Plug.call(%Conn{}, api: OtherSchemeAPI)}
     end
 
-    test "uses configured scheme instead of that on Conn" do
-      assert View.url_for(PostView, [], %Conn{}) == "ftp://www.example.com/other-api/posts"
+    test "uses API scheme instead of that on Conn", %{conn: conn} do
+      assert View.url_for(PostView, [], conn) == "https://www.example.com/posts"
 
-      assert View.url_for(PostView, %Post{id: 1}, %Conn{}) ==
-               "ftp://www.example.com/other-api/posts/1"
+      assert View.url_for(PostView, %Post{id: 1}, conn) ==
+               "https://www.example.com/posts/1"
 
-      assert View.url_for_relationship(PostView, [], %Conn{}, "comments") ==
-               "ftp://www.example.com/other-api/posts/relationships/comments"
+      assert View.url_for_relationship(PostView, [], conn, "comments") ==
+               "https://www.example.com/posts/relationships/comments"
 
-      assert View.url_for_relationship(PostView, %Post{id: 1}, %Conn{}, "comments") ==
-               "ftp://www.example.com/other-api/posts/1/relationships/comments"
+      assert View.url_for_relationship(PostView, %Post{id: 1}, conn, "comments") ==
+               "https://www.example.com/posts/1/relationships/comments"
     end
   end
 
   describe "url_for/3" do
     setup do
-      {:ok, conn: Conn.fetch_query_params(%Conn{})}
+      {
+        :ok,
+        conn:
+          Plug.Test.conn(:get, "/")
+          |> JSONAPI.Plug.call(api: OtherSchemeAPI)
+          |> Conn.fetch_query_params()
+      }
     end
 
     test "with pagination information", %{conn: conn} do
       assert Paginator.url_for(PostView, nil, conn, %{}) ==
-               "http://www.example.com/other-api/posts"
+               "https://www.example.com/posts"
 
       assert Paginator.url_for(PostView, nil, conn, %{number: 1, size: 10}) ==
-               "http://www.example.com/other-api/posts?page%5Bnumber%5D=1&page%5Bsize%5D=10"
+               "https://www.example.com/posts?page%5Bnumber%5D=1&page%5Bsize%5D=10"
     end
 
     test "with query parameters", %{conn: conn} do
-      conn_with_query_params =
-        Kernel.update_in(conn.query_params, &Map.put(&1, "comments", [5, 2]))
+      conn_with_query_params = update_in(conn.query_params, &Map.put(&1, "comments", [5, 2]))
 
       assert Paginator.url_for(PostView, nil, conn_with_query_params, %{
                number: 1,
                size: 10
              }) ==
-               "http://www.example.com/other-api/posts?comments%5B%5D=5&comments%5B%5D=2&page%5Bnumber%5D=1&page%5Bsize%5D=10"
+               "https://www.example.com/posts?comments%5B%5D=5&comments%5B%5D=2&page%5Bnumber%5D=1&page%5Bsize%5D=10"
 
       assert Paginator.url_for(PostView, nil, conn_with_query_params, %{}) ==
-               "http://www.example.com/other-api/posts?comments%5B%5D=5&comments%5B%5D=2"
+               "https://www.example.com/posts?comments%5B%5D=5&comments%5B%5D=2"
     end
   end
 
@@ -144,7 +133,7 @@ defmodule JSONAPI.ViewTest do
     %Document{
       data: %ResourceObject{
         attributes: %{
-          body: "hi"
+          "body" => "hi"
         }
       }
     } = View.render(CommentView, %Comment{id: 1, body: "hi"}, %Conn{})
@@ -159,7 +148,7 @@ defmodule JSONAPI.ViewTest do
   test "index renders with data, conn" do
     assert %Document{
              data: [
-               %ResourceObject{attributes: %{body: "hi"}} | _
+               %ResourceObject{attributes: %{"body" => "hi"}}
              ]
            } =
              View.render(
@@ -180,36 +169,41 @@ defmodule JSONAPI.ViewTest do
   end
 
   test "view returns all field names by default" do
+    conn =
+      %Conn{}
+      |> JSONAPI.Plug.call(api: UnderscoringAPI)
+      |> Request.call(Request.init(view: UserView))
+
     assert %Document{
              data: %ResourceObject{
                id: "1",
                type: "user",
                attributes:
                  %{
-                   age: _age,
-                   first_name: _first_name,
-                   last_name: _last_name,
-                   full_name: _full_name,
-                   username: _username,
-                   password: _password
+                   "age" => _age,
+                   "first_name" => _first_name,
+                   "full_name" => _full_name,
+                   "last_name" => _last_name,
+                   "password" => _password,
+                   "username" => _username
                  } = attributes
              }
-           } = View.render(UserView, %User{id: 1}, Conn.fetch_query_params(%Conn{}))
+           } = View.render(UserView, %User{id: 1}, conn)
 
     assert 6 = map_size(attributes)
   end
 
   test "view trims returned field names to only those requested" do
     conn =
-      Conn.fetch_query_params(%Conn{
-        assigns: %{jsonapi: %JSONAPI{fields: %{PostView.type() => [:body]}}}
-      })
+      Plug.Test.conn(:get, "/?fields[#{PostView.type()}]=body")
+      |> JSONAPI.Plug.call(api: DefaultAPI)
+      |> Request.call(Request.init(view: PostView))
 
     assert %Document{
              data: %ResourceObject{
                id: "1",
                type: "post",
-               attributes: %{body: _body} = attributes
+               attributes: %{"body" => _body} = attributes
              }
            } = View.render(PostView, %Post{id: 1, body: "hi"}, conn)
 
@@ -226,10 +220,7 @@ defmodule JSONAPI.ViewTest do
              data: %ResourceObject{
                id: "1",
                type: "post",
-               attributes:
-                 %{
-                   body: _body
-                 } = attributes
+               attributes: %{"body" => "Chunky"} = attributes
              }
            } = View.render(PostView, %Post{id: 1, body: "Chunky", title: "Bacon"}, conn)
 

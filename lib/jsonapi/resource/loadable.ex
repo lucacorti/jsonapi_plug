@@ -7,9 +7,13 @@ defprotocol JSONAPI.Resource.Loadable do
   def loaded?(resource)
 end
 
+defimpl JSONAPI.Resource.Loadable, for: Ecto.Relationship.NotLoaded do
+  def loaded?(_resource), do: false
+end
+
 defimpl JSONAPI.Resource.Loadable, for: Atom do
-  def loaded?(nil = _resource), do: false
-  def loaded?(_resource), do: true
+  def loaded?(nil = _atom), do: false
+  def loaded?(_atom), do: true
 end
 
 defimpl JSONAPI.Resource.Loadable, for: List do
@@ -18,10 +22,6 @@ end
 
 defimpl JSONAPI.Resource.Loadable, for: Map do
   def loaded?(_resource), do: true
-end
-
-defimpl JSONAPI.Resource.Loadable, for: Ecto.Relationship.NotLoaded do
-  def loaded?(_resource), do: false
 end
 
 defimpl JSONAPI.Resource.Loadable, for: Any do

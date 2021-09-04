@@ -5,18 +5,16 @@ defmodule JSONAPI.Document.ResourceObject do
   https://jsonapi.org/format/#resource_object-resource-objects
   """
 
-  alias JSONAPI.{Document, Document.RelationshipObject, Field, Resource, View}
+  alias JSONAPI.{Document, Document.RelationshipObject, Resource, Resource.Field, View}
   alias Plug.Conn
 
-  @type field :: atom()
-
-  @type value :: String.t() | integer() | float() | [value()] | %{field() => value()}
+  @type value :: String.t() | integer() | float() | [value()] | %{String.t() => value()}
 
   @type t :: %__MODULE__{
           id: Resource.id(),
           type: Resource.type(),
-          attributes: %{field() => value()} | nil,
-          relationships: %{field() => [RelationshipObject.t()]} | nil,
+          attributes: %{String.t() => value()} | nil,
+          relationships: %{String.t() => [RelationshipObject.t()]} | nil,
           links: Document.links() | nil
         }
 
@@ -31,10 +29,10 @@ defmodule JSONAPI.Document.ResourceObject do
   def serialize(
         view,
         resources,
-        %Conn{assigns: %{jsonapi: %JSONAPI{} = jsonapi}} = conn,
+        %Conn{assigns: %{jsonapi: %JSONAPI{include: include}}} = conn,
         options
       ),
-      do: do_serialize(view, resources, conn, jsonapi.include, options)
+      do: do_serialize(view, resources, conn, include, options)
 
   def serialize(view, resources, conn, options),
     do: do_serialize(view, resources, conn, [], options)
@@ -67,11 +65,18 @@ defmodule JSONAPI.Document.ResourceObject do
             Map.get(resource, field)
           end
 
-        Map.put(attributes, transform_field(field), value)
+        Map.put(attributes, inflect_field(conn, field), value)
       end)
 
     %__MODULE__{resource_object | attributes: attributes}
   end
+
+  defp inflect_field(%Conn{assigns: %{jsonapi: %JSONAPI{api: api}}}, field)
+       when not is_nil(api),
+       do: Field.inflect(field, api.inflection() || :camelize)
+
+  defp inflect_field(_conn, field),
+    do: Field.inflect(field, :camelize)
 
   defp requested_attributes_for_type(view, %Conn{
          assigns: %{jsonapi: %JSONAPI{fields: fields}}
@@ -131,11 +136,11 @@ defmodule JSONAPI.Document.ResourceObject do
          resource,
          conn,
          {include, valid_includes},
-         {relationship_name, relationship_view},
+         {relationship_field, relationship_view},
          options
        ) do
-    relationship = Map.get(resource, relationship_name)
-    relationship_type = transform_field(relationship_name)
+    relationship = Map.get(resource, relationship_field)
+    relationship_type = inflect_field(conn, relationship_field)
     relationship_url = View.url_for_relationship(view, resource, conn, relationship_type)
 
     relationship_object =
@@ -149,13 +154,13 @@ defmodule JSONAPI.Document.ResourceObject do
     relationships = Map.put(relationships, relationship_type, relationship_object)
     resource_object = %__MODULE__{resource_object | relationships: relationships}
 
-    if Keyword.get(valid_includes, relationship_name) && Resource.loaded?(relationship) do
+    if Keyword.get(valid_includes, relationship_field) && Resource.loaded?(relationship) do
       {included_relationships, serialized_relationship} =
         do_serialize(
           relationship_view,
           relationship,
           conn,
-          get_relationship_includes(include, relationship_name),
+          get_relationship_includes(include, relationship_field),
           options
         )
 
@@ -186,13 +191,5 @@ defmodule JSONAPI.Document.ResourceObject do
     end)
     |> List.flatten()
     |> Enum.uniq()
-  end
-
-  defp transform_field(field) do
-    case Application.get_env(:jsonapi, :field_transformation) do
-      :camelize -> Field.camelize(field)
-      :dasherize -> Field.dasherize(field)
-      _ -> field
-    end
   end
 end

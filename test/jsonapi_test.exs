@@ -20,9 +20,12 @@ defmodule JSONAPITest do
   defmodule MyPostPlug do
     use Plug.Builder
 
+    alias JSONAPI.TestSupport.APIs.DefaultAPI
     alias Plug.Conn
 
-    plug JSONAPI.QueryParser,
+    plug JSONAPI.Plug, api: DefaultAPI
+
+    plug JSONAPI.Plug.Request,
       view: PostView,
       sort: [:text],
       filter: [:text]
@@ -39,22 +42,13 @@ defmodule JSONAPITest do
     end
   end
 
-  setup do
-    Application.put_env(:jsonapi, :field_transformation, :underscore)
-
-    on_exit(fn ->
-      Application.delete_env(:jsonapi, :field_transformation)
-    end)
-
-    {:ok, []}
-  end
-
   test "handles simple requests" do
     conn =
       :get
       |> conn("/posts?include=author")
       |> Conn.assign(:data, [@default_data])
       |> Conn.assign(:meta, %{total_pages: 1})
+      |> JSONAPI.Plug.call(api: DefaultAPI)
       |> Conn.fetch_query_params()
       |> MyPostPlug.call([])
 
@@ -76,7 +70,7 @@ defmodule JSONAPITest do
                          "type" => "user"
                        }
                      },
-                     "other_user" => _other_user
+                     "otherUser" => _other_user
                    } = relationships
                }
              ],
@@ -100,7 +94,6 @@ defmodule JSONAPITest do
       :get
       |> conn("/posts?include=author,other_user")
       |> Conn.assign(:data, [@default_data])
-      |> Conn.fetch_query_params()
       |> MyPostPlug.call([])
 
     assert %{
@@ -116,7 +109,8 @@ defmodule JSONAPITest do
                          "type" => "user"
                        }
                      },
-                     "other_user" => %{
+                     "bestComments" => _,
+                     "otherUser" => %{
                        "data" => %{
                          "id" => "3",
                          "type" => "user"
@@ -124,14 +118,12 @@ defmodule JSONAPITest do
                      }
                    } = relationships
                }
-               | _rest
              ],
              "included" => [_ | _] = included,
              "links" => _links
            } = Jason.decode!(conn.resp_body)
 
     assert map_size(relationships) == 3
-    assert Enum.sort(Map.keys(relationships)) == ["author", "best_comments", "other_user"]
 
     assert Enum.find(included, fn
              %{"id" => "2", "type" => "user"} -> true
@@ -215,6 +207,7 @@ defmodule JSONAPITest do
       :get
       |> conn("/posts?include=other_user.company.industry.tags")
       |> Conn.assign(:data, posts)
+      |> JSONAPI.Plug.call(api: DefaultAPI)
       |> Conn.fetch_query_params()
       |> MyPostPlug.call([])
 
@@ -231,7 +224,7 @@ defmodule JSONAPITest do
                          "type" => "user"
                        }
                      } = relationships,
-                   "other_user" => %{
+                   "otherUser" => %{
                      "data" => %{
                        "id" => "1",
                        "type" => "user"
@@ -274,21 +267,12 @@ defmodule JSONAPITest do
   end
 
   describe "with an underscored API" do
-    setup do
-      Application.put_env(:jsonapi, :field_transformation, :underscore)
-
-      on_exit(fn ->
-        Application.delete_env(:jsonapi, :field_transformation)
-      end)
-
-      {:ok, []}
-    end
-
     test "handles sparse fields properly" do
       conn =
         :get
         |> conn("/posts?include=other_user.company&fields[post]=text,excerpt,first_character")
         |> Conn.assign(:data, [@default_data])
+        |> JSONAPI.Plug.call(api: DefaultAPI)
         |> Conn.fetch_query_params()
         |> MyPostPlug.call([])
 
@@ -298,7 +282,7 @@ defmodule JSONAPITest do
                    "attributes" => %{
                      "text" => "Hello",
                      "excerpt" => "He",
-                     "first_character" => "H"
+                     "firstCharacter" => "H"
                    }
                  }
                ]
@@ -307,22 +291,12 @@ defmodule JSONAPITest do
   end
 
   describe "with a dasherized API" do
-    setup do
-      Application.put_env(:jsonapi, :field_transformation, :dasherize)
-
-      on_exit(fn ->
-        Application.delete_env(:jsonapi, :field_transformation)
-      end)
-
-      {:ok, []}
-    end
-
     test "handles sparse fields properly" do
       conn =
         :get
         |> conn("/posts?include=other_user.company&fields[post]=text,first-character")
         |> Conn.assign(:data, [@default_data])
-        |> Conn.fetch_query_params()
+        |> JSONAPI.Plug.call(api: DefaultAPI)
         |> MyPostPlug.call([])
 
       assert %{
@@ -330,7 +304,7 @@ defmodule JSONAPITest do
                  %{
                    "attributes" => %{
                      "text" => "Hello",
-                     "first-character" => "H"
+                     "firstCharacter" => "H"
                    }
                  }
                ]

@@ -1,4 +1,4 @@
-defmodule JSONAPI.Document.ResourceLinkage do
+defmodule JSONAPI.Document.ResourceIdentifierObject do
   @moduledoc """
   JSON:API Resource Identifier object
 

@@ -46,11 +46,10 @@ defmodule JSONAPI.View do
       end
 
       defmodule DogView do
-        use JSONAPI.View, resource: Dog, namespace: "pupperz-api"
+        use JSONAPI.View, resource: Dog
       end
 
-  You can now call `UserView.show(user, conn, conn.params)` and it will render
-  a valid jsonapi doc.
+  You can now call `View.render(UserView, user, conn)` and it will render a valid jsonapi doc.
 
   ## Fields
 
@@ -75,11 +74,11 @@ defmodule JSONAPI.View do
       end
 
   In order to use [sparse fieldsets](https://jsonapi.org/format/#fetching-sparse-fieldsets)
-  you must include the `JSONAPI.QueryParser` plug.
+  you must include the `JSONAPI.Request` plug.
 
   ## Relationships
 
-  Currently the relationships callback expects that a map is returned
+  The relationships callback expects that a keyword list is returned
   configuring the information you will need. If you have the following Ecto
   Model setup
 
@@ -96,23 +95,13 @@ defmodule JSONAPI.View do
 
   So for example:
   `GET /posts?include=post.author` if the author record is loaded on the Post, and you are using
-  the `JSONAPI.QueryParser` it will be included in the `includes` section of the JSONAPI document.
-
-  ## Options
-    * `:host` (binary) - Allows the `host` to be overrided for generated URLs. Defaults to `host` of the supplied `conn`.
-
-    * `:scheme` (atom) - Enables configuration of the HTTP scheme for generated URLS.  Defaults to `scheme` from the provided `conn`.
-
-    * `:namespace` (binary) - Allows the namespace of a given resource. This may be
-      configured globally or set on the View itself. Note that if you have
-      a globally defined namespace and need to *remove* the namespace for a
-      resource, set the namespace to a blank String.
+  the `JSONAPI.Request` it will be included in the `includes` section of the JSONAPI document.
 
   The default behaviour for `host` and `scheme` is to derive it from the `conn` provided, while the
-  default style for presentation in names is to be underscored and not dashed.
+  default style for presentation in names is to be camelized.
   """
 
-  alias JSONAPI.{Document, Paginator, Resource}
+  alias JSONAPI.{Document, Document.ErrorObject, Resource, Resource.Field}
   alias Plug.Conn
 
   @type t :: module()
@@ -120,13 +109,11 @@ defmodule JSONAPI.View do
   @type data :: Resource.t() | [Resource.t()]
 
   @callback id(Resource.t()) :: Resource.id()
-  @callback attributes(Resource.t()) :: [Resource.field()]
+  @callback attributes(Resource.t()) :: [Field.name()]
   @callback links(Resource.t(), Conn.t() | nil) :: Document.links()
   @callback meta(Resource.t(), Conn.t() | nil) :: Document.meta()
-  @callback namespace :: String.t() | nil
-  @callback paginator :: Paginator.t() | nil
   @callback path :: String.t() | nil
-  @callback relationships(Resource.t()) :: [{Resource.field(), t()}]
+  @callback relationships(Resource.t()) :: [{Field.name(), t()}]
   @callback resource :: Resource.t()
   @callback type :: Resource.type()
 
@@ -137,58 +124,46 @@ defmodule JSONAPI.View do
       raise "You must pass the :resource option to use JSONAPI.View"
     end
 
-    {namespace, opts} = Keyword.pop(opts, :namespace)
-    {path, opts} = Keyword.pop(opts, :path)
-    {paginator, _opts} = Keyword.pop(opts, :paginator)
+    {path, _opts} = Keyword.pop(opts, :path)
 
     quote do
-      alias JSONAPI.{Document, Resource, View}
+      @behaviour JSONAPI.View
 
-      @behaviour View
-
-      @__namespace__ unquote(namespace)
-      @__paginator__ unquote(paginator)
       @__path__ unquote(path)
       @__resource__ struct(unquote(resource))
 
-      @__attributes__ Resource.attributes(@__resource__)
+      @__attributes__ JSONAPI.Resource.attributes(@__resource__)
       @__relationships__ Enum.concat(
-                           Resource.has_one(@__resource__),
-                           Resource.has_many(@__resource__)
+                           JSONAPI.Resource.has_one(@__resource__),
+                           JSONAPI.Resource.has_many(@__resource__)
                          )
-      @__resource_type__ Resource.type(@__resource__)
+      @__resource_type__ JSONAPI.Resource.type(@__resource__)
 
-      @impl View
-      def id(resource), do: Resource.id(resource)
+      @impl JSONAPI.View
+      def id(resource), do: JSONAPI.Resource.id(resource)
 
-      @impl View
+      @impl JSONAPI.View
       def attributes(_resource), do: @__attributes__
 
-      @impl View
+      @impl JSONAPI.View
       def links(_resource, _conn), do: %{}
 
-      @impl View
+      @impl JSONAPI.View
       def meta(_resource, _conn), do: %{}
 
-      @impl View
-      def namespace, do: @__namespace__
-
-      @impl View
-      def paginator, do: @__paginator__
-
-      @impl View
+      @impl JSONAPI.View
       def path, do: @__path__
 
-      @impl View
+      @impl JSONAPI.View
       def relationships(_resource), do: @__relationships__
 
-      @impl View
+      @impl JSONAPI.View
       def resource, do: @__resource__
 
-      @impl View
+      @impl JSONAPI.View
       def type, do: @__resource_type__
 
-      defoverridable View
+      defoverridable JSONAPI.View
     end
   end
 
@@ -208,44 +183,64 @@ defmodule JSONAPI.View do
   @spec render(t(), data() | nil, Conn.t() | nil, Document.meta() | nil, options()) ::
           Document.t()
   def render(view, data, conn \\ nil, meta \\ nil, options \\ []),
-    do: Document.serialize(view, data, conn, meta, options)
+    do: Document.serialize(%Document{data: data, meta: meta}, view, conn, options)
+
+  @spec send_error(Conn.t(), pos_integer(), [ErrorObject.t()]) :: Conn.t()
+  def send_error(conn, status, errors) do
+    conn
+    |> Conn.update_resp_header("content-type", JSONAPI.mime_type(), & &1)
+    |> Conn.send_resp(
+      status,
+      Jason.encode!(%Document{
+        errors:
+          Enum.map(errors, fn %ErrorObject{} = error ->
+            %ErrorObject{error | status: Integer.to_string(status)}
+          end)
+      })
+    )
+    |> Conn.halt()
+  end
 
   @spec url_for(t(), data() | nil, Conn.t() | nil) :: String.t()
   def url_for(view, resource, conn) when is_nil(resource) or is_list(resource) do
-    render_url(conn, Enum.join([namespace(view), view.path() || view.type()], "/"))
+    conn
+    |> render_url([view.path() || view.type()])
+    |> to_string()
   end
 
   def url_for(view, resource, conn) do
-    render_url(
-      conn,
-      Enum.join([namespace(view), view.path() || view.type(), view.id(resource)], "/")
-    )
+    conn
+    |> render_url([view.path() || view.type(), view.id(resource)])
+    |> to_string()
   end
 
-  @spec namespace(t()) :: String.t()
-  def namespace(view), do: view.namespace() || Application.get_env(:jsonapi, :namespace, "")
+  defp render_url(
+         %Conn{assigns: %{jsonapi: %JSONAPI{api: api}}, scheme: scheme, host: host},
+         path
+       )
+       when not is_nil(api) do
+    namespace =
+      case api.namespace() do
+        nil -> ""
+        namespace -> "/" <> namespace
+      end
 
-  defp render_url(%Conn{scheme: scheme, host: host}, "/" <> _ = path) do
-    URI.to_string(%URI{
-      scheme: Application.get_env(:jsonapi, :scheme, to_string(scheme)),
-      host: Application.get_env(:jsonapi, :host, host),
-      path: path
-    })
+    %URI{
+      scheme: to_string(api.scheme() || scheme),
+      host: api.host() || host,
+      path: Enum.join([namespace | path], "/")
+    }
   end
 
   defp render_url(%Conn{scheme: scheme, host: host}, path) do
-    URI.to_string(%URI{
-      scheme: Application.get_env(:jsonapi, :scheme, to_string(scheme)),
-      host: Application.get_env(:jsonapi, :host, host),
-      path: "/" <> path
-    })
+    %URI{
+      scheme: to_string(scheme),
+      host: host,
+      path: "/" <> Enum.join(path, "/")
+    }
   end
 
-  defp render_url(_conn, "/" <> _ = path),
-    do: URI.to_string(%URI{path: path})
-
-  defp render_url(_conn, path),
-    do: URI.to_string(%URI{path: "/" <> path})
+  defp render_url(_conn, path), do: %URI{path: "/" <> Enum.join(path, "/")}
 
   @spec url_for_relationship(t(), Resource.t(), Conn.t() | nil, Resource.type()) :: String.t()
   def url_for_relationship(view, resource, conn, relationship_type) do

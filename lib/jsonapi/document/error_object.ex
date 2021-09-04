@@ -6,21 +6,21 @@ defmodule JSONAPI.Document.ErrorObject do
   """
 
   @type t :: %__MODULE__{
+          code: String.t() | nil,
+          detail: String.t() | nil,
           id: String.t() | nil,
           links: %{String.t() => String.t()} | nil,
+          meta: %{String.t() => String.t()} | nil,
+          source: %{pointer: String.t()} | nil,
           status: String.t() | nil,
-          code: String.t() | nil,
-          title: String.t() | nil,
-          detail: String.t() | nil,
-          source: %{String.t() => String.t()} | nil,
-          meta: %{String.t() => String.t()} | nil
+          title: String.t() | nil
         }
-  defstruct id: nil,
-            links: nil,
-            status: nil,
-            code: nil,
-            title: nil,
+  defstruct code: nil,
             detail: nil,
+            id: nil,
+            links: nil,
+            meta: nil,
             source: nil,
-            meta: nil
+            status: nil,
+            title: nil
 end

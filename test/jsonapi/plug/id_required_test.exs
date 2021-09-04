@@ -2,7 +2,7 @@ defmodule JSONAPI.IdRequiredTest do
   use ExUnit.Case
   use Plug.Test
 
-  alias JSONAPI.IdRequired
+  alias JSONAPI.Plug.IdRequired
   alias Plug.{Conn, Parsers}
 
   test "halts and returns an error if id attribute is missing" do

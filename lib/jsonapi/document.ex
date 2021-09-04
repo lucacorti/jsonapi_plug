@@ -12,7 +12,7 @@ defmodule JSONAPI.Document do
     Document.JSONAPIObject,
     Document.LinksObject,
     Document.RelationshipObject,
-    Document.ResourceLinkage,
+    Document.ResourceIdentifierObject,
     Document.ResourceObject,
     Paginator,
     Resource,
@@ -81,27 +81,25 @@ defmodule JSONAPI.Document do
   This assumes you are using `JSONAPI.View` and pass structs implementing `JSONAPI.Resource`.
 
   Please refer to `JSONAPI.View` for more information. If you are in interested in relationships
-  and includes you may also want to reference the `JSONAPI.QueryParser`.
+  and includes you may also want to reference the `JSONAPI.Request`.
   """
   @spec serialize(
+          t(),
           View.t(),
-          View.data() | nil,
           Conn.t() | nil,
-          meta() | nil,
           View.options()
         ) :: t()
-  def serialize(view, data, conn \\ nil, meta \\ nil, options \\ []) do
-    %__MODULE__{}
-    |> serialize_data(view, data, conn, options)
-    |> serialize_jsonapi(view, data, conn, options)
-    |> serialize_meta(view, data, conn, options, meta)
-    |> serialize_links(view, data, conn, options)
+  def serialize(document, view, conn \\ nil, options \\ []) do
+    document
+    |> serialize_jsonapi(view, conn, options)
+    |> serialize_links(view, conn, options)
+    |> serialize_data(view, conn, options)
   end
 
-  defp serialize_data(%__MODULE__{} = document, _view, nil = _resource, _conn, _options),
+  defp serialize_data(%__MODULE__{data: nil} = document, _view, _conn, _options),
     do: document
 
-  defp serialize_data(%__MODULE__{} = document, view, resources, conn, options)
+  defp serialize_data(%__MODULE__{data: resources} = document, view, conn, options)
        when is_list(resources) do
     {included, data} =
       Enum.map_reduce(resources, [], fn resource, resource_objects ->
@@ -112,7 +110,7 @@ defmodule JSONAPI.Document do
     add_included(%__MODULE__{document | data: data}, included)
   end
 
-  defp serialize_data(%__MODULE__{} = document, view, resource, conn, options) do
+  defp serialize_data(%__MODULE__{data: resource} = document, view, conn, options) do
     {included, data} = ResourceObject.serialize(view, resource, conn, options)
 
     add_included(%__MODULE__{document | data: data}, included)
@@ -128,27 +126,35 @@ defmodule JSONAPI.Document do
     %__MODULE__{document | included: included}
   end
 
-  defp serialize_jsonapi(%__MODULE__{} = document, _view, _resource, _conn, _options),
+  defp serialize_jsonapi(
+         %__MODULE__{} = document,
+         _view,
+         %Conn{assigns: %{jsonapi: %JSONAPI{api: api}}},
+         _options
+       )
+       when not is_nil(api),
+       do: %__MODULE__{document | jsonapi: %JSONAPIObject{version: api.version()}}
+
+  defp serialize_jsonapi(%__MODULE__{} = document, _view, _conn, _options),
     do: %__MODULE__{document | jsonapi: %JSONAPIObject{}}
 
   defp serialize_links(
-         %__MODULE__{} = document,
+         %__MODULE__{data: resources} = document,
          view,
-         resources,
-         %Conn{assigns: %{jsonapi: %JSONAPI{} = jsonapi}} = conn,
+         %Conn{assigns: %{jsonapi: %JSONAPI{page: page}}} = conn,
          options
        )
        when is_list(resources) do
     links =
       resources
       |> view.links(conn)
-      |> Map.merge(pagination_links(view, resources, conn, jsonapi.page, options))
-      |> Map.merge(%{self: Paginator.url_for(view, resources, conn, jsonapi.page)})
+      |> Map.merge(pagination_links(view, resources, conn, page, options))
+      |> Map.merge(%{self: Paginator.url_for(view, resources, conn, page)})
 
     %__MODULE__{document | links: links}
   end
 
-  defp serialize_links(%__MODULE__{} = document, view, resource, conn, _options) do
+  defp serialize_links(%__MODULE__{data: resource} = document, view, conn, _options) do
     links =
       resource
       |> view.links(conn)
@@ -157,25 +163,27 @@ defmodule JSONAPI.Document do
     %__MODULE__{document | links: links}
   end
 
-  defp pagination_links(view, resources, conn, page, options) do
-    paginator = view.paginator()
+  defp pagination_links(
+         view,
+         resources,
+         %Conn{assigns: %{jsonapi: %JSONAPI{api: api}}} = conn,
+         page,
+         options
+       )
+       when not is_nil(api) do
+    paginator = api.paginator()
 
-    if Code.ensure_loaded?(paginator) && function_exported?(paginator, :paginate, 5) do
+    if paginator do
       paginator.paginate(view, resources, conn, page, options)
     else
       %{}
     end
   end
 
-  defp serialize_meta(%__MODULE__{} = document, _resource, _view, _conn, _options, meta)
-       when is_map(meta),
-       do: %__MODULE__{document | meta: meta}
+  defp pagination_links(_view, _resources, _conn, _page, _options), do: %{}
 
-  defp serialize_meta(%__MODULE__{} = document, _resource, _view, _conn, _options, _meta),
-    do: document
-
-  @spec deserialize(View.t(), payload()) :: t()
-  def deserialize(view, payload) do
+  @spec deserialize(View.t(), Conn.t()) :: t()
+  def deserialize(view, %Conn{body_params: payload}) do
     %__MODULE__{}
     |> deserialize_included(view, payload)
     |> deserialize_data(view, payload)
@@ -233,7 +241,7 @@ defmodule JSONAPI.Document do
       ErrorObject,
       JSONAPIObject,
       LinksObject,
-      ResourceLinkage,
+      ResourceIdentifierObject,
       ResourceObject,
       RelationshipObject
     ] do

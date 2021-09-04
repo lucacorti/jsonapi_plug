@@ -1,22 +1,10 @@
 # JSONAPI Elixir
 
-A project that will render your data models into [JSON:API Documents](http://jsonapi.org/format) and parse/verify JSON:API query strings.
+Server library to build [JSON:API](http://jsonapi.org) compliant REST APIs.
 
 ## JSON:API Support
 
-This library implements [version 1.0](https://jsonapi.org/format/1.0/)
-of the JSON:API spec.
-
-- [x] Basic [JSON:API Document](http://jsonapi.org/format/#document-top-level) encoding
-- [x] Basic support for [compound documents](http://jsonapi.org/format/#document-compound-documents)
-- [x] [Links](http://jsonapi.org/format/#document-links)
-- [x] Relationship links
-- [x] Parsing of `sort` query parameter into Ecto Query order_by
-- [x] Parsing and limiting of `filter` keywords.
-- [x] Handling of [sparse fieldsets](https://jsonapi.org/format/#fetching-sparse-fieldsets)
-- [x] Handling of [includes](https://jsonapi.org/format/#fetching-includes)
-- [x] Handling of [pagination](https://jsonapi.org/format/#fetching-pagination)
-- [x] Handling of top level meta data
+This library implements [version 1.0](https://jsonapi.org/format/1.0/) of the JSON:API spec.
 
 ## Documentation
 
@@ -27,7 +15,7 @@ of the JSON:API spec.
 
 ![CI](https://github.com/dottori-it/jsonapi/workflows/Continuous%20Integration/badge.svg)
 
-## How to use with Phoenix
+## Usage
 
 ### Installation
 
@@ -36,14 +24,40 @@ Add the following line to your `mix.deps` file with the desired version to insta
 ```elixir
 defp deps do [
   ...
-  {:jsonapi, "~> x.x.x"}
+  {:jsonapi, "~> 2.0"}
   ...
 ]
 ```
 
-### Usage
+### Configuration
 
-Simply add `use JSONAPI.View` either to the top of your view and add render functions to your view:
+This library can be used with any plug based application and doesn't make use of application configuration.
+
+You can declare an API endpoints by adding the `JSONAPI.Plug` to your plug pipeline or Phoenix Router scope:
+
+```elixir
+plug JSONAPI.Plug, api: MyAPI
+```
+
+This will take care of ensuring `JSON:API` spec compliance and will return errors for malformed requests.
+
+The `:api` option expects an API module for configuration. You can generate one like this:
+
+```elixir
+defmodule MyAPI do
+  use JSONAPI.API
+end
+```
+
+See the `JSONAPI.API` module documentation for all available options and callbacks.
+
+## Usage
+
+### Sending responses
+
+You can `use JSONAPI.View` in a module and pass at least a `:resource` option.
+The value must be a struct module name for which you have provided an implementation
+of `JSONAPI.Resource` related protocols.
 
 ```elixir
 defmodule MyApp.PostView do
@@ -53,24 +67,22 @@ defmodule MyApp.PostView do
   def attributes(_resource), do: [:text, :body, :excerpt]
 
   @impl JSONAPI.View
-  def meta(resource, _conn) do
-    # this will add meta to each record
-    # To add meta as a top level property, pass as argument to render function (shown below)
-    %{meta_text: "meta_#{resource.text}"}
-  end
+  def meta(resource, _conn), do: %{meta_text: "meta_#{resource.text}"}
 
   @impl JSONAPI.View
-  def relationships(_resource) do
-    [
-      author: MyApp.UserView,
-      comments: MyApp.CommentView
-    ]
-  end
+  def relationships(_resource), do: [author: MyApp.UserView, comments: MyApp.CommentView]
 
-  def excerpt(resource, _conn) do
-    String.slice(resource.body, 0..5)
-  end
+  def excerpt(resource, _conn), do: String.slice(resource.body, 0..5)
+end
+```
 
+See the `JSONAPI.View` module documentation for usage and all available options.
+
+To use this as a Phoenix view simply define your render functions in your view module:
+
+```elixir
+  ...
+  
   def render("index.json", %{data: data, conn: conn, meta: meta}) do
     JSONAPI.View.render(__MODULE__, data, conn, meta)
   end
@@ -78,191 +90,30 @@ defmodule MyApp.PostView do
   def render("show.json", %{data: data, conn: conn, meta: meta}) do
     JSONAPI.View.render(__MODULE__, data, conn, meta)
   end
-end
+
+  ...
 ```
 
-## Parsing and validating a JSONAPI Request
+## Receiving requests
 
-In your controller you may add
+In order to parse `JSON:API` requests from clients you need to add the `JSONAPI.Request` plug
+to each of your plug pipelines or phoenix controllers handling requests for a specific resource:
+
+The `JSONAPI.Request` plug 
 
 ```elixir
-plug JSONAPI.QueryParser,
-  filter: ~w(name),
-  sort: ~w(name title inserted_at),
-  view: PostView
+plug JSONAPI.Request, view: PostView
 ```
 
-This will add a `JSONAPI` struct called `jsonapi` to your
-`conn.assigns`. If a user tries to sort, filter, include, or requests an
-invalid fieldset it will raise a `Plug` error that shows the proper error
-message.
+You need to provide at least the `:view ` option specifying which `JSONAPI.View` will be used.
 
-The config holds the values parsed into things that are easy to pass into an Ecto
-query, for example `sort=-name` will be parsed into `sort: [desc: :name]` which
-can be passed directly to the `order_by` in Ecto.
+When requests are processed, the `:jsonapi` connection assign is populated with the parsed request.
 
-This sort of behavior is consistent for includes.
+See the `JSONAPI.Request` module documentation for usage and available options.
 
-The `JSONAPI.QueryParser` plug also supports [sparse fieldsets](https://jsonapi.org/format/#fetching-sparse-fieldsets).
-Please see its documentation for details.
+## Contributing
 
-## Camelized or Dasherized Fields
-
-JSON:API has recommended in the past the use of dashes (`-`) in place of underscore (`_`) as a
-word separator for document member keys. However, as of [JSON API Spec (v1.1)](https://jsonapi.org/format/1.1/), it is now recommended that member names are camelCased. This library provides various configuration options for maximum flexibility including serializing outgoing parameters and deserializing incoming paramenters.
-
-Transforming fields requires two steps:
-
-1. camelCase *outgoing* fields requires you to set the `:field_transformation`
-   configuration option. Example:
-
-   ```elixir
-   config :jsonapi,
-     field_transformation: :camelize # or dasherize
-   ```
-
-2. Underscoring *incoming* params (both query and body) requires you add the
-   `JSONAPI.UnderscoreParameters` Plug to your API's pipeline. This makes it easy to
-   work with changeset data.
-
-   ```elixir
-   pipeline :api do
-     plug JSONAPI.EnsureSpec
-     plug JSONAPI.UnderscoreParameters
-   end
-   ```
-
-3. JSONAPI.Deserializer is a plug designed to make a JSON:API resource object more convenient
-   to work with when creating or updating resources. This plug works by taking the resource
-   object format and flattening it into an easier to manipulate Map.
-
-   Note that the deserializer expects the same casing for your *outgoing* params as your
-   *incoming* params.
-
-   Your pipeline in a Phoenix app might look something like this:
-
-   ```elixir
-   pipeline :api do
-     plug JSONAPI.EnsureSpec
-     plug JSONAPI.Deserializer
-     plug JSONAPI.UnderscoreParameters
-   end
-   ```
-
-## Spec Enforcement
-
-We include a set of Plugs to make enforcing the JSON:API spec for requests easy. To add spec enforcement to your application, add `JSONAPI.EnsureSpec` to your pipeline:
-
-```elixir
-plug JSONAPI.EnsureSpec
-```
-
-Under-the-hood `JSONAPI.EnsureSpec` relies on four individual plugs:
-
-- `JSONAPI.ContentTypeNegotiation` — Requires the `content-type` and `accept` headers are set correctly.
-
-- `JSONAPI.FormatRequired` — Verifies that the JSON body matches the expected `{"data": {"attributes": { ... } } }` format.
-
-- `JSONAPI.IdRequired` — Confirm the `id` key is present in `{"data": { "id": ... }}` and that it matches the resource's `id` in the URI.
-
-- `JSONAPI.ResponseContentType` — Ensures that you return the correct `content-type` header.
-
-## Configuration
-
-```elixir
-config :jsonapi,
-  host: "www.someotherhost.com",
-  scheme: "https",
-  namespace: "api",
-  field_transformation: :underscore,
-  paginator: nil
-```
-
-- **host**, **scheme**. By default these are pulled from the `conn`, but may be
-  overridden.
-- **namespace**. This optional setting can be used to configure the namespace
-  your resources live at (e.g. given "http://example.com/api/cars", `"api"`
-  would be the namespace). See also `JSONAPI.View` for setting on the resource's
-  View itself.
-- **field_transformation**. This option describes how your API's fields word
-  boundaries are marked. [JSON API Spec (v1.1)](https://jsonapi.org/format/1.1/) recommends using camelCase (e.g.
-  `"favoriteColor": blue`). If your API uses camelCase fields, set this value to
-  `:camelize`. JSON:API v1.0 recommended using a dash (e.g.
-  `"favorite-color": blue`). If your API uses dashed fields, set this value to
-  `:dasherize`. If your API uses underscores (e.g. `"favorite_color": "red"`)
-  set to `:underscore`.
-- **paginator**. Module implementing pagination links generation. Defaults to `nil`.
-
-## Pagination
-
-Pagination links can be generated by by implementing a module conforming to the
-`JSONAPI.Paginator` behavior
-
-```elixir
-defmodule PageBasedPaginator do
-  @moduledoc """
-  Page based pagination strategy
-  """
-
-  @behaviour JSONAPI.Paginator
-
-  @impl true
-  def paginate(view, resource, conn, page, options) do
-    number =
-      page
-      |> Map.get("page", "0")
-      |> String.to_integer()
-
-    size =
-      page
-      |> Map.get("size", "0")
-      |> String.to_integer()
-
-    total_pages = Keyword.get(options, :total_pages, 0)
-
-    %{
-      first: Paginator.url_for(view, resource, conn, Map.put(page, "page", "1")),
-      last: Paginator.url_for(view, resource, conn, Map.put(page, "page", total_pages)),
-      next: next_link(resource, view, conn, number, size, total_pages),
-      prev: previous_link(resource, view, conn, number, size)
-    }
-  end
-
-  defp next_link(data, view, conn, page, size, total_pages)
-       when page < total_pages,
-       do: Paginator.url_for(view, data, conn, %{size: size, page: page + 1})
-
-  defp next_link(_data, _view, _conn, _page, _size, _total_pages),
-    do: nil
-
-  defp previous_link(data, view, conn, page, size)
-       when page > 1,
-       do: Paginator.url_for(view, data, conn, %{size: size, page: page - 1})
-
-  defp previous_link(_data, _view, _conn, _page, _size),
-    do: nil
-end
-```
-
-and configuring it as the global pagination logic in your `mix.config`
-
-```elixir
-config :jsonapi, :paginator, PageBasedPaginator
-```
-
-or as the view pagination logic when using `JSONAPI.View`
-
-```elixir
-use JSONAPI.View, paginator: PageBasedPaginator
-```
-
-Links can be generated using the `JSONAPI.page` information stored in the connection assign `jsonapi` and by passing additional information to your paginator module by passing `options` from your controller.
-
-Actual pagination is expected to be handled in your application logic and is outside the scope of this library.
-
-## Other
-
-- Feel free to make PR's. I will do my best to respond within a day or two.
-- If you want to take one of the TODO items just create an issue or PR and let me know so we avoid duplication.
-- If you need help, I am on irc and twitter.
-- [Example project](https://github.com/alexjp/jsonapi-testing)
+- This project was born as a fork of [JSONAPI](https://hexdocs.pm/jsonapi)
+- The library is maintained by [dottori.it](http://github.com/dottori-it)
+- PRs for new features, bug fixes, documentation and tests are welcome
+- If you are proposing a large feature, please open an issue for discussion

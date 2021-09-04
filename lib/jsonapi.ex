@@ -3,26 +3,28 @@ defmodule JSONAPI do
   Struct containing JSON API information for a request
   """
 
-  alias JSONAPI.{Document, View}
+  alias JSONAPI.{API, Document, View}
 
   @type t :: %__MODULE__{
-          document: Document.t() | nil,
+          api: API.t(),
           fields: map(),
           filter: keyword(),
           include: keyword(),
           opts: keyword(),
+          request: Document.t() | nil,
           sort: keyword(),
           view: View.t(),
           page: map()
         }
-  defstruct document: nil,
+  defstruct api: nil,
             fields: %{},
             filter: [],
             include: [],
+            page: %{},
             opts: [],
+            request: nil,
             sort: [],
-            view: nil,
-            page: %{}
+            view: nil
 
   @doc """
   This returns the MIME type for JSONAPIs

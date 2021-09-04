@@ -1,7 +1,6 @@
 defmodule JSONAPI.TestSupport.Views do
   @moduledoc false
 
-  alias JSONAPI.TestSupport.Paginators.PageBasedPaginator
   alias JSONAPI.TestSupport.Resources.{Car, Comment, Company, Industry, Post, Tag, User}
 
   defmodule CarView do
@@ -119,18 +118,6 @@ defmodule JSONAPI.TestSupport.Views do
     end
   end
 
-  defmodule PaginatedPostView do
-    @moduledoc false
-
-    use JSONAPI.View, resource: Post, paginator: PageBasedPaginator
-
-    @impl JSONAPI.View
-    def attributes(_resource), do: [:text, :body, :full_description, :inserted_at]
-
-    @impl JSONAPI.View
-    def type, do: "post"
-  end
-
   defmodule PostView do
     @moduledoc false
 
@@ -168,7 +155,7 @@ defmodule JSONAPI.TestSupport.Views do
   defmodule UserView do
     @moduledoc false
 
-    use JSONAPI.View, resource: User, namespace: "cake", path: "users"
+    use JSONAPI.View, resource: User, path: "users"
 
     alias JSONAPI.TestSupport.Views.{CompanyView, MyPostView}
 

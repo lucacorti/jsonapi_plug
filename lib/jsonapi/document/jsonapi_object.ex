@@ -3,6 +3,8 @@ defmodule JSONAPI.Document.JSONAPIObject do
   JSONAPI Document JSONAPI Object
   """
 
-  @type t :: %__MODULE__{version: String.t()}
-  defstruct version: "1.0"
+  alias JSONAPI.API
+
+  @type t :: %__MODULE__{version: API.version()}
+  defstruct version: :"1.0"
 end
