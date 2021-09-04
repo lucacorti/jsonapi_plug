@@ -38,9 +38,12 @@ defmodule JSONAPI.Plug.ContentTypeNegotiation do
   end
 
   defp validate_header(conn, header) do
-    conn
-    |> Conn.get_req_header(header)
-    |> List.first(JSONAPI.mime_type())
+    value =
+      conn
+      |> Conn.get_req_header(header)
+      |> List.first()
+
+    (value || JSONAPI.mime_type())
     |> String.split(",")
     |> Enum.map(&String.trim/1)
     |> Enum.member?(JSONAPI.mime_type())
