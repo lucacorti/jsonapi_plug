@@ -121,7 +121,7 @@ defmodule JSONAPI.View do
     {resource, opts} = Keyword.pop(opts, :resource)
 
     unless resource do
-      raise "You must pass the :resource option to use JSONAPI.View"
+      raise "You must pass the :resource option to JSONAPI.View"
     end
 
     {path, _opts} = Keyword.pop(opts, :path)

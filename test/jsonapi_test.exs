@@ -48,8 +48,6 @@ defmodule JSONAPITest do
       |> conn("/posts?include=author")
       |> Conn.assign(:data, [@default_data])
       |> Conn.assign(:meta, %{total_pages: 1})
-      |> JSONAPI.Plug.call(api: DefaultAPI)
-      |> Conn.fetch_query_params()
       |> MyPostPlug.call([])
 
     assert %{
@@ -207,8 +205,6 @@ defmodule JSONAPITest do
       :get
       |> conn("/posts?include=other_user.company.industry.tags")
       |> Conn.assign(:data, posts)
-      |> JSONAPI.Plug.call(api: DefaultAPI)
-      |> Conn.fetch_query_params()
       |> MyPostPlug.call([])
 
     assert %{
@@ -272,8 +268,6 @@ defmodule JSONAPITest do
         :get
         |> conn("/posts?include=other_user.company&fields[post]=text,excerpt,first_character")
         |> Conn.assign(:data, [@default_data])
-        |> JSONAPI.Plug.call(api: DefaultAPI)
-        |> Conn.fetch_query_params()
         |> MyPostPlug.call([])
 
       assert %{
@@ -335,7 +329,6 @@ defmodule JSONAPITest do
       |> conn("/posts")
       |> Conn.assign(:data, [@default_data])
       |> Conn.assign(:meta, nil)
-      |> Conn.fetch_query_params()
       |> MyPostPlug.call([])
 
     json = conn.resp_body |> Jason.decode!()
@@ -348,7 +341,6 @@ defmodule JSONAPITest do
       :get
       |> conn("/posts")
       |> Conn.assign(:data, [@default_data])
-      |> Conn.fetch_query_params()
       |> MyPostPlug.call([])
 
     json = conn.resp_body |> Jason.decode!()

@@ -56,8 +56,6 @@ See the `JSONAPI.API` module documentation for all available options and callbac
 ### Sending responses
 
 You can `use JSONAPI.View` in a module and pass at least a `:resource` option.
-The value must be a struct module name for which you have provided an implementation
-of `JSONAPI.Resource` related protocols.
 
 ```elixir
 defmodule MyApp.PostView do
@@ -93,6 +91,9 @@ To use this as a Phoenix view simply define your render functions in your view m
 
   ...
 ```
+
+The data passed for rendering must be a struct module name for which you have provided an implementation of `JSONAPI.Resource` related protocols.
+
 
 ## Receiving requests
 

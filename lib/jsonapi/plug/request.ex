@@ -74,16 +74,12 @@ defmodule JSONAPI.Plug.Request do
 
   @impl Plug
   def call(%Conn{assigns: %{jsonapi: %JSONAPI{api: api} = jsonapi}} = conn, opts) do
-    unless api do
-      raise "You must add `JSONAPI.Plug` to your plug pipeline before `JSONAPI.Request`"
-    end
-
     {api, opts} = Keyword.pop(opts, :api, api)
 
     {view, opts} = Keyword.pop(opts, :view)
 
     unless view do
-      raise "You must pass the :view option to use JSONAPI.Request"
+      raise "You must pass the :view option to JSONAPI.Request"
     end
 
     conn = Conn.fetch_query_params(conn)

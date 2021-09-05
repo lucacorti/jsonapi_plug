@@ -136,13 +136,13 @@ defmodule JSONAPI.ViewTest do
           "body" => "hi"
         }
       }
-    } = View.render(CommentView, %Comment{id: 1, body: "hi"}, %Conn{})
+    } = View.render(CommentView, %Comment{id: 1, body: "hi"})
   end
 
   test "show renders with data, conn, meta" do
     %Document{
       meta: %{total_pages: 100}
-    } = View.render(CommentView, %Comment{id: 1, body: "hi"}, %Conn{}, %{total_pages: 100})
+    } = View.render(CommentView, %Comment{id: 1, body: "hi"}, nil, %{total_pages: 100})
   end
 
   test "index renders with data, conn" do
@@ -150,12 +150,7 @@ defmodule JSONAPI.ViewTest do
              data: [
                %ResourceObject{attributes: %{"body" => "hi"}}
              ]
-           } =
-             View.render(
-               CommentView,
-               [%Comment{id: 1, body: "hi"}],
-               Conn.fetch_query_params(%Conn{})
-             )
+           } = View.render(CommentView, [%Comment{id: 1, body: "hi"}])
   end
 
   test "index renders with data, conn, meta" do
@@ -163,7 +158,7 @@ defmodule JSONAPI.ViewTest do
              View.render(
                CommentView,
                [%Comment{id: 1, body: "hi"}],
-               Conn.fetch_query_params(%Conn{}),
+               nil,
                %{total_pages: 100}
              )
   end
@@ -211,10 +206,9 @@ defmodule JSONAPI.ViewTest do
   end
 
   test "attributes/2 can return only requested fields" do
-    conn =
-      Conn.fetch_query_params(%Conn{
-        assigns: %{jsonapi: %JSONAPI{fields: %{PostView.type() => [:body]}}}
-      })
+    conn = %Conn{
+      assigns: %{jsonapi: %JSONAPI{fields: %{PostView.type() => [:body]}}}
+    }
 
     assert %Document{
              data: %ResourceObject{

@@ -12,6 +12,12 @@ defmodule JSONAPI.Plug do
   plug JSONAPI.Plug.ResponseContentType
 
   def config_api(conn, opts) do
-    assign(conn, :jsonapi, %JSONAPI{api: Keyword.get(opts, :api)})
+    {api, _opts} = Keyword.pop(opts, :api)
+
+    unless api do
+      raise "You must pass the :api option to JSONAPI.Plug"
+    end
+
+    assign(conn, :jsonapi, %JSONAPI{api: api})
   end
 end
