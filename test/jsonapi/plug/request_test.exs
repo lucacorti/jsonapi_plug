@@ -1,4 +1,4 @@
-defmodule JSONAPI.RequestTest do
+defmodule JSONAPI.Plug.RequestTest do
   use ExUnit.Case
 
   import JSONAPI.Plug.Request

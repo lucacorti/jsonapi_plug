@@ -1,4 +1,4 @@
-defmodule JSONAPI.FormatRequiredTest do
+defmodule JSONAPI.Plug.FormatRequiredTest do
   use ExUnit.Case
   use Plug.Test
 

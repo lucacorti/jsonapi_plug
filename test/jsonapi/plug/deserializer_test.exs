@@ -1,4 +1,4 @@
-defmodule JSONAPI.DeserializerTest do
+defmodule JSONAPI.Plug.DeserializerTest do
   use ExUnit.Case
   use Plug.Test
 

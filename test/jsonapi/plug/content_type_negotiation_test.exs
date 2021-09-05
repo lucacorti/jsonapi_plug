@@ -1,4 +1,4 @@
-defmodule JSONAPI.ContentTypeNegotiationTest do
+defmodule JSONAPI.Plug.ContentTypeNegotiationTest do
   use ExUnit.Case
   use Plug.Test
 

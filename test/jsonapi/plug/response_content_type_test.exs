@@ -1,4 +1,4 @@
-defmodule JSONAPI.ResponseContentTypeTest do
+defmodule JSONAPI.Plug.ResponseContentTypeTest do
   use ExUnit.Case
   use Plug.Test
 

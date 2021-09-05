@@ -1,4 +1,4 @@
-defmodule JSONAPI.IdRequiredTest do
+defmodule JSONAPI.Plug.IdRequiredTest do
   use ExUnit.Case
   use Plug.Test
 
