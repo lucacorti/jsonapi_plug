@@ -7,7 +7,7 @@ defmodule JSONAPITest do
   alias JSONAPI.View
   alias JSONAPI.TestSupport.Resources.{Company, Industry, Post, Tag, User}
   alias JSONAPI.TestSupport.Views.PostView
-  alias Plug.Conn
+  alias Plug.{Conn, Parsers}
 
   @default_data %Post{
     id: 1,
@@ -22,6 +22,8 @@ defmodule JSONAPITest do
 
     alias JSONAPI.TestSupport.APIs.DefaultAPI
     alias Plug.Conn
+
+    plug Parsers, parsers: [:json], pass: ["text/*"], json_decoder: Jason
 
     plug JSONAPI.Plug, api: DefaultAPI
 

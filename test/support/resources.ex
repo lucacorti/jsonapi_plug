@@ -1,37 +1,42 @@
 defmodule JSONAPI.TestSupport.Resources do
   @moduledoc false
 
-  alias JSONAPI.Resource.{Identifiable, Serializable}
-  alias JSONAPI.TestSupport.Views.{CommentView, CompanyView, UserView}
+  alias JSONAPI.Resource.Serializable
 
   defmodule Tag do
     @moduledoc false
-    @derive {Identifiable, id_attribute: :id, type: "tag"}
-    @derive {Serializable, attributes: [:name]}
+    @derive {Serializable, id: :id, type: "tag", attributes: [:name]}
     defstruct id: nil, name: nil
   end
 
   defmodule Industry do
     @moduledoc false
-    @derive {Identifiable, id_attribute: :id, type: "industry"}
-    @derive {Serializable, attributes: [:name], has_many: [tags: Tag]}
+    @derive {Serializable,
+             id: :id,
+             type: "industry",
+             attributes: [:name],
+             relationships: [tags: [many: true, type: Tag]]}
     defstruct id: nil, name: nil, tags: []
   end
 
   defmodule Company do
     @moduledoc false
-    @derive {Identifiable, id_attribute: :id, type: "company"}
-    @derive {Serializable, attributes: [:name], has_one: [industry: Company]}
+    @derive {Serializable,
+             id: :id,
+             type: "company",
+             attributes: [:name],
+             relationships: [industry: [type: Industry]]}
     defstruct id: nil, name: nil, industry: nil
   end
 
   defmodule User do
     @moduledoc false
-    @derive {Identifiable, id_attribute: :id, type: "user"}
     @derive {
       Serializable,
+      id: :id,
+      type: "user",
       attributes: [:age, :username, :password, :first_name, :last_name],
-      has_one: [company: CompanyView]
+      relationships: [company: [type: Company]]
     }
     defstruct id: nil,
               age: nil,
@@ -44,29 +49,34 @@ defmodule JSONAPI.TestSupport.Resources do
 
   defmodule Car do
     @moduledoc false
-    @derive {Identifiable, id_attribute: :id, type: "car"}
-    @derive Serializable
+    @derive {Serializable, id: :id, type: "car"}
     defstruct id: nil
   end
 
   defmodule Comment do
     @moduledoc false
-    @derive {Identifiable, id_attribute: :id, type: "comment"}
     @derive {
       Serializable,
-      attributes: [:text, :body], has_one: [user: UserView, post: PostView]
+      id: :id,
+      type: "comment",
+      attributes: [:text, :body],
+      relationships: [user: [type: User], post: [type: Post]]
     }
     defstruct id: nil, text: nil, body: nil, user: nil, post: []
   end
 
   defmodule Post do
     @moduledoc false
-    @derive {Identifiable, id_attribute: :id, type: "post"}
     @derive {
       Serializable,
+      id: :id,
+      type: "post",
       attributes: [:text, :title, :body],
-      has_one: [author: UserView, other_user: UserView],
-      has_many: [best_comments: CommentView]
+      relationships: [
+        author: [type: User],
+        other_user: [type: User],
+        best_comments: [many: true, type: Comment]
+      ]
     }
     defstruct id: nil,
               title: nil,

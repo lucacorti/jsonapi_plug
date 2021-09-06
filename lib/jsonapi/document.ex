@@ -183,28 +183,16 @@ defmodule JSONAPI.Document do
   defp pagination_links(_view, _resources, _conn, _page, _options), do: %{}
 
   @spec deserialize(View.t(), Conn.t()) :: t()
+  def deserialize(view, %Conn{body_params: %Conn.Unfetched{aspect: :body_params}}) do
+    raise "Body unfetched when trying to deserialize request for #{view}"
+  end
+
   def deserialize(view, %Conn{body_params: payload}) do
     %__MODULE__{}
     |> deserialize_included(view, payload)
     |> deserialize_data(view, payload)
     |> deserialize_meta(view, payload)
   end
-
-  defp deserialize_data(%__MODULE__{included: included} = document, view, %{"data" => data})
-       when is_list(data) do
-    %__MODULE__{
-      document
-      | data: Enum.map(data, &Resource.deserialize(view.resource(), &1, included))
-    }
-  end
-
-  defp deserialize_data(%__MODULE__{included: included} = document, view, %{"data" => data})
-       when is_map(data) do
-    %__MODULE__{document | data: Resource.deserialize(view.resource(), data, included)}
-  end
-
-  defp deserialize_data(%__MODULE__{} = document, _view, _payload),
-    do: document
 
   defp deserialize_included(%__MODULE__{} = document, view, %{"included" => included})
        when is_list(included) do
@@ -226,6 +214,22 @@ defmodule JSONAPI.Document do
   end
 
   defp deserialize_included(%__MODULE__{} = document, _view, _payload),
+    do: document
+
+  defp deserialize_data(%__MODULE__{included: included} = document, view, %{"data" => data})
+       when is_list(data) do
+    %__MODULE__{
+      document
+      | data: Enum.map(data, &Resource.deserialize(view.resource(), &1, included))
+    }
+  end
+
+  defp deserialize_data(%__MODULE__{included: included} = document, view, %{"data" => data})
+       when is_map(data) do
+    %__MODULE__{document | data: Resource.deserialize(view.resource(), data, included)}
+  end
+
+  defp deserialize_data(%__MODULE__{} = document, _view, _payload),
     do: document
 
   defp deserialize_meta(%__MODULE__{} = document, _view, %{"meta" => meta})

@@ -22,6 +22,8 @@ defmodule JSONAPI.DocumentTest do
     UserView
   }
 
+  alias Plug.Parsers
+
   test "serialize includes meta as top level member" do
     assert %Document{meta: %{total_pages: 10}} =
              Document.serialize(
@@ -36,6 +38,7 @@ defmodule JSONAPI.DocumentTest do
   test "serialize only includes meta if provided" do
     conn =
       Plug.Test.conn(:get, "/")
+      |> Parsers.call(Parsers.init(parsers: [:json], pass: ["text/*"], json_decoder: Jason))
       |> JSONAPI.Plug.call(api: DefaultAPI)
       |> Request.call(Request.init(view: PostView))
 
@@ -49,6 +52,7 @@ defmodule JSONAPI.DocumentTest do
   test "serialize handles singular objects" do
     conn =
       Plug.Test.conn(:get, "/?include=bestComments.user")
+      |> Parsers.call(Parsers.init(parsers: [:json], pass: ["text/*"], json_decoder: Jason))
       |> JSONAPI.Plug.call(api: DefaultAPI)
       |> Request.call(Request.init(view: PostView))
 
@@ -102,6 +106,7 @@ defmodule JSONAPI.DocumentTest do
 
     conn =
       Plug.Test.conn(:get, "/?include=bestComments.user")
+      |> Parsers.call(Parsers.init(parsers: [:json], pass: ["text/*"], json_decoder: Jason))
       |> JSONAPI.Plug.call(api: DefaultAPI)
       |> Request.call(Request.init(view: PostView))
 
@@ -133,6 +138,7 @@ defmodule JSONAPI.DocumentTest do
   test "serialize handles an empty relationship" do
     conn =
       Plug.Test.conn(:get, "/?include=author")
+      |> Parsers.call(Parsers.init(parsers: [:json], pass: ["text/*"], json_decoder: Jason))
       |> JSONAPI.Plug.call(api: DefaultAPI)
       |> Request.call(Request.init(view: PostView))
 
@@ -172,6 +178,7 @@ defmodule JSONAPI.DocumentTest do
   test "serialize handles a nil relationship" do
     conn =
       Plug.Test.conn(:get, "/?include=author")
+      |> Parsers.call(Parsers.init(parsers: [:json], pass: ["text/*"], json_decoder: Jason))
       |> JSONAPI.Plug.call(api: DefaultAPI)
       |> Request.call(Request.init(view: PostView))
 
@@ -228,6 +235,7 @@ defmodule JSONAPI.DocumentTest do
   test "serialize handles a relationship self link on an index request" do
     conn =
       Plug.Test.conn(:get, "/")
+      |> Parsers.call(Parsers.init(parsers: [:json], pass: ["text/*"], json_decoder: Jason))
       |> JSONAPI.Plug.call(api: DefaultAPI)
       |> Request.call(Request.init(view: PostView))
 
@@ -249,6 +257,7 @@ defmodule JSONAPI.DocumentTest do
 
     conn =
       Plug.Test.conn(:get, "/?include=bestComments.user")
+      |> Parsers.call(Parsers.init(parsers: [:json], pass: ["text/*"], json_decoder: Jason))
       |> JSONAPI.Plug.call(api: DefaultAPI)
       |> Request.call(Request.init(view: PostView))
 
@@ -272,6 +281,7 @@ defmodule JSONAPI.DocumentTest do
 
     conn =
       Plug.Test.conn(:get, "/?include=company")
+      |> Parsers.call(Parsers.init(parsers: [:json], pass: ["text/*"], json_decoder: Jason))
       |> JSONAPI.Plug.call(api: DefaultAPI)
       |> Request.call(Request.init(view: UserView))
 
@@ -294,6 +304,7 @@ defmodule JSONAPI.DocumentTest do
 
     conn =
       Plug.Test.conn(:get, "/?include=company.industry")
+      |> Parsers.call(Parsers.init(parsers: [:json], pass: ["text/*"], json_decoder: Jason))
       |> JSONAPI.Plug.call(api: OtherNamespaceAPI)
       |> Request.call(Request.init(view: UserView))
 
@@ -333,6 +344,7 @@ defmodule JSONAPI.DocumentTest do
 
     conn =
       Plug.Test.conn(:get, "/?include=company.industry.tags")
+      |> Parsers.call(Parsers.init(parsers: [:json], pass: ["text/*"], json_decoder: Jason))
       |> JSONAPI.Plug.call(api: OtherNamespaceAPI)
       |> Request.call(Request.init(view: UserView))
 
@@ -364,6 +376,7 @@ defmodule JSONAPI.DocumentTest do
 
       conn =
         Plug.Test.conn(:get, "/")
+        |> Parsers.call(Parsers.init(parsers: [:json], pass: ["text/*"], json_decoder: Jason))
         |> JSONAPI.Plug.call(api: DefaultAPI)
         |> Request.call(Request.init(view: PostView))
 
@@ -416,6 +429,7 @@ defmodule JSONAPI.DocumentTest do
 
       conn =
         Plug.Test.conn(:get, "/")
+        |> Parsers.call(Parsers.init(parsers: [:json], pass: ["text/*"], json_decoder: Jason))
         |> JSONAPI.Plug.call(api: OtherNamespaceAPI)
         |> Request.call(Request.init(view: PostView))
 
@@ -450,6 +464,7 @@ defmodule JSONAPI.DocumentTest do
   test "serialize does not merge `included` if not configured" do
     conn =
       Plug.Test.conn(:get, "/")
+      |> Parsers.call(Parsers.init(parsers: [:json], pass: ["text/*"], json_decoder: Jason))
       |> JSONAPI.Plug.call(api: DefaultAPI)
       |> Request.call(Request.init(view: NotIncludedView))
 
@@ -466,6 +481,7 @@ defmodule JSONAPI.DocumentTest do
     conn =
       :get
       |> Plug.Test.conn("/my-type?page[page]=2&page[size]=1")
+      |> Parsers.call(Parsers.init(parsers: [:json], pass: ["text/*"], json_decoder: Jason))
       |> JSONAPI.Plug.call(api: DefaultAPI)
       |> Request.call(Request.init(view: PostView))
 
@@ -517,6 +533,7 @@ defmodule JSONAPI.DocumentTest do
   test "serialize returns a null data if it receives a null data" do
     conn =
       Plug.Test.conn(:get, "/")
+      |> Parsers.call(Parsers.init(parsers: [:json], pass: ["text/*"], json_decoder: Jason))
       |> JSONAPI.Plug.call(api: DefaultAPI)
       |> Request.call(Request.init(view: ExpensiveResourceView))
 
@@ -529,6 +546,7 @@ defmodule JSONAPI.DocumentTest do
   test "serialize handles query parameters in self links" do
     conn =
       Plug.Test.conn(:get, "/my-type?page[page]=2&page[size]=1")
+      |> Parsers.call(Parsers.init(parsers: [:json], pass: ["text/*"], json_decoder: Jason))
       |> JSONAPI.Plug.call(api: DefaultAPI)
       |> Request.call(Request.init(view: PostView))
 

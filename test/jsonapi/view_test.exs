@@ -13,7 +13,7 @@ defmodule JSONAPI.ViewTest do
   alias JSONAPI.TestSupport.Resources.{Comment, Post, User}
   alias JSONAPI.TestSupport.Views.{CommentView, MyPostView, PostView, UserView}
   alias JSONAPI.{Document, Document.ResourceObject, Paginator, Plug.Request, View}
-  alias Plug.Conn
+  alias Plug.{Conn, Parsers}
 
   setup do
     {:ok, conn: JSONAPI.Plug.call(%Conn{}, api: DasherizingAPI)}
@@ -166,6 +166,7 @@ defmodule JSONAPI.ViewTest do
   test "view returns all field names by default" do
     conn =
       %Conn{}
+      |> Parsers.call(Parsers.init(parsers: [:json], pass: ["text/*"], json_decoder: Jason))
       |> JSONAPI.Plug.call(api: UnderscoringAPI)
       |> Request.call(Request.init(view: UserView))
 
@@ -191,6 +192,7 @@ defmodule JSONAPI.ViewTest do
   test "view trims returned field names to only those requested" do
     conn =
       Plug.Test.conn(:get, "/?fields[#{PostView.type()}]=body")
+      |> Parsers.call(Parsers.init(parsers: [:json], pass: ["text/*"], json_decoder: Jason))
       |> JSONAPI.Plug.call(api: DefaultAPI)
       |> Request.call(Request.init(view: PostView))
 

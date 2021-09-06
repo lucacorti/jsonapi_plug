@@ -86,7 +86,7 @@ defmodule JSONAPI.View do
         schema "users" do
           field :username
           has_many :posts
-          has_one :image
+          belongs_to :image
         end
       end
 
@@ -131,19 +131,13 @@ defmodule JSONAPI.View do
 
       @__path__ unquote(path)
       @__resource__ struct(unquote(resource))
-
-      @__attributes__ JSONAPI.Resource.attributes(@__resource__)
-      @__relationships__ Enum.concat(
-                           JSONAPI.Resource.has_one(@__resource__),
-                           JSONAPI.Resource.has_many(@__resource__)
-                         )
       @__resource_type__ JSONAPI.Resource.type(@__resource__)
 
       @impl JSONAPI.View
       def id(resource), do: JSONAPI.Resource.id(resource)
 
       @impl JSONAPI.View
-      def attributes(_resource), do: @__attributes__
+      def attributes(_resource), do: []
 
       @impl JSONAPI.View
       def links(_resource, _conn), do: %{}
@@ -155,7 +149,7 @@ defmodule JSONAPI.View do
       def path, do: @__path__
 
       @impl JSONAPI.View
-      def relationships(_resource), do: @__relationships__
+      def relationships(_resource), do: []
 
       @impl JSONAPI.View
       def resource, do: @__resource__

@@ -49,32 +49,41 @@ defmodule MyAPI do
 end
 ```
 
-See the `JSONAPI.API` module documentation for all available options and callbacks.
+See the `JSONAPI.API` module documentation for available options and callbacks.
 
 ## Usage
 
 ### Sending responses
 
-You can `use JSONAPI.View` in a module and pass at least a `:resource` option.
+Before serving responses, you need to define your resources. A resource is a struct for which you
+have provided an implementation of `JSONAPI.Resource.Serializable`:
+
+```elixir
+defmodule MyApp.Post do
+   alias JSONAPI.Resource.Serializable
+
+   @derive {Serializable, id: :id, type: "post", attributes: [:text, :title, :body]}
+  defstruct body: "A very long body of text", title: "A short title"
+end
+```
+
+See the `JSONAPI.Resource` module documentation for usage and available options.
+
+You can then define a view module to render your resource:
 
 ```elixir
 defmodule MyApp.PostView do
   use JSONAPI.View, resource: Post
 
   @impl JSONAPI.View
-  def attributes(_resource), do: [:text, :body, :excerpt]
+  def attributes(_resource), do: [:title, :text, :excerpt]
 
   @impl JSONAPI.View
-  def meta(resource, _conn), do: %{meta_text: "meta_#{resource.text}"}
-
-  @impl JSONAPI.View
-  def relationships(_resource), do: [author: MyApp.UserView, comments: MyApp.CommentView]
+  def meta(%Post{title: title}, _conn), do: %{slug: to_slug(title)}
 
   def excerpt(resource, _conn), do: String.slice(resource.body, 0..5)
 end
 ```
-
-See the `JSONAPI.View` module documentation for usage and all available options.
 
 To use this as a Phoenix view simply define your render functions in your view module:
 
@@ -92,7 +101,7 @@ To use this as a Phoenix view simply define your render functions in your view m
   ...
 ```
 
-The data passed for rendering must be a struct module name for which you have provided an implementation of `JSONAPI.Resource` related protocols.
+See the `JSONAPI.View` module documentation for usage and available options.
 
 
 ## Receiving requests
