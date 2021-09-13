@@ -2,93 +2,111 @@ defmodule JSONAPI.API do
   @moduledoc """
     JSON:API API Configuration
 
-    You can define an API by either calling the use macro
+    You can define an API by either calling JSONAPI.API use macro
 
     ```elixir
-    defmodule MyAPI do
-      use JSONAPI.API, namespace: "some-namespace", ...
+    defmodule MyApp.MyAPI do
+      use JSONAPI.API, otp_app: :my_app
     end
     ```
 
-    or by implementing the `JSONAPI.API` behaviour
+    API module behavior can be customized via your application configuration:keyword()
 
     ```elixir
-    defmodule MyAPI do
-      @behaviour JSONAPI.API
-
-      @impl JSONAPI.API
-      def namespace, do: "some-namespace"
-
-      ...
-    end
+    config :my_app, MyApp.MyAPI,
+      inflection: :dasherize
     ```
 
-    All these options can be passed to the use macro or can be implemented/overridden as
-    0-arity callbacks on your module:
+    Available options:
+      - **host**:
+        Hostname used for link generation
 
-      - **host** and **scheme**:
-        If you pass these, values will override those taken by default from the pipeline `Plug.Conn`.
-        E.g. if you want generated urls to point to `https://api.myhost.com` pass `host: "api.myhost.com", scheme: :https`
+        Type: `JSONAPI.API.host()`
+        Default: current `Plug.Conn` host
+        E.g. if you want generated urls to point `...://myhost.com` pass `host: "myhost.com"`
+
+      - ***scheme**:
+        Scheme used for link generation
+
+        Type: `JSONAPI.API.scheme()`
+        Default: current `Plug.Conn` scheme
+        E.g. if you want generated urls to point to `https://...` pass `scheme: :https`
+
       - **namespace**:
-        This optional setting can be used to configure a namespace for all routes in your API.
-        E.g. if you want your car resources to live at "http://example.com/api/cars", pass `namespace: "api"
-      - **inflection**:
-      This option describes how your API's field names will be inflected.
-      The available options are `:camelize` (default), `:dasherize` and `:underscore`
-      [JSON API Spec (v1.1)](https://jsonapi.org/format/1.1/) recommends camelCase (e.g.
-      `"favoriteColor": blue`).
-      [JSON:API Spec (v1.0)](https://jsonapi.org/format/1.0/) recommends dasherizing (e.g.
-      `"favorite-color": blue`).
-      - **paginator**:
-      `JSONAPI.Paginator` module for pagination. Defaults to `nil`.
+        Namespace for all resources in your API.
 
-    The API can also be overriden per route, see `JSONAPI.Request` documentation.
+        Type: `JSONAPI.API.namespace()`
+        Default: empty, no namespace applied
+        E.g. if you want your resources to live under ".../api/v1", pass `namespace: "api/v1"
+
+      - **inflection**:
+        This option describes how your API's field names will be inflected.
+
+        [JSON:API Spec (v1.1)](https://jsonapi.org/format/1.1/) recommends camelCase (e.g.
+        `"favoriteColor": blue`).
+        [JSON:API Spec (v1.0)](https://jsonapi.org/format/1.0/) recommends dasherizing (e.g.
+        `"favorite-color": blue`).
+
+        Type: `JSONAPI.API.inflection()`
+        Default: :camelize
+
+      - **paginator**:
+        `JSONAPI.Paginator` module for pagination.
+
+        Type: `JSONAPI.API.paginator()`
+        Default: `nil`, no pagination links are generated
+
+      - **version**:
+        [JSON:API](https://jsonapi.org) version serialized in the top level `JSONAPI.Document.JSONAPIObject`
+
+        Type: `JSONAPI.API.version()`
+        Default: `:"1.0"`
+
+    The API can also be overriden per plug/controller, see `JSONAPI.Request` documentation.
   """
 
-  alias JSONAPI.{Paginator, Resource.Field}
-
   @type t :: module()
+
+  @type config :: :host | :namespace | :paginator | :scheme | :version
 
   @type host :: String.t()
   @type namespace :: String.t()
   @type scheme :: :http | :https
   @type version :: :"1.0"
 
-  @callback host :: host() | nil
-  @callback inflection :: Field.inflection() | nil
-  @callback namespace :: namespace() | nil
-  @callback paginator :: Paginator.t() | nil
-  @callback scheme :: scheme() | nil
-  @callback version :: version()
-
   defmacro __using__(options) do
-    {host, options} = Keyword.pop(options, :host)
-    {inflection, options} = Keyword.pop(options, :inflection)
-    {namespace, options} = Keyword.pop(options, :namespace)
-    {paginator, options} = Keyword.pop(options, :paginator)
-    {scheme, options} = Keyword.pop(options, :scheme)
-    {version, _options} = Keyword.pop(options, :version, :"1.0")
+    {otp_app, _options} = Keyword.pop(options, :otp_app)
+
+    unless not is_nil(otp_app) do
+      raise "You must pass the :otp_app option to JSONAPI.API"
+    end
+
+    unless is_atom(otp_app) do
+      raise "You must pass a module name to JSONAPI.API :otp_app option"
+    end
 
     quote do
-      @behaviour JSONAPI.API
-
-      @impl JSONAPI.API
-      def host, do: unquote(host)
-
-      @impl JSONAPI.API
-      def inflection, do: unquote(inflection)
-
-      @impl JSONAPI.API
-      def namespace, do: unquote(namespace)
-
-      @impl JSONAPI.API
-      def paginator, do: unquote(paginator)
-
-      @impl JSONAPI.API
-      def scheme, do: unquote(scheme)
-
-      @impl JSONAPI.API
-      def version, do: unquote(version)
+      @__otp_app__ unquote(otp_app)
+      def __otp_app__, do: @__otp_app__
     end
+  end
+
+  @doc """
+  Retrieve API configuration
+
+  Retrieves an API configuration parameter value, with fallback to a default value
+  in case the parameter is not specified or the API module passed is `nil`.
+
+  If not specified, the default value is `nil`.
+  """
+  @spec get_config(t() | nil, config(), any()) :: any()
+  def get_config(api, config, default \\ nil)
+
+  def get_config(nil = _api, _config, default), do: default
+
+  def get_config(api, config, default) do
+    api.__otp_app__
+    |> Application.get_env(api, [])
+    |> Keyword.get(config, default)
   end
 end

@@ -8,6 +8,7 @@ defmodule JSONAPI.Document do
   """
 
   alias JSONAPI.{
+    API,
     Document.ErrorObject,
     Document.JSONAPIObject,
     Document.LinksObject,
@@ -131,12 +132,19 @@ defmodule JSONAPI.Document do
          _view,
          %Conn{assigns: %{jsonapi: %JSONAPI{api: api}}},
          _options
-       )
-       when not is_nil(api),
-       do: %__MODULE__{document | jsonapi: %JSONAPIObject{version: api.version()}}
+       ),
+       do: %__MODULE__{
+         document
+         | jsonapi: %JSONAPIObject{version: API.get_config(api, :version, :"1.0")}
+       }
 
-  defp serialize_jsonapi(%__MODULE__{} = document, _view, _conn, _options),
-    do: %__MODULE__{document | jsonapi: %JSONAPIObject{}}
+  defp serialize_jsonapi(
+         %__MODULE__{} = document,
+         _view,
+         _conn,
+         _options
+       ),
+       do: %__MODULE__{document | jsonapi: %JSONAPIObject{version: :"1.0"}}
 
   defp serialize_links(
          %__MODULE__{data: resources} = document,
@@ -169,9 +177,8 @@ defmodule JSONAPI.Document do
          %Conn{assigns: %{jsonapi: %JSONAPI{api: api}}} = conn,
          page,
          options
-       )
-       when not is_nil(api) do
-    paginator = api.paginator()
+       ) do
+    paginator = API.get_config(api, :paginator)
 
     if paginator do
       paginator.paginate(view, resources, conn, page, options)

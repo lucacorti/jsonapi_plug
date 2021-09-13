@@ -101,7 +101,7 @@ defmodule JSONAPI.View do
   default style for presentation in names is to be camelized.
   """
 
-  alias JSONAPI.{Document, Document.ErrorObject, Resource, Resource.Field}
+  alias JSONAPI.{API, Document, Document.ErrorObject, Resource, Resource.Field}
   alias Plug.Conn
 
   @type t :: module()
@@ -211,26 +211,17 @@ defmodule JSONAPI.View do
   defp render_url(
          %Conn{assigns: %{jsonapi: %JSONAPI{api: api}}, scheme: scheme, host: host},
          path
-       )
-       when not is_nil(api) do
+       ) do
     namespace =
-      case api.namespace() do
+      case API.get_config(api, :namespace) do
         nil -> ""
         namespace -> "/" <> namespace
       end
 
     %URI{
-      scheme: to_string(api.scheme() || scheme),
-      host: api.host() || host,
+      scheme: to_string(API.get_config(api, :scheme, scheme)),
+      host: API.get_config(api, :host, host),
       path: Enum.join([namespace | path], "/")
-    }
-  end
-
-  defp render_url(%Conn{scheme: scheme, host: host}, path) do
-    %URI{
-      scheme: to_string(scheme),
-      host: host,
-      path: "/" <> Enum.join(path, "/")
     }
   end
 

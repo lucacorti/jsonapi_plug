@@ -6,5 +6,6 @@ defmodule JSONAPI.Document.JSONAPIObject do
   alias JSONAPI.API
 
   @type t :: %__MODULE__{version: API.version()}
-  defstruct version: :"1.0"
+  @enforce_keys [:version]
+  defstruct version: nil
 end

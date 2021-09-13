@@ -1,35 +1,33 @@
 defmodule JSONAPI.TestSupport.APIs do
   @moduledoc false
 
-  alias JSONAPI.TestSupport.Paginators.PageBasedPaginator
-
   defmodule DasherizingAPI do
     @moduledoc false
-    use JSONAPI.API, inflection: :dasherize
+    use JSONAPI.API, otp_app: :jsonapi
   end
 
   defmodule DefaultAPI do
     @moduledoc false
-    use JSONAPI.API, paginator: PageBasedPaginator
+    use JSONAPI.API, otp_app: :jsonapi
   end
 
   defmodule OtherHostAPI do
     @moduledoc false
-    use JSONAPI.API, host: "www.otherhost.com"
+    use JSONAPI.API, otp_app: :jsonapi
   end
 
   defmodule OtherSchemeAPI do
     @moduledoc false
-    use JSONAPI.API, scheme: :https
+    use JSONAPI.API, otp_app: :jsonapi
   end
 
   defmodule OtherNamespaceAPI do
     @moduledoc false
-    use JSONAPI.API, namespace: "somespace"
+    use JSONAPI.API, otp_app: :jsonapi
   end
 
   defmodule UnderscoringAPI do
     @moduledoc false
-    use JSONAPI.API, inflection: :underscore
+    use JSONAPI.API, otp_app: :jsonapi
   end
 end

@@ -5,7 +5,7 @@ defmodule JSONAPI.Document.ResourceObject do
   https://jsonapi.org/format/#resource_object-resource-objects
   """
 
-  alias JSONAPI.{Document, Document.RelationshipObject, Resource, Resource.Field, View}
+  alias JSONAPI.{API, Document, Document.RelationshipObject, Resource, Resource.Field, View}
   alias Plug.Conn
 
   @type value :: String.t() | integer() | float() | [value()] | %{String.t() => value()}
@@ -71,9 +71,8 @@ defmodule JSONAPI.Document.ResourceObject do
     %__MODULE__{resource_object | attributes: attributes}
   end
 
-  defp inflect_field(%Conn{assigns: %{jsonapi: %JSONAPI{api: api}}}, field)
-       when not is_nil(api),
-       do: Field.inflect(field, api.inflection() || :camelize)
+  defp inflect_field(%Conn{assigns: %{jsonapi: %JSONAPI{api: api}}}, field),
+    do: Field.inflect(field, API.get_config(api, :inflection, :camelize))
 
   defp inflect_field(_conn, field),
     do: Field.inflect(field, :camelize)
