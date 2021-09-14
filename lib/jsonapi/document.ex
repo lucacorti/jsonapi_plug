@@ -16,7 +16,6 @@ defmodule JSONAPI.Document do
     Document.ResourceIdentifierObject,
     Document.ResourceObject,
     Paginator,
-    Resource,
     View
   }
 
@@ -210,11 +209,9 @@ defmodule JSONAPI.Document do
             document
 
           included_view ->
-            resource = included_view.resource()
-
             %__MODULE__{
               document
-              | included: [Resource.deserialize(resource, data, []) | included || []]
+              | included: [ResourceObject.deserialize(included_view, data, []) | included || []]
             }
         end
     end)
@@ -227,13 +224,13 @@ defmodule JSONAPI.Document do
        when is_list(data) do
     %__MODULE__{
       document
-      | data: Enum.map(data, &Resource.deserialize(view.resource(), &1, included))
+      | data: Enum.map(data, &ResourceObject.deserialize(view, &1, included))
     }
   end
 
   defp deserialize_data(%__MODULE__{included: included} = document, view, %{"data" => data})
        when is_map(data) do
-    %__MODULE__{document | data: Resource.deserialize(view.resource(), data, included)}
+    %__MODULE__{document | data: ResourceObject.deserialize(view, data, included)}
   end
 
   defp deserialize_data(%__MODULE__{} = document, _view, _payload),

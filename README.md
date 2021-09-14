@@ -55,37 +55,34 @@ See the `JSONAPI.API` module documentation for available options and callbacks.
 
 ### Sending responses
 
-Before serving responses, you need to define your resources. A resource is a struct for which you
-have provided an implementation of `JSONAPI.Resource.Serializable`:
+Before serving responses, you need to define your resources.
+
+A resource can be any struct:
 
 ```elixir
 defmodule MyApp.Post do
-   alias JSONAPI.Resource.Serializable
-
-   @derive {Serializable, id: :id, type: "post", attributes: [:text, :title, :body]}
-  defstruct body: "A very long body of text", title: "A short title"
+  @type t :: %__MODULE__{id: pos_integer(), body: String.t(), title: String.t()}
+  defstruct id: nil, body: "", title: ""
 end
 ```
 
-See the `JSONAPI.Resource` module documentation for usage and available options.
-
-You can then define a view module to render your resource:
+Then define a view module to render your resource:
 
 ```elixir
 defmodule MyApp.PostView do
-  use JSONAPI.View, resource: Post
+  use JSONAPI.View, resource: Post, type: "post", path: "posts"
 
   @impl JSONAPI.View
-  def attributes(_resource), do: [:title, :text, :excerpt]
+  def attributes, do: [:title, :text, :excerpt]
 
   @impl JSONAPI.View
-  def meta(%Post{title: title}, _conn), do: %{slug: to_slug(title)}
+  def meta(%Post{} = post, _conn), do: %{slug: to_slug(post.title)}
 
-  def excerpt(resource, _conn), do: String.slice(resource.body, 0..5)
+  def excerpt(%Post{} = post, _conn), do: String.slice(post.body, 0..5)
 end
 ```
 
-To use this as a Phoenix view simply define your render functions in your view module:
+To use the view module as a Phoenix view define your render functions in it:
 
 ```elixir
   ...

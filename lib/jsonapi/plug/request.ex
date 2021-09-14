@@ -171,11 +171,11 @@ defmodule JSONAPI.Plug.Request do
 
   defp get_valid_attributes_for_type(view, type) do
     if type == view.type() do
-      view.attributes(view.resource())
+      view.attributes()
     else
       case View.for_related_type(view, type) do
         nil -> raise InvalidQuery, resource: view.type(), param: type, param_type: :fields
-        view -> view.attributes(view.resource())
+        view -> view.attributes()
       end
     end
   end
@@ -207,7 +207,7 @@ defmodule JSONAPI.Plug.Request do
 
   @spec parse_include(JSONAPI.t(), options()) :: JSONAPI.t()
   def parse_include(%JSONAPI{view: view} = jsonapi, %{"include" => include}) do
-    valid_includes = view.relationships(view.resource())
+    valid_includes = view.relationships()
 
     includes =
       include
@@ -286,8 +286,8 @@ defmodule JSONAPI.Plug.Request do
 
   defp member_of_tree?([path | tail], include) when is_list(include) do
     if Keyword.has_key?(include, path) do
-      view = include[path]
-      member_of_tree?(tail, view.relationships(view.resource()))
+      view = include[path][:view]
+      member_of_tree?(tail, view.relationships())
     else
       false
     end

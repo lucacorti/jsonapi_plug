@@ -7,7 +7,11 @@ defmodule JSONAPI.Document.ResourceIdentifierObject do
 
   alias JSONAPI.{Document, Resource}
 
-  @type t :: %__MODULE__{id: Resource.id(), type: Resource.type(), meta: Document.meta()}
+  @type t :: %__MODULE__{
+          id: Resource.id(),
+          type: Resource.type(),
+          meta: Document.meta()
+        }
   @enforce_keys [:id, :type]
   defstruct [:id, :type, :meta]
 end

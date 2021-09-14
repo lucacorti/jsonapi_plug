@@ -108,36 +108,56 @@ defmodule JSONAPI.View do
   @type options :: keyword()
   @type data :: Resource.t() | [Resource.t()]
 
+  @type attribute_opts :: [to: Field.name()]
+  @type relationship_opts :: [many: boolean(), to: Field.name(), view: t()]
+
   @callback id(Resource.t()) :: Resource.id()
-  @callback attributes(Resource.t()) :: [Field.name()]
+  @callback id_attribute :: Field.name()
+  @callback attributes :: [Field.name() | keyword(attribute_opts())]
   @callback links(Resource.t(), Conn.t() | nil) :: Document.links()
   @callback meta(Resource.t(), Conn.t() | nil) :: Document.meta()
   @callback path :: String.t() | nil
-  @callback relationships(Resource.t()) :: [{Field.name(), t()}]
+  @callback relationships :: [{Field.name(), keyword(relationship_opts())}]
   @callback resource :: Resource.t()
   @callback type :: Resource.type()
 
   defmacro __using__(opts \\ []) do
+    {id_attribute, opts} = Keyword.pop(opts, :id_attribute, :id)
+    {path, opts} = Keyword.pop(opts, :path)
+
     {resource, opts} = Keyword.pop(opts, :resource)
 
     unless resource do
       raise "You must pass the :resource option to JSONAPI.View"
     end
 
-    {path, _opts} = Keyword.pop(opts, :path)
+    {type, _opts} = Keyword.pop(opts, :type)
+
+    unless type do
+      raise "You must pass the :type option to JSONAPI.View"
+    end
 
     quote do
       @behaviour JSONAPI.View
 
+      @__id_attribute__ unquote(id_attribute)
       @__path__ unquote(path)
       @__resource__ struct(unquote(resource))
-      @__resource_type__ JSONAPI.Resource.type(@__resource__)
+      @__resource_type__ unquote(type)
 
       @impl JSONAPI.View
-      def id(resource), do: JSONAPI.Resource.id(resource)
+      def id(resource) do
+        case Map.fetch(resource, id_attribute()) do
+          {:ok, id} -> to_string(id)
+          :error -> raise "Resources must have and id defined"
+        end
+      end
 
       @impl JSONAPI.View
-      def attributes(_resource), do: []
+      def id_attribute, do: @__id_attribute__
+
+      @impl JSONAPI.View
+      def attributes, do: []
 
       @impl JSONAPI.View
       def links(_resource, _conn), do: %{}
@@ -149,7 +169,7 @@ defmodule JSONAPI.View do
       def path, do: @__path__
 
       @impl JSONAPI.View
-      def relationships(_resource), do: []
+      def relationships, do: []
 
       @impl JSONAPI.View
       def resource, do: @__resource__
@@ -163,15 +183,18 @@ defmodule JSONAPI.View do
 
   @spec for_related_type(t(), Resource.type()) :: t() | nil
   def for_related_type(view, type) do
-    case Enum.find(
-           view.relationships(view.resource()),
-           fn {_relationship, relationship_view} ->
-             relationship_view.type() == type
-           end
-         ) do
-      {_relationship, view} -> view
-      _ -> nil
-    end
+    Enum.find_value(
+      view.relationships(),
+      fn {_relationship, options} ->
+        relationship_view = Keyword.fetch!(options, :view)
+
+        if relationship_view.type() == type do
+          relationship_view
+        else
+          nil
+        end
+      end
+    )
   end
 
   @spec render(t(), data() | nil, Conn.t() | nil, Document.meta() | nil, options()) ::
