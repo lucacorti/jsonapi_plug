@@ -9,9 +9,9 @@ defmodule JSONAPI.Document.ResourceObject do
     API,
     Document,
     Document.RelationshipObject,
+    Resource,
     Resource.Field,
     Resource.Loadable,
-    Resource,
     View
   }
 
