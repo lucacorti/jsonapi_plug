@@ -7,13 +7,13 @@ defmodule JSONAPI.View do
         use JSONAPI.View, resource: Post
 
         @impl JSONAPI.View
-        def attributes(_resource), do: [:id, :text, :body]
+        def attributes, do: [:id, :text, :body]
 
         @impl JSONAPI.View
         def type, do: "post"
 
         @impl JSONAPI.View
-        def relationships(_resource) do
+        def relationships do
           [author: UserView,
            comments: CommentView]
         end
@@ -23,26 +23,26 @@ defmodule JSONAPI.View do
         use JSONAPI.View, resource: User
 
         @impl JSONAPI.View
-        def attributes(_resource), do: [:id, :username]
+        def attributes, do: [:id, :username]
 
         @impl JSONAPI.View
         def type, do: "user"
 
         @impl JSONAPI.View
-        def relationships(_resource), do: []
+        def relationships, do: []
       end
 
       defmodule CommentView do
         use JSONAPI.View, resource: Comment
 
         @impl JSONAPI.View
-        def attributes(_resource), do: [:id, :text]
+        def attributes, do: [:id, :text]
 
         @impl JSONAPI.View
         def type, do: "comment"
 
         @impl JSONAPI.View
-        def relationships(_resource), do: [user: UserView]
+        def relationships, do: [user: UserView]
       end
 
       defmodule DogView do
@@ -62,13 +62,13 @@ defmodule JSONAPI.View do
         use JSONAPI.View, resource: User
 
         @impl JSONAPI.View
-        def attributes(_resource), do: [:id, :username, :fullname]
+        def attributes, do: [:id, :username, :fullname]
 
         @impl JSONAPI.View
         def type, do: "user"
 
         @impl JSONAPI.View
-        def relationships(_resource), do: []
+        def relationships, do: []
 
         def fullname(resource, conn), do: "fullname"
       end
@@ -125,16 +125,10 @@ defmodule JSONAPI.View do
     {id_attribute, opts} = Keyword.pop(opts, :id_attribute, :id)
     {path, opts} = Keyword.pop(opts, :path)
 
-    {resource, opts} = Keyword.pop(opts, :resource)
+    {resource, _opts} = Keyword.pop(opts, :resource)
 
     unless resource do
       raise "You must pass the :resource option to JSONAPI.View"
-    end
-
-    {type, _opts} = Keyword.pop(opts, :type)
-
-    unless type do
-      raise "You must pass the :type option to JSONAPI.View"
     end
 
     quote do
@@ -143,7 +137,11 @@ defmodule JSONAPI.View do
       @__id_attribute__ unquote(id_attribute)
       @__path__ unquote(path)
       @__resource__ struct(unquote(resource))
-      @__resource_type__ unquote(type)
+      @__resource_type__ unquote(resource)
+                         |> Module.split()
+                         |> List.last()
+                         |> String.downcase()
+                         |> Field.inflect(:dasherize)
 
       @impl JSONAPI.View
       def id(resource) do

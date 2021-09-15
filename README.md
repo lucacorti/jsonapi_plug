@@ -15,7 +15,7 @@ This library implements [version 1.0](https://jsonapi.org/format/1.0/) of the JS
 
 ![CI](https://github.com/dottori-it/jsonapi/workflows/Continuous%20Integration/badge.svg)
 
-## Usage
+## Quickstart
 
 ### Installation
 
@@ -51,8 +51,6 @@ end
 
 See the `JSONAPI.API` module documentation for available options and callbacks.
 
-## Usage
-
 ### Sending responses
 
 Before serving responses, you need to define your resources.
@@ -70,7 +68,7 @@ Then define a view module to render your resource:
 
 ```elixir
 defmodule MyApp.PostView do
-  use JSONAPI.View, resource: Post, type: "post", path: "posts"
+  use JSONAPI.View, resource: MyApp.Post
 
   @impl JSONAPI.View
   def attributes, do: [:title, :text, :excerpt]
@@ -100,8 +98,7 @@ To use the view module as a Phoenix view define your render functions in it:
 
 See the `JSONAPI.View` module documentation for usage and available options.
 
-
-## Receiving requests
+### Receiving requests
 
 In order to parse `JSON:API` requests from clients you need to add the `JSONAPI.Request` plug
 to each of your plug pipelines or phoenix controllers handling requests for a specific resource:
