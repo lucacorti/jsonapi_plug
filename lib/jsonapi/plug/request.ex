@@ -1,65 +1,63 @@
 defmodule JSONAPI.Plug.Request do
   @moduledoc """
-  Implements a fully JSONAPI V1 spec for parsing a complex query string and
-  returning Elixir datastructures. The purpose is to validate and encode incoming
-  queries and fail quickly.
+  Implements parsing of JSON:API 1.0 requests.
 
-  Primarialy this handles:
+  The purpose is to validate and encode incoming requests. This handles the request body document
+  and query parameters for:
+
     * [sorts](http://jsonapi.org/format/#fetching-sorting)
     * [include](http://jsonapi.org/format/#fetching-includes)
     * [filtering](http://jsonapi.org/format/#fetching-filtering)
     * [sparse fieldsets](https://jsonapi.org/format/#fetching-sparse-fieldsets)
     * [pagination](http://jsonapi.org/format/#fetching-pagination)
 
-  This Plug works in conjunction with a `JSONAPI.View` as well as some Plug
-  defined configuration.
-
-  In your controller you may add:
+  To enable request deserialization add this plug to your plug pipeline/controller like this:
 
   ```
   plug JSONAPI.Plug.Request,
     filter: ~w(title),
     sort: ~w(created_at title),
-    view: MyPostView
+    view: MyApp.MyView
   ```
 
-  If your controller's index function receives a query with params inside those
-  bounds it will build a `JSONAPI` that has all the validated and parsed
-  fields for your usage. The final configuration will be added to assigns
-  `jsonapi`.
-
-  The final output will be a `JSONAPI` struct and will look similar to the
-  following:
+  If your connection receives a valid JSON:API request this plug will parse it into a `JSONAPI`
+  struct that has all the validated and parsed fields and store it into the `Plug.Conn` assign
+  named `:jsonapi`. The final output will look similar to the following:
 
   ```
-  %JSONAPI{
-    view: MyPostView,
-    opts: [sort: ["created_at", "title"], filter: ["title"]],
-    sort: [desc: :created_at] # Easily insertable into an ecto order_by,
-    filter: [title: "my title"] # Easily reduceable into ecto where clauses
-    include: [comments: :user] # Easily insertable into a Repo.preload,
-    fields: %{"myview" => [:id, :text], "comment" => [:id, :body],
-    page: %{
-      limit: limit,
-      offset: offset,
-      page: page,
-      size: size,
-      cursor: cursor
-    }}
+  %Plug.Conn{...
+    assigns: %{...
+      jsonapi: %JSONAPI{
+        fields: %{"my-type" => [:id, :text], "comment" => [:id, :body],
+        filter: [title: "my title"] # Easily reduceable into ecto where clauses
+        include: [comments: :user] # Easily insertable into a Repo.preload,
+        opts: [sort: ["created_at", "title"], filter: ["title"]],
+        page: %{
+          limit: limit,
+          offset: offset,
+          page: page,
+          size: size,
+          cursor: cursor
+        }},
+        request: %JSONAPI.Document{...},
+        sort: [desc: :created_at] # Easily insertable into an ecto order_by,
+        view: MyApp.MyView
+      }
+    }
   }
   ```
 
-  The final result should allow you to build a query quickly and with little overhead.
+  You can then use the contents of the struct to generate a response.
 
   ## Sparse Fieldsets
 
   Sparse fieldsets are supported. By default your response will include all
-  available fields. Note that the query to your database is left to you. Should
-  you want to query your DB for specific fields `JSONAPI.fields` will
-  return the requested fields for each resource (see above example).
+  available fields. Note that loading data is left to you.
+  The fields attribute of the `JSONAPI` struct contains requested fields for
+  each resource type.
 
   ## Options
-    * `:view` - The JSONAPI View which is the basis for this plug.
+    * `:view` - The `JSONAPI.View` used to parse the request.
     * `:sort` - List of atoms which define which fields can be sorted on.
     * `:filter` - List of atoms which define which fields can be filtered on.
   """
@@ -100,6 +98,7 @@ defmodule JSONAPI.Plug.Request do
     Conn.assign(conn, :jsonapi, %JSONAPI{jsonapi | request: Document.deserialize(view, conn)})
   end
 
+  @doc false
   @spec parse_pagination(JSONAPI.t(), options()) :: JSONAPI.t()
   def parse_pagination(%JSONAPI{} = jsonapi, %{"page" => page}) when is_map(page),
     do: %JSONAPI{jsonapi | page: page}
@@ -107,6 +106,7 @@ defmodule JSONAPI.Plug.Request do
   def parse_pagination(jsonapi, _query),
     do: jsonapi
 
+  @doc false
   @spec parse_filter(JSONAPI.t(), options()) :: JSONAPI.t()
   def parse_filter(%JSONAPI{opts: opts, view: view} = jsonapi, %{"filter" => filter})
       when is_map(filter) do
@@ -124,6 +124,7 @@ defmodule JSONAPI.Plug.Request do
   def parse_filter(jsonapi, _query),
     do: jsonapi
 
+  @doc false
   @spec parse_fields(JSONAPI.t(), options()) :: JSONAPI.t() | no_return()
   def parse_fields(%JSONAPI{view: view} = jsonapi, %{"fields" => fields}) when is_map(fields) do
     Enum.reduce(fields, jsonapi, fn {type, value}, jsonapi ->
@@ -179,6 +180,7 @@ defmodule JSONAPI.Plug.Request do
     end
   end
 
+  @doc false
   @spec parse_sort(JSONAPI.t(), options()) :: JSONAPI.t()
   def parse_sort(%JSONAPI{opts: opts, view: view} = jsonapi, %{"sort" => sort}) do
     sort =
@@ -204,6 +206,7 @@ defmodule JSONAPI.Plug.Request do
   defp build_sort("", field), do: [asc: field]
   defp build_sort("-", field), do: [desc: field]
 
+  @doc false
   @spec parse_include(JSONAPI.t(), options()) :: JSONAPI.t()
   def parse_include(%JSONAPI{view: view} = jsonapi, %{"include" => include}) do
     valid_includes = view.relationships()
@@ -267,6 +270,7 @@ defmodule JSONAPI.Plug.Request do
     end
   end
 
+  @doc false
   @spec put_as_tree(term(), term(), term()) :: term()
   def put_as_tree(acc, items, val) do
     [head | tail] = Enum.reverse(items)
@@ -292,6 +296,11 @@ defmodule JSONAPI.Plug.Request do
   end
 
   @doc """
+  Normalizes query parameters to underscore form
+
+  ## Examples
+
+  ```
   iex> normalize_query_params(%{"foo-bar" => "baz"})
   %{"foo_bar" => "baz"}
 
@@ -345,6 +354,7 @@ defmodule JSONAPI.Plug.Request do
 
   iex> normalize_query_params(%{"fooAttributes" => [%{"fooBar" => "a"}, %{"fooBar" => "b"}]})
   %{"foo_attributes" => [%{"foo_bar" => "a"}, %{"foo_bar" => "b"}]}
+  ```
   """
   @spec normalize_query_params(String.t() | atom() | tuple() | map() | list()) :: map()
   def normalize_query_params(map) when is_map(map),

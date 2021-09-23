@@ -31,12 +31,12 @@ defp deps do [
 
 ### Configuration
 
-This library can be used with any plug based application and doesn't make use of application configuration.
+This library can be used with any plug based application and doesn't make use of global configuration.
 
 You can declare an API endpoints by adding the `JSONAPI.Plug` to your plug pipeline or Phoenix Router scope:
 
 ```elixir
-plug JSONAPI.Plug, api: MyAPI
+plug JSONAPI.Plug, api: MyApp.MyAPI
 ```
 
 This will take care of ensuring `JSON:API` spec compliance and will return errors for malformed requests.
@@ -44,8 +44,8 @@ This will take care of ensuring `JSON:API` spec compliance and will return error
 The `:api` option expects an API module for configuration. You can generate one like this:
 
 ```elixir
-defmodule MyAPI do
-  use JSONAPI.API
+defmodule MyApp.MyAPI do
+  use JSONAPI.API, otp_app: :my_app
 end
 ```
 
@@ -104,7 +104,7 @@ In order to parse `JSON:API` requests from clients you need to add the `JSONAPI.
 to each of your plug pipelines or phoenix controllers handling requests for a specific resource:
 
 ```elixir
-plug JSONAPI.Plug.Request, view: PostView
+plug JSONAPI.Plug.Request, view: MyApp.PostView
 ```
 
 You need to provide at least the `:view` option specifying which `JSONAPI.View` will be used.
