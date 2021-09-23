@@ -1,4 +1,4 @@
-# JSON:API for Plug-based applications
+# JSON:API library for Plug based applications
 
 Server library to build [JSON:API](http://jsonapi.org) compliant REST APIs.
 
@@ -24,7 +24,7 @@ Add the following line to your `mix.deps` file with the desired version to insta
 ```elixir
 defp deps do [
   ...
-  {:jsonapi, "~> 2.0"}
+  {:jsonapi, "~> 1.0"}
   ...
 ]
 ```
