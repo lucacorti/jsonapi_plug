@@ -81,7 +81,7 @@ defmodule JSONAPI.Document do
   This assumes you are using `JSONAPI.View` and pass structs implementing `JSONAPI.Resource`.
 
   Please refer to `JSONAPI.View` for more information. If you are in interested in relationships
-  and includes you may also want to reference the `JSONAPI.Request`.
+  and includes you may also want to reference the `JSONAPI.Plug.Request`.
   """
   @spec serialize(
           t(),

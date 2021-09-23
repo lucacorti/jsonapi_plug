@@ -17,7 +17,7 @@ defmodule JSONAPI.Plug.Request do
   In your controller you may add:
 
   ```
-  plug JSONAPI.Request,
+  plug JSONAPI.Plug.Request,
     filter: ~w(title),
     sort: ~w(created_at title),
     view: MyPostView
@@ -31,21 +31,23 @@ defmodule JSONAPI.Plug.Request do
   The final output will be a `JSONAPI` struct and will look similar to the
   following:
 
-      %JSONAPI{
-        view: MyPostView,
-        opts: [sort: ["created_at", "title"], filter: ["title"]],
-        sort: [desc: :created_at] # Easily insertable into an ecto order_by,
-        filter: [title: "my title"] # Easily reduceable into ecto where clauses
-        include: [comments: :user] # Easily insertable into a Repo.preload,
-        fields: %{"myview" => [:id, :text], "comment" => [:id, :body],
-        page: %{
-          limit: limit,
-          offset: offset,
-          page: page,
-          size: size,
-          cursor: cursor
-        }}
-      }
+  ```
+  %JSONAPI{
+    view: MyPostView,
+    opts: [sort: ["created_at", "title"], filter: ["title"]],
+    sort: [desc: :created_at] # Easily insertable into an ecto order_by,
+    filter: [title: "my title"] # Easily reduceable into ecto where clauses
+    include: [comments: :user] # Easily insertable into a Repo.preload,
+    fields: %{"myview" => [:id, :text], "comment" => [:id, :body],
+    page: %{
+      limit: limit,
+      offset: offset,
+      page: page,
+      size: size,
+      cursor: cursor
+    }}
+  }
+  ```
 
   The final result should allow you to build a query quickly and with little overhead.
 
@@ -79,15 +81,12 @@ defmodule JSONAPI.Plug.Request do
     {view, opts} = Keyword.pop(opts, :view)
 
     unless view do
-      raise "You must pass the :view option to JSONAPI.Request"
+      raise "You must pass the :view option to JSONAPI.Plug.Request"
     end
 
     conn = Conn.fetch_query_params(conn)
 
-    query =
-      conn
-      |> Map.get(:query_params)
-      |> normalize_query_params()
+    query = normalize_query_params(conn.query_params)
 
     jsonapi =
       jsonapi
@@ -259,10 +258,9 @@ defmodule JSONAPI.Plug.Request do
                   __STACKTRACE__
       end
 
-    last = List.last(keys)
-    path = Enum.slice(keys, 0, Enum.count(keys) - 1)
-
     if member_of_tree?(keys, valid_include) do
+      last = List.last(keys)
+      path = Enum.slice(keys, 0, Enum.count(keys) - 1)
       put_as_tree([], path, last)
     else
       raise InvalidQuery, resource: view.type(), param: key, param_type: :include

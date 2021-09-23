@@ -1,4 +1,4 @@
-# JSONAPI Elixir
+# JSON:API for Plug-based applications
 
 Server library to build [JSON:API](http://jsonapi.org) compliant REST APIs.
 
@@ -100,20 +100,18 @@ See the `JSONAPI.View` module documentation for usage and available options.
 
 ### Receiving requests
 
-In order to parse `JSON:API` requests from clients you need to add the `JSONAPI.Request` plug
+In order to parse `JSON:API` requests from clients you need to add the `JSONAPI.Plug.Request` plug
 to each of your plug pipelines or phoenix controllers handling requests for a specific resource:
 
-The `JSONAPI.Request` plug 
-
 ```elixir
-plug JSONAPI.Request, view: PostView
+plug JSONAPI.Plug.Request, view: PostView
 ```
 
-You need to provide at least the `:view ` option specifying which `JSONAPI.View` will be used.
+You need to provide at least the `:view` option specifying which `JSONAPI.View` will be used.
 
 When requests are processed, the `:jsonapi` connection assign is populated with the parsed request.
 
-See the `JSONAPI.Request` module documentation for usage and available options.
+See the `JSONAPI.Plug.Request` module documentation for usage and available options.
 
 ## Contributing
 

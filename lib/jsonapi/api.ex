@@ -62,7 +62,7 @@ defmodule JSONAPI.API do
         Type: `JSONAPI.API.version()`
         Default: `:"1.0"`
 
-    The API can also be overriden per plug/controller, see `JSONAPI.Request` documentation.
+    The API can also be overriden per plug/controller, see `JSONAPI.Plug.Request` documentation.
   """
 
   @type t :: module()

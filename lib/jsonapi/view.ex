@@ -10,13 +10,11 @@ defmodule JSONAPI.View do
         def attributes, do: [:id, :text, :body]
 
         @impl JSONAPI.View
-        def type, do: "post"
-
-        @impl JSONAPI.View
-        def relationships do
-          [author: UserView,
-           comments: CommentView]
-        end
+        def relationships,
+          do: [
+            author: [view: UserView],
+            comments: [many: true, view: CommentView]
+          ]
       end
 
       defmodule UserView do
@@ -24,12 +22,6 @@ defmodule JSONAPI.View do
 
         @impl JSONAPI.View
         def attributes, do: [:id, :username]
-
-        @impl JSONAPI.View
-        def type, do: "user"
-
-        @impl JSONAPI.View
-        def relationships, do: []
       end
 
       defmodule CommentView do
@@ -39,10 +31,7 @@ defmodule JSONAPI.View do
         def attributes, do: [:id, :text]
 
         @impl JSONAPI.View
-        def type, do: "comment"
-
-        @impl JSONAPI.View
-        def relationships, do: [user: UserView]
+        def relationships, do: [user: [view: UserView]]
       end
 
       defmodule DogView do
@@ -54,9 +43,9 @@ defmodule JSONAPI.View do
   ## Fields
 
   By default, the resulting JSON document consists of attributes, defined in the `attributes/0`
-  function. You can define custom attributes or override current attributes by defining a
+  function. You can define custom attributes or override attributes by defining a
   2-arity function inside the view that takes `resource` and `conn` as arguments and has
-  the same name as the field it will be producing. Refer to our `fullname/2` example below.
+  the same name as the field it will be producing:
 
       defmodule UserView do
         use JSONAPI.View, resource: User
@@ -64,17 +53,8 @@ defmodule JSONAPI.View do
         @impl JSONAPI.View
         def attributes, do: [:id, :username, :fullname]
 
-        @impl JSONAPI.View
-        def type, do: "user"
-
-        @impl JSONAPI.View
-        def relationships, do: []
-
         def fullname(resource, conn), do: "fullname"
       end
-
-  In order to use [sparse fieldsets](https://jsonapi.org/format/#fetching-sparse-fieldsets)
-  you must include the `JSONAPI.Request` plug.
 
   ## Relationships
 
@@ -95,7 +75,7 @@ defmodule JSONAPI.View do
 
   So for example:
   `GET /posts?include=post.author` if the author record is loaded on the Post, and you are using
-  the `JSONAPI.Request` it will be included in the `includes` section of the JSONAPI document.
+  the `JSONAPI.Plug.Request` it will be included in the `includes` section of the JSONAPI document.
 
   The default behaviour for `host` and `scheme` is to derive it from the `conn` provided, while the
   default style for presentation in names is to be camelized.

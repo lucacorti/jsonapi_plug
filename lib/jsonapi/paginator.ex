@@ -9,7 +9,7 @@ defmodule JSONAPI.Paginator do
 
   ```elixir
   defmodule MyApp.MyController do
-    plug JSONAPI.Request, view: MyApp.MyView, api: MyApp.MyApi
+    plug JSONAPI.Plug.Request, view: MyApp.MyView, api: MyApp.MyApi
   end
   ```
 
