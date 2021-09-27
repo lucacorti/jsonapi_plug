@@ -1,6 +1,8 @@
 defmodule JSONAPI do
   @moduledoc """
-  Struct containing JSON API information for a request
+  JSON:API Context
+
+  Stores configuration and parsed request information
   """
 
   alias JSONAPI.{API, Document, View}
@@ -27,7 +29,7 @@ defmodule JSONAPI do
             view: nil
 
   @doc """
-  This returns the MIME type for JSONAPIs
+  JSON:API MIME type
   """
   @spec mime_type :: String.t()
   def mime_type, do: "application/vnd.api+json"
