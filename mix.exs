@@ -7,7 +7,7 @@ defmodule JSONAPI.Mixfile do
       version: "1.3.0",
       package: package(),
       description: "JSON:API library for Plug based applications",
-      elixir: "~> 1.9",
+      elixir: "~> 1.10",
       elixirc_paths: elixirc_paths(Mix.env()),
       build_embedded: Mix.env() == :prod,
       start_permanent: Mix.env() == :prod,
