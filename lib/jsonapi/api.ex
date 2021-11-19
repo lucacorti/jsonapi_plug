@@ -114,7 +114,7 @@ defmodule JSONAPI.API do
   def get_config(nil = _api, _config, default), do: default
 
   def get_config(api, config, default) do
-    api.__otp_app__
+    api.__otp_app__()
     |> Application.get_env(api, [])
     |> Keyword.get(config, default)
   end
