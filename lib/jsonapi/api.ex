@@ -72,14 +72,14 @@ defmodule JSONAPI.API do
     The API module can be overriden per plug/controller, see `JSONAPI.Plug.Request` for the details.
   """
 
-  alias JSONAPI.{Paginator, Resource.Field}
+  alias JSONAPI.{Paginator, Resource}
 
   @type t :: module()
 
   @type config :: :host | :namespace | :paginator | :scheme | :version
 
   @type host :: String.t()
-  @type inflection :: Field.inflection()
+  @type inflection :: Resource.inflection()
   @type namespace :: String.t()
   @type paginator :: Paginator.t()
   @type scheme :: :http | :https

@@ -10,7 +10,6 @@ defmodule JSONAPI.Document.ResourceObject do
     Document,
     Document.RelationshipObject,
     Resource,
-    Resource.Field,
     Resource.Loadable,
     View
   }
@@ -81,10 +80,10 @@ defmodule JSONAPI.Document.ResourceObject do
   end
 
   defp inflect_field(%Conn{assigns: %{jsonapi: %JSONAPI{api: api}}}, field),
-    do: Field.inflect(field, API.get_config(api, :inflection, :camelize))
+    do: Resource.inflect(field, API.get_config(api, :inflection, :camelize))
 
   defp inflect_field(_conn, field),
-    do: Field.inflect(field, :camelize)
+    do: Resource.inflect(field, :camelize)
 
   defp requested_attributes_for_type(view, %Conn{
          assigns: %{jsonapi: %JSONAPI{fields: fields}}
@@ -222,7 +221,7 @@ defmodule JSONAPI.Document.ResourceObject do
             {to, value}
 
           :error ->
-            {to, %Field.NotLoaded{field: from}}
+            {to, %Resource.NotLoaded{field: from}}
         end
       end)
 
@@ -253,7 +252,7 @@ defmodule JSONAPI.Document.ResourceObject do
             {to, deserialize_relationship(view, from, relationship, included)}
 
           :error ->
-            {to, %Field.NotLoaded{field: from}}
+            {to, %Resource.NotLoaded{field: from}}
         end
       end)
 
@@ -272,7 +271,7 @@ defmodule JSONAPI.Document.ResourceObject do
       relationship,
       Enum.find(
         included,
-        %Field.NotLoaded{field: relationship, id: id, type: type},
+        %Resource.NotLoaded{field: relationship, id: id, type: type},
         fn resource ->
           type == view.type() && id == view.id(resource)
         end

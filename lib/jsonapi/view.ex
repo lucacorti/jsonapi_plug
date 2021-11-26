@@ -81,23 +81,23 @@ defmodule JSONAPI.View do
   default style for presentation in names is to be camelized.
   """
 
-  alias JSONAPI.{API, Document, Document.ErrorObject, Resource, Resource.Field}
+  alias JSONAPI.{API, Document, Document.ErrorObject, Resource, Resource}
   alias Plug.Conn
 
   @type t :: module()
   @type options :: keyword()
   @type data :: Resource.t() | [Resource.t()]
 
-  @type attribute_opts :: [to: Field.name()]
-  @type relationship_opts :: [many: boolean(), to: Field.name(), view: t()]
+  @type attribute_opts :: [to: Resource.field()]
+  @type relationship_opts :: [many: boolean(), to: Resource.field(), view: t()]
 
   @callback id(Resource.t()) :: Resource.id()
-  @callback id_attribute :: Field.name()
-  @callback attributes :: [Field.name() | keyword(attribute_opts())]
+  @callback id_attribute :: Resource.field()
+  @callback attributes :: [Resource.field() | keyword(attribute_opts())]
   @callback links(Resource.t(), Conn.t() | nil) :: Document.links()
   @callback meta(Resource.t(), Conn.t() | nil) :: Document.meta()
   @callback path :: String.t() | nil
-  @callback relationships :: [{Field.name(), keyword(relationship_opts())}]
+  @callback relationships :: [{Resource.field(), keyword(relationship_opts())}]
   @callback resource :: Resource.t()
   @callback type :: Resource.type()
 
@@ -121,7 +121,7 @@ defmodule JSONAPI.View do
                          |> Module.split()
                          |> List.last()
                          |> String.downcase()
-                         |> Field.inflect(:dasherize)
+                         |> Resource.inflect(:dasherize)
 
       @impl JSONAPI.View
       def id(resource) do
