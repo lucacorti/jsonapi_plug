@@ -17,12 +17,10 @@ defmodule JSONAPI.Resource do
     alias JSONAPI.Resource
 
     @type t :: %__MODULE__{
-            field: Resource.field(),
             id: Resource.id() | nil,
             type: Resource.type() | nil
           }
-    @enforce_keys [:field]
-    defstruct [:field, :id, :type]
+    defstruct [:id, :type]
   end
 
   @doc """

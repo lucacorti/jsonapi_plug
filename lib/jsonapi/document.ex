@@ -203,7 +203,7 @@ defmodule JSONAPI.Document do
   defp deserialize_included(%__MODULE__{} = document, view, %{"included" => included})
        when is_list(included) do
     Enum.reduce(included, document, fn
-      %{"data" => %{"type" => type}} = data, %__MODULE__{included: included} = document ->
+      %{"type" => type} = data, %__MODULE__{included: included} = document ->
         case View.for_related_type(view, type) do
           nil ->
             document

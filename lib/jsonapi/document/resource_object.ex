@@ -202,12 +202,15 @@ defmodule JSONAPI.Document.ResourceObject do
   end
 
   @spec deserialize(View.t(), Document.payload(), [Resource.t()]) :: Resource.t()
-  def deserialize(view, %{"id" => id} = data, included) do
+  def deserialize(view, data, included) do
     view.resource()
     |> deserialize_attributes(view, data)
     |> deserialize_relationships(view, data, included)
-    |> struct([{view.id_attribute(), id}])
+    |> deserialize_id(view, data)
   end
+
+  defp deserialize_id(resource, view, %{"id" => id}),
+    do: struct(resource, [{view.id_attribute(), id}])
 
   defp deserialize_attributes(resource, view, %{"attributes" => attributes})
        when is_map(attributes) do
@@ -221,7 +224,7 @@ defmodule JSONAPI.Document.ResourceObject do
             {to, value}
 
           :error ->
-            {to, %Resource.NotLoaded{field: from}}
+            {to, %Resource.NotLoaded{}}
         end
       end)
 
@@ -246,13 +249,13 @@ defmodule JSONAPI.Document.ResourceObject do
 
         case Map.fetch(relationships, to_string(from)) do
           {:ok, relationships} when many == true ->
-            {to, Enum.map(relationships, &deserialize_relationship(view, from, &1, included))}
+            {to, Enum.map(relationships, &deserialize_relationship(view, &1, included))}
 
           {:ok, relationship} ->
-            {to, deserialize_relationship(view, from, relationship, included)}
+            {to, deserialize_relationship(view, relationship, included)}
 
           :error ->
-            {to, %Resource.NotLoaded{field: from}}
+            {to, %Resource.NotLoaded{}}
         end
       end)
 
@@ -263,19 +266,17 @@ defmodule JSONAPI.Document.ResourceObject do
 
   defp deserialize_relationship(
          view,
-         relationship,
          %{"data" => %{"id" => id, "type" => type}},
          included
        ) do
-    {
-      relationship,
-      Enum.find(
-        included,
-        %Resource.NotLoaded{field: relationship, id: id, type: type},
-        fn resource ->
-          type == view.type() && id == view.id(resource)
-        end
-      )
-    }
+    relationship_view = View.for_related_type(view, type)
+
+    Enum.find(
+      included,
+      %Resource.NotLoaded{id: id, type: type},
+      fn resource ->
+        type == relationship_view.type() && id == relationship_view.id(resource)
+      end
+    )
   end
 end
