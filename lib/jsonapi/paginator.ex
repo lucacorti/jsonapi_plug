@@ -47,7 +47,7 @@ defmodule JSONAPI.Paginator do
           View.t(),
           [Resource.t()],
           Conn.t() | nil,
-          params()
+          params() | nil
         ) ::
           LinksObject.link()
   def url_for(

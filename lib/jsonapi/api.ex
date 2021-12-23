@@ -76,7 +76,7 @@ defmodule JSONAPI.API do
 
   @type t :: module()
 
-  @type config :: :host | :namespace | :paginator | :scheme | :version
+  @type config :: :host | :inflection | :namespace | :paginator | :scheme | :version
 
   @type host :: String.t()
   @type inflection :: Resource.inflection()
