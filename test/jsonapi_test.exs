@@ -151,28 +151,22 @@ defmodule JSONAPITest do
 
     assert Enum.count(data_list) == 1
     [data | _] = data_list
-    assert Map.get(data, "type") == "mytype"
+    assert Map.get(data, "type") == "post"
     assert Map.get(data, "id") == "1"
 
     relationships = Map.get(data, "relationships")
-    assert map_size(relationships) == 2
-    assert Enum.sort(Map.keys(relationships)) == ["author", "other_user"]
+    assert map_size(relationships) == 3
+    assert Enum.sort(Map.keys(relationships)) == ["author", "bestComments", "otherUser"]
     author_rel = Map.get(relationships, "author")
 
-    assert get_in(author_rel, ["data", "type"]) == "user"
-    assert get_in(author_rel, ["data", "id"]) == "2"
+    assert author_rel["data"]["type"] == "user"
+    assert author_rel["data"]["id"] == "2"
 
-    other_user = Map.get(relationships, "other_user")
+    other_user = Map.get(relationships, "otherUser")
 
     # not included
-    assert get_in(other_user, ["data", "type"]) == "user"
-    assert get_in(other_user, ["data", "id"]) == "3"
-
-    assert Map.has_key?(json, "included")
-    included = Map.get(json, "included")
-    assert is_list(included)
-    # author is atuomatically included
-    assert Enum.count(included) == 1
+    assert other_user["data"]["type"] == "user"
+    assert other_user["data"]["id"] == "3"
   end
 
   test "handles deep nested includes properly" do
@@ -310,18 +304,14 @@ defmodule JSONAPITest do
     test "handles empty sparse fields properly" do
       conn =
         :get
-        |> conn("/posts?include=other_user.company&fields[mytype]=")
+        |> conn("/posts?include=other_user.company&fields[post]=")
         |> Plug.Conn.assign(:data, [@default_data])
         |> Plug.Conn.fetch_query_params()
         |> MyPostPlug.call([])
 
-      assert %{
-               "data" => [
-                 %{"attributes" => attributes}
-               ]
-             } = Jason.decode!(conn.resp_body)
+      assert %{"data" => [resource]} = Jason.decode!(conn.resp_body)
 
-      assert %{} == attributes
+      assert %{} == Map.get(resource, "attributes", %{})
     end
   end
 

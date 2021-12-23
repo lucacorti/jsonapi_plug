@@ -137,6 +137,7 @@ defmodule JSONAPI.Plug.Request do
         try do
           value
           |> String.split(",")
+          |> Enum.filter(&(&1 !== ""))
           |> Enum.map(&Resource.inflect(&1, :underscore))
           |> Enum.into(MapSet.new(), &String.to_existing_atom/1)
         rescue
@@ -149,21 +150,29 @@ defmodule JSONAPI.Plug.Request do
                     __STACKTRACE__
         end
 
-      unless MapSet.subset?(requested_fields, valid_fields) do
-        bad_fields =
-          requested_fields
-          |> MapSet.difference(valid_fields)
-          |> MapSet.to_list()
-          |> Enum.join(",")
+      size = MapSet.size(requested_fields)
 
-        raise InvalidQuery,
-          resource: view.type(),
-          message: "invalid fields, #{value} for type #{view.type()}",
-          param: bad_fields,
-          param_type: :fields
+      case MapSet.subset?(requested_fields, valid_fields) do
+        # no fields if empty - https://jsonapi.org/format/#fetching-sparse-fieldsets
+        false when size > 0 ->
+          bad_fields =
+            requested_fields
+            |> MapSet.difference(valid_fields)
+            |> MapSet.to_list()
+            |> Enum.join(",")
+
+          raise InvalidQuery,
+            resource: view.type(),
+            message: "invalid fields, #{value} for type #{view.type()}",
+            param: bad_fields,
+            param_type: :fields
+
+        _ ->
+          %JSONAPI{
+            jsonapi
+            | fields: Map.put(jsonapi.fields, type, MapSet.to_list(requested_fields))
+          }
       end
-
-      %JSONAPI{jsonapi | fields: Map.put(jsonapi.fields, type, MapSet.to_list(requested_fields))}
     end)
   end
 
@@ -214,6 +223,7 @@ defmodule JSONAPI.Plug.Request do
     includes =
       include
       |> String.split(",")
+      |> Enum.filter(&(&1 !== ""))
       |> Enum.map(&Resource.inflect(&1, :underscore))
       |> Enum.flat_map(fn inc ->
         if inc =~ ~r/\w+\.\w+/ do

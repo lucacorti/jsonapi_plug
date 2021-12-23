@@ -395,16 +395,11 @@ defmodule JSONAPI.Plug.RequestTest do
       assert %JSONAPI{sort: [asc: :name, asc: :title]} =
                parse_sort(config, %{"sort" => "name,title"})
 
-  test "parse_fields/2 turns an empty fields map into an empty list" do
-    config = struct(Config, view: MyView)
-    assert parse_fields(config, %{"mytype" => ""}).fields == %{"mytype" => []}
-  end
-
-  test "parse_fields/2 raises on invalid parsing" do
-    config = struct(JSONAPI, view: MyPostView)
       assert %JSONAPI{sort: [asc: :name]} = parse_sort(config, %{"sort" => "name"})
       assert %JSONAPI{sort: [desc: :name]} = parse_sort(config, %{"sort" => "-name"})
-      assert %JSONAPI{sort: [asc: :name, desc: :title]} = parse_sort(config, %{"sort" => "name,-title"})
+
+      assert %JSONAPI{sort: [asc: :name, desc: :title]} =
+               parse_sort(config, %{"sort" => "name,-title"})
     end
 
     test "parse_sort/2 raises on invalid sorts" do
