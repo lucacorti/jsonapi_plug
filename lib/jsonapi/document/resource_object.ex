@@ -199,7 +199,7 @@ defmodule JSONAPI.Document.ResourceObject do
     |> Enum.uniq()
   end
 
-  @spec deserialize(View.t(), Document.payload(), [Resource.t()]) :: Resource.t()
+  @spec deserialize(View.t(), Document.payload(), Document.included()) :: Resource.t()
   def deserialize(view, data, included) do
     view.resource()
     |> deserialize_attributes(view, data)
@@ -237,7 +237,12 @@ defmodule JSONAPI.Document.ResourceObject do
   defp map_attribute!(attribute),
     do: raise("Invalid attribute specification #{inspect(attribute)}")
 
-  defp deserialize_relationships(resource, view, %{"relationships" => relationships}, included)
+  defp deserialize_relationships(
+         resource,
+         view,
+         %{"relationships" => relationships} = _data,
+         included
+       )
        when is_map(relationships) do
     attrs =
       view.relationships()
@@ -267,14 +272,15 @@ defmodule JSONAPI.Document.ResourceObject do
          %{"data" => %{"id" => id, "type" => type}},
          included
        ) do
-    relationship_view = View.for_related_type(view, type)
+    Enum.reduce_while(included, %Resource.NotLoaded{id: id, type: type}, fn
+      %{"type" => ^type, "id" => ^id} = included_resource, result ->
+        case View.for_related_type(view, type) do
+          nil -> {:halt, result}
+          related_view -> {:halt, deserialize(related_view, included_resource, included)}
+        end
 
-    Enum.find(
-      included,
-      %Resource.NotLoaded{id: id, type: type},
-      fn resource ->
-        type == relationship_view.type() && id == relationship_view.id(resource)
-      end
-    )
+      _included_resource, result ->
+        {:cont, result}
+    end)
   end
 end

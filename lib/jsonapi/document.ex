@@ -195,42 +195,34 @@ defmodule JSONAPI.Document do
 
   def deserialize(view, %Conn{body_params: payload}) do
     %__MODULE__{}
-    |> deserialize_included(view, payload)
     |> deserialize_data(view, payload)
     |> deserialize_meta(view, payload)
   end
 
-  defp deserialize_included(%__MODULE__{} = document, view, %{"included" => included})
-       when is_list(included) do
-    Enum.reduce(included, document, fn
-      %{"type" => type} = data, %__MODULE__{included: included} = document ->
-        case View.for_related_type(view, type) do
-          nil ->
-            document
-
-          included_view ->
-            %__MODULE__{
-              document
-              | included: [ResourceObject.deserialize(included_view, data, []) | included || []]
-            }
-        end
-    end)
-  end
-
-  defp deserialize_included(%__MODULE__{} = document, _view, _payload),
-    do: document
-
-  defp deserialize_data(%__MODULE__{included: included} = document, view, %{"data" => data})
-       when is_list(data) do
+  defp deserialize_data(%__MODULE__{} = document, view, %{"data" => data, "included" => included})
+       when is_list(data) and is_list(included) do
     %__MODULE__{
       document
       | data: Enum.map(data, &ResourceObject.deserialize(view, &1, included))
     }
   end
 
-  defp deserialize_data(%__MODULE__{included: included} = document, view, %{"data" => data})
-       when is_map(data) do
+  defp deserialize_data(%__MODULE__{} = document, view, %{"data" => data, "included" => included})
+       when is_map(data) and is_list(included) do
     %__MODULE__{document | data: ResourceObject.deserialize(view, data, included)}
+  end
+
+  defp deserialize_data(%__MODULE__{} = document, view, %{"data" => data})
+       when is_list(data) do
+    %__MODULE__{
+      document
+      | data: Enum.map(data, &ResourceObject.deserialize(view, &1, []))
+    }
+  end
+
+  defp deserialize_data(%__MODULE__{} = document, view, %{"data" => data})
+       when is_map(data) do
+    %__MODULE__{document | data: ResourceObject.deserialize(view, data, [])}
   end
 
   defp deserialize_data(%__MODULE__{} = document, _view, _payload),
