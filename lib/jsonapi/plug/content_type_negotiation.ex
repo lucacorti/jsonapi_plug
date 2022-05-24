@@ -44,8 +44,7 @@ defmodule JSONAPI.Plug.ContentTypeNegotiation do
       |> List.first()
 
     (value || JSONAPI.mime_type())
-    |> String.split(",")
-    |> Enum.map(&String.trim/1)
+    |> String.split(",", trim: true)
     |> Enum.member?(JSONAPI.mime_type())
   end
 end

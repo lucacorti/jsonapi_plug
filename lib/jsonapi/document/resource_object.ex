@@ -37,10 +37,10 @@ defmodule JSONAPI.Document.ResourceObject do
   def serialize(
         view,
         resources,
-        %Conn{assigns: %{jsonapi: %JSONAPI{include: include}}} = conn,
+        %Conn{private: %{jsonapi: %JSONAPI{} = jsonapi}} = conn,
         options
       ),
-      do: do_serialize(view, resources, conn, include, options)
+      do: do_serialize(view, resources, conn, jsonapi.include, options)
 
   def serialize(view, resources, conn, options),
     do: do_serialize(view, resources, conn, [], options)
@@ -79,16 +79,14 @@ defmodule JSONAPI.Document.ResourceObject do
     %__MODULE__{resource_object | attributes: attributes}
   end
 
-  defp inflect_field(%Conn{assigns: %{jsonapi: %JSONAPI{api: api}}}, field),
-    do: Resource.inflect(field, API.get_config(api, :inflection, :camelize))
+  defp inflect_field(%Conn{private: %{jsonapi: %JSONAPI{} = jsonapi}}, field),
+    do: Resource.inflect(field, API.get_config(jsonapi.api, :inflection, :camelize))
 
   defp inflect_field(_conn, field),
     do: Resource.inflect(field, :camelize)
 
-  defp requested_attributes_for_type(view, %Conn{
-         assigns: %{jsonapi: %JSONAPI{fields: fields}}
-       }),
-       do: fields[view.type()]
+  defp requested_attributes_for_type(view, %Conn{private: %{jsonapi: %JSONAPI{} = jsonapi}}),
+    do: jsonapi.fields[view.type()]
 
   defp requested_attributes_for_type(_view, _conn), do: nil
 

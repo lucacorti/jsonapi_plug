@@ -19,7 +19,7 @@ defmodule JSONAPI.Paginator do
 
   Actual pagination needs to be handled by your application and is outside the scope of this library.
 
-  Links can be generated using the `JSONAPI.page` information stored in the connection assign `jsonapi`
+  Links can be generated using the `JSONAPI.page` information stored in the connection `jsonapi` private field
   and by passing additional information to your paginator module by passing `options` from your controller.
 
   See the tests for an example implementation of page based pagination strategy.

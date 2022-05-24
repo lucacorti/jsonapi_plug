@@ -208,28 +208,28 @@ defmodule JSONAPITest do
                %{
                  "id" => "1",
                  "type" => "post",
-                 "relationships" => %{
-                   "author" =>
-                     %{
+                 "relationships" =>
+                   %{
+                     "author" => %{
                        "data" => %{
                          "id" => "2",
                          "type" => "user"
                        }
-                     } = relationships,
-                   "otherUser" => %{
-                     "data" => %{
-                       "id" => "1",
-                       "type" => "user"
+                     },
+                     "otherUser" => %{
+                       "data" => %{
+                         "id" => "1",
+                         "type" => "user"
+                       }
                      }
-                   }
-                 }
+                   } = relationships
                }
              ],
              "included" => [_ | _] = included,
              "links" => _links
            } = Jason.decode!(conn.resp_body)
 
-    assert map_size(relationships) == 2
+    assert map_size(relationships) == 3
     assert Enum.count(included) == 5
 
     assert Enum.find(included, fn

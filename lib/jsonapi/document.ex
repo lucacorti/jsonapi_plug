@@ -129,12 +129,12 @@ defmodule JSONAPI.Document do
   defp serialize_jsonapi(
          %__MODULE__{} = document,
          _view,
-         %Conn{assigns: %{jsonapi: %JSONAPI{api: api}}},
+         %Conn{private: %{jsonapi: %JSONAPI{} = jsonapi}},
          _options
        ),
        do: %__MODULE__{
          document
-         | jsonapi: %JSONAPIObject{version: API.get_config(api, :version, :"1.0")}
+         | jsonapi: %JSONAPIObject{version: API.get_config(jsonapi.api, :version, :"1.0")}
        }
 
   defp serialize_jsonapi(
@@ -148,15 +148,15 @@ defmodule JSONAPI.Document do
   defp serialize_links(
          %__MODULE__{data: resources} = document,
          view,
-         %Conn{assigns: %{jsonapi: %JSONAPI{page: page}}} = conn,
+         %Conn{private: %{jsonapi: %JSONAPI{} = jsonapi}} = conn,
          options
        )
        when is_list(resources) do
     links =
       resources
       |> view.links(conn)
-      |> Map.merge(pagination_links(view, resources, conn, page, options))
-      |> Map.merge(%{self: Paginator.url_for(view, resources, conn, page)})
+      |> Map.merge(pagination_links(view, resources, conn, jsonapi.page, options))
+      |> Map.merge(%{self: Paginator.url_for(view, resources, conn, jsonapi.page)})
 
     %__MODULE__{document | links: links}
   end
@@ -173,11 +173,11 @@ defmodule JSONAPI.Document do
   defp pagination_links(
          view,
          resources,
-         %Conn{assigns: %{jsonapi: %JSONAPI{api: api}}} = conn,
+         %Conn{private: %{jsonapi: %JSONAPI{} = jsonapi}} = conn,
          page,
          options
        ) do
-    paginator = API.get_config(api, :paginator)
+    paginator = API.get_config(jsonapi.api, :paginator)
 
     if paginator do
       paginator.paginate(view, resources, conn, page, options)

@@ -21,12 +21,12 @@ defmodule JSONAPI.Plug.Request do
   ```
 
   If your connection receives a valid JSON:API request this plug will parse it into a `JSONAPI`
-  struct that has all the validated and parsed fields and store it into the `Plug.Conn` assign
-  named `:jsonapi`. The final output will look similar to the following:
+  struct that has all the validated and parsed fields and store it into the `Plug.Conn` private
+  field `:jsonapi`. The final output will look similar to the following:
 
   ```
   %Plug.Conn{...
-    assigns: %{...
+    private: %{...
       jsonapi: %JSONAPI{
         fields: %{"my-type" => [:id, :text], "comment" => [:id, :body],
         filter: [title: "my title"] # Easily reduceable into ecto where clauses
@@ -73,8 +73,8 @@ defmodule JSONAPI.Plug.Request do
   def init(opts), do: opts
 
   @impl Plug
-  def call(%Conn{assigns: %{jsonapi: %JSONAPI{api: api} = jsonapi}} = conn, opts) do
-    {api, opts} = Keyword.pop(opts, :api, api)
+  def call(%Conn{private: %{jsonapi: %JSONAPI{} = jsonapi}} = conn, opts) do
+    {api, opts} = Keyword.pop(opts, :api, jsonapi.api)
 
     {view, opts} = Keyword.pop(opts, :view)
 
@@ -95,7 +95,7 @@ defmodule JSONAPI.Plug.Request do
       |> parse_sort(query)
       |> parse_pagination(query)
 
-    Conn.assign(conn, :jsonapi, %JSONAPI{jsonapi | request: Document.deserialize(view, conn)})
+    Conn.put_private(conn, :jsonapi, %JSONAPI{jsonapi | request: Document.deserialize(view, conn)})
   end
 
   @doc false
@@ -223,7 +223,7 @@ defmodule JSONAPI.Plug.Request do
     includes =
       include
       |> String.split(",")
-      |> Enum.filter(&(&1 !== ""))
+      |> Enum.filter(&(byte_size(&1) > 0))
       |> Enum.map(&Resource.inflect(&1, :underscore))
       |> Enum.flat_map(fn inc ->
         if inc =~ ~r/\w+\.\w+/ do
@@ -255,7 +255,7 @@ defmodule JSONAPI.Plug.Request do
 
   def parse_include(jsonapi, _query), do: jsonapi
 
-  defp handle_nested_include(key, valid_include, %JSONAPI{view: view}) do
+  defp handle_nested_include(key, valid_include, %JSONAPI{} = jsonapi) do
     keys =
       try do
         key
@@ -264,7 +264,7 @@ defmodule JSONAPI.Plug.Request do
       rescue
         ArgumentError ->
           reraise InvalidQuery.exception(
-                    resource: view.type(),
+                    resource: jsonapi.view.type(),
                     param: key,
                     param_type: :include
                   ),
@@ -276,7 +276,7 @@ defmodule JSONAPI.Plug.Request do
       path = Enum.slice(keys, 0, Enum.count(keys) - 1)
       put_as_tree([], path, last)
     else
-      raise InvalidQuery, resource: view.type(), param: key, param_type: :include
+      raise InvalidQuery, resource: jsonapi.view.type(), param: key, param_type: :include
     end
   end
 

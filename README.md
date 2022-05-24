@@ -13,7 +13,7 @@ This library implements [version 1.0](https://jsonapi.org/format/1.0/) of the JS
 
 ## Badges
 
-![CI](https://github.com/dottori-it/jsonapi/workflows/Continuous%20Integration/badge.svg)
+![CI](https://github.com/lucacorti/jsonapi/workflows/Continuous%20Integration/badge.svg)
 
 ## Quickstart
 
@@ -109,13 +109,12 @@ plug JSONAPI.Plug.Request, view: MyApp.PostView
 
 You need to provide at least the `:view` option specifying which `JSONAPI.View` will be used.
 
-When requests are processed, the `:jsonapi` connection assign is populated with the parsed request.
+When requests are processed, the `:jsonapi` connection private field is populated with the parsed request.
 
 See the `JSONAPI.Plug.Request` module documentation for usage and available options.
 
 ## Contributing
 
 - This project was born as a fork of [JSONAPI](https://hexdocs.pm/jsonapi)
-- The library is maintained by [dottori.it](http://github.com/dottori-it)
 - PRs for new features, bug fixes, documentation and tests are welcome
 - If you are proposing a large feature, please open an issue for discussion

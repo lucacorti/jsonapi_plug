@@ -186,7 +186,7 @@ defmodule JSONAPI.ViewTest do
              }
            } = View.render(UserView, %User{id: 1}, conn)
 
-    assert 6 = map_size(attributes)
+    assert map_size(attributes) == 6
   end
 
   test "view trims returned field names to only those requested" do
@@ -204,12 +204,12 @@ defmodule JSONAPI.ViewTest do
              }
            } = View.render(PostView, %Post{id: 1, body: "hi"}, conn)
 
-    assert 1 = map_size(attributes)
+    assert map_size(attributes) == 1
   end
 
   test "attributes/2 can return only requested fields" do
     conn = %Conn{
-      assigns: %{jsonapi: %JSONAPI{fields: %{PostView.type() => [:body]}}}
+      private: %{jsonapi: %JSONAPI{fields: %{PostView.type() => [:body]}}}
     }
 
     assert %Document{
@@ -220,7 +220,7 @@ defmodule JSONAPI.ViewTest do
              }
            } = View.render(PostView, %Post{id: 1, body: "Chunky", title: "Bacon"}, conn)
 
-    assert 1 = map_size(attributes)
+    assert map_size(attributes) == 1
   end
 
   test "for_related_type/2 using view.type as key" do

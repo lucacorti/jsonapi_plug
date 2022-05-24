@@ -123,8 +123,9 @@ defmodule JSONAPI.DocumentTest do
                            id: id,
                            type: type,
                            attributes: attributes,
-                           links: links
-                         } = resource ->
+                           links: links,
+                           relationships: relationships
+                         } ->
         assert ^id = PostView.id(post)
         assert ^type = PostView.type()
 
@@ -132,7 +133,7 @@ defmodule JSONAPI.DocumentTest do
         assert attributes["body"] == post.body
 
         assert links.self == View.url_for(PostView, post, conn)
-        assert map_size(resource.relationships) == 2
+        assert map_size(relationships) == 2
       end)
     end
 
@@ -482,7 +483,7 @@ defmodule JSONAPI.DocumentTest do
         |> JSONAPI.Plug.call(api: DefaultAPI)
         |> Request.call(Request.init(view: PostView))
 
-      page = conn.assigns.jsonapi.page
+      page = conn.private.jsonapi.page
       first = Paginator.url_for(PostView, [%Post{id: 1}], conn, %{page | "page" => 1})
       last = Paginator.url_for(PostView, [%Post{id: 1}], conn, %{page | "page" => 3})
       self = Paginator.url_for(PostView, [%Post{id: 1}], conn, page)
@@ -636,7 +637,7 @@ defmodule JSONAPI.DocumentTest do
     end
   end
 
-  test "deserialize resource list with same included relationship" do
+  test "deserialize resource list with nested included relationship" do
     assert %Document{
              data: [
                %Post{id: "1", author: %User{id: "1", company: %Company{id: "1"}}},

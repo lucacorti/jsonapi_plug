@@ -127,7 +127,7 @@ defmodule JSONAPI.View do
       def id(resource) do
         case Map.fetch(resource, id_attribute()) do
           {:ok, id} -> to_string(id)
-          :error -> raise "Resources must have and id defined"
+          :error -> raise "Resources must have an id defined"
         end
       end
 
@@ -180,7 +180,7 @@ defmodule JSONAPI.View do
   def render(view, data, conn \\ nil, meta \\ nil, options \\ []),
     do: Document.serialize(%Document{data: data, meta: meta}, view, conn, options)
 
-  @spec send_error(Conn.t(), pos_integer(), [ErrorObject.t()]) :: Conn.t()
+  @spec send_error(Conn.t(), Conn.status(), [ErrorObject.t()]) :: Conn.t()
   def send_error(conn, status, errors) do
     conn
     |> Conn.update_resp_header("content-type", JSONAPI.mime_type(), & &1)
@@ -210,18 +210,18 @@ defmodule JSONAPI.View do
   end
 
   defp render_url(
-         %Conn{assigns: %{jsonapi: %JSONAPI{api: api}}, scheme: scheme, host: host},
+         %Conn{private: %{jsonapi: %JSONAPI{} = jsonapi}, scheme: scheme, host: host},
          path
        ) do
     namespace =
-      case API.get_config(api, :namespace) do
+      case API.get_config(jsonapi.api, :namespace) do
         nil -> ""
         namespace -> "/" <> namespace
       end
 
     %URI{
-      scheme: to_string(API.get_config(api, :scheme, scheme)),
-      host: API.get_config(api, :host, host),
+      scheme: to_string(API.get_config(jsonapi.api, :scheme, scheme)),
+      host: API.get_config(jsonapi.api, :host, host),
       path: Enum.join([namespace | path], "/")
     }
   end

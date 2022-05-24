@@ -11,7 +11,7 @@ defmodule JSONAPI.Mixfile do
       elixirc_paths: elixirc_paths(Mix.env()),
       build_embedded: Mix.env() == :prod,
       start_permanent: Mix.env() == :prod,
-      source_url: "https://github.com/dottori-it/jsonapi",
+      source_url: "https://github.com/lucacorti/jsonapi",
       deps: deps(),
       dialyzer: dialyzer(),
       docs: [
@@ -51,10 +51,10 @@ defmodule JSONAPI.Mixfile do
 
   defp package do
     [
-      maintainers: ["dottori.it"],
+      maintainers: ["Luca Corti"],
       licenses: ["MIT"],
       links: %{
-        github: "https://github.com/dottori-it/jsonapi"
+        github: "https://github.com/lucacorti/jsonapi"
       }
     ]
   end

@@ -47,7 +47,7 @@ defmodule JSONAPI.Plug.RequestTest do
 
   describe "request body" do
     test "Ignores bodyless requests" do
-      assert %Conn{assigns: %{jsonapi: %JSONAPI{request: %Document{data: nil}}}} =
+      assert %Conn{private: %{jsonapi: %JSONAPI{request: %Document{data: nil}}}} =
                Plug.Test.conn("GET", "/")
                |> put_req_header("content-type", JSONAPI.mime_type())
                |> put_req_header("accept", JSONAPI.mime_type())
@@ -61,7 +61,7 @@ defmodule JSONAPI.Plug.RequestTest do
           "some-nonsense" => "yup"
         })
 
-      assert %Conn{assigns: %{jsonapi: %JSONAPI{request: %Document{data: %Car{id: "1"}}}}} =
+      assert %Conn{private: %{jsonapi: %JSONAPI{request: %Document{data: %Car{id: "1"}}}}} =
                Plug.Test.conn("POST", "/", req_body)
                |> put_req_header("content-type", JSONAPI.mime_type())
                |> put_req_header("accept", JSONAPI.mime_type())
@@ -78,7 +78,7 @@ defmodule JSONAPI.Plug.RequestTest do
         })
 
       assert %Conn{
-               assigns: %{
+               private: %{
                  jsonapi: %JSONAPI{
                    request: %Document{
                      data: [
@@ -122,7 +122,7 @@ defmodule JSONAPI.Plug.RequestTest do
           }
         })
 
-      assert %Conn{assigns: %{jsonapi: %JSONAPI{request: %Document{data: %Car{id: "1"}}}}} =
+      assert %Conn{private: %{jsonapi: %JSONAPI{request: %Document{data: %Car{id: "1"}}}}} =
                Plug.Test.conn("POST", "/", req_body)
                |> put_req_header("content-type", JSONAPI.mime_type())
                |> put_req_header("accept", JSONAPI.mime_type())
@@ -153,7 +153,7 @@ defmodule JSONAPI.Plug.RequestTest do
           }
         })
 
-      assert %Conn{assigns: %{jsonapi: %JSONAPI{request: %Document{data: %Car{id: "1"}}}}} =
+      assert %Conn{private: %{jsonapi: %JSONAPI{request: %Document{data: %Car{id: "1"}}}}} =
                Plug.Test.conn("POST", "/", req_body)
                |> put_req_header("content-type", JSONAPI.mime_type())
                |> put_req_header("accept", JSONAPI.mime_type())
@@ -184,7 +184,7 @@ defmodule JSONAPI.Plug.RequestTest do
           }
         })
 
-      assert %Conn{assigns: %{jsonapi: %JSONAPI{request: %Document{data: %Car{id: "1"}}}}} =
+      assert %Conn{private: %{jsonapi: %JSONAPI{request: %Document{data: %Car{id: "1"}}}}} =
                Plug.Test.conn("POST", "/", req_body)
                |> put_req_header("content-type", JSONAPI.mime_type())
                |> put_req_header("accept", JSONAPI.mime_type())

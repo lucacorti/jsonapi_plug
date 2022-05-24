@@ -5,6 +5,7 @@ defmodule JSONAPI.Plug do
   require Logger
 
   use Plug.Builder
+
   plug :config_api, builder_opts()
   plug JSONAPI.Plug.ContentTypeNegotiation
   plug JSONAPI.Plug.FormatRequired
@@ -18,6 +19,6 @@ defmodule JSONAPI.Plug do
       raise "You must pass the :api option to JSONAPI.Plug"
     end
 
-    assign(conn, :jsonapi, %JSONAPI{api: api})
+    put_private(conn, :jsonapi, %JSONAPI{api: api})
   end
 end

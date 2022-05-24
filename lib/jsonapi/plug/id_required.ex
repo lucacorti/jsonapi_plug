@@ -17,10 +17,12 @@ defmodule JSONAPI.Plug.IdRequired do
   def call(%Conn{method: method} = conn, _opts) when method in ["DELETE", "GET", "HEAD", "POST"],
     do: conn
 
-  def call(%Conn{params: %{"data" => %{"id" => id}, "id" => id}} = conn, _) when is_binary(id),
-    do: conn
+  def call(%Conn{params: %{"data" => %{"id" => id}, "id" => id}} = conn, _)
+      when is_binary(id) and byte_size(id) > 0,
+      do: conn
 
-  def call(%Conn{params: %{"data" => %{"id" => id}}} = conn, _) when not is_binary(id) do
+  def call(%Conn{params: %{"data" => %{"id" => id}}} = conn, _)
+      when not is_binary(id) or byte_size(id) < 0 do
     View.send_error(conn, 422, [
       %ErrorObject{
         detail: @crud_message,
@@ -30,7 +32,8 @@ defmodule JSONAPI.Plug.IdRequired do
     ])
   end
 
-  def call(%Conn{params: %{"data" => %{"id" => id}, "id" => _id}} = conn, _) when is_binary(id) do
+  def call(%Conn{params: %{"data" => %{"id" => id}, "id" => _id}} = conn, _)
+      when is_binary(id) and byte_size(id) > 0 do
     View.send_error(conn, 409, [
       %ErrorObject{
         detail: "The id in the url must match the id at '/data/id'. " <> @crud_message,
