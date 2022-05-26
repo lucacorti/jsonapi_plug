@@ -40,19 +40,19 @@ defmodule JSONAPI.Document.ResourceObject do
         %Conn{private: %{jsonapi: %JSONAPI{} = jsonapi}} = conn,
         options
       ),
-      do: do_serialize(view, resources, conn, jsonapi.include, options)
+      do: serialize_resource(view, resources, conn, jsonapi.include, options)
 
   def serialize(view, resources, conn, options),
-    do: do_serialize(view, resources, conn, [], options)
+    do: serialize_resource(view, resources, conn, [], options)
 
-  def do_serialize(view, resources, conn, include, options) when is_list(resources) do
+  defp serialize_resource(view, resources, conn, include, options) when is_list(resources) do
     Enum.map_reduce(resources, [], fn resource, resource_objects ->
-      {to_include, resource_object} = do_serialize(view, resource, conn, include, options)
+      {to_include, resource_object} = serialize_resource(view, resource, conn, include, options)
       {to_include, [resource_object | resource_objects]}
     end)
   end
 
-  def do_serialize(view, resource, conn, include, options) do
+  defp serialize_resource(view, resource, conn, include, options) do
     %__MODULE__{id: view.id(resource), type: view.type()}
     |> serialize_attributes(view, resource, conn)
     |> serialize_links(view, resource, conn)
@@ -63,8 +63,7 @@ defmodule JSONAPI.Document.ResourceObject do
   defp serialize_attributes(%__MODULE__{} = resource_object, view, resource, conn) do
     attributes =
       view
-      |> requested_attributes_for_type(conn)
-      |> net_attributes_for_type(view.attributes())
+      |> attributes_for_type(conn)
       |> Enum.reduce(%{}, fn field, attributes ->
         value =
           if function_exported?(view, field, 2) do
@@ -85,20 +84,14 @@ defmodule JSONAPI.Document.ResourceObject do
   defp inflect_field(_conn, field),
     do: Resource.inflect(field, :camelize)
 
-  defp requested_attributes_for_type(view, %Conn{private: %{jsonapi: %JSONAPI{} = jsonapi}}),
-    do: jsonapi.fields[view.type()]
-
-  defp requested_attributes_for_type(_view, _conn), do: nil
-
-  defp net_attributes_for_type(requested_fields, fields) when requested_fields in [nil, %{}],
-    do: fields
-
-  defp net_attributes_for_type(requested_fields, fields) do
-    fields
+  defp attributes_for_type(view, %Conn{private: %{jsonapi: %JSONAPI{fields: %{}} = jsonapi}}) do
+    view.attributes()
     |> MapSet.new()
-    |> MapSet.intersection(MapSet.new(requested_fields))
+    |> MapSet.intersection(MapSet.new(jsonapi.fields[view.type()] || view.attributes()))
     |> MapSet.to_list()
   end
+
+  defp attributes_for_type(view, _conn), do: view.attributes()
 
   defp serialize_links(%__MODULE__{} = resource_object, view, resource, conn) do
     links =
@@ -121,59 +114,43 @@ defmodule JSONAPI.Document.ResourceObject do
 
     view.relationships()
     |> Enum.filter(&Loadable.loaded?(Map.get(resource, elem(&1, 0))))
-    |> Enum.map_reduce(
+    |> Enum.flat_map_reduce(
       resource_object,
-      &build_relationships(
-        &2,
-        view,
-        resource,
-        conn,
-        {include, includes},
-        &1,
-        options
-      )
+      fn
+        {relationship_field, relationship_opts},
+        %__MODULE__{relationships: relationships} = resource_object ->
+          relationship = Map.get(resource, relationship_field)
+          relationship_type = inflect_field(conn, relationship_field)
+          relationship_url = View.url_for_relationship(view, resource, conn, relationship_type)
+          relationship_view = Keyword.fetch!(relationship_opts, :view)
+
+          relationship_object =
+            RelationshipObject.serialize(
+              relationship_view,
+              relationship,
+              conn,
+              relationship_url
+            )
+
+          relationships = Map.put(relationships, relationship_type, relationship_object)
+          resource_object = %__MODULE__{resource_object | relationships: relationships}
+
+          if Keyword.get(includes, relationship_field) do
+            {included_relationships, serialized_relationship} =
+              serialize_resource(
+                relationship_view,
+                relationship,
+                conn,
+                get_relationship_includes(include, relationship_field),
+                options
+              )
+
+            {[serialized_relationship | included_relationships], resource_object}
+          else
+            {[], resource_object}
+          end
+      end
     )
-  end
-
-  defp build_relationships(
-         %__MODULE__{relationships: relationships} = resource_object,
-         view,
-         resource,
-         conn,
-         {include, valid_includes},
-         {relationship_field, relationship_opts},
-         options
-       ) do
-    relationship = Map.get(resource, relationship_field)
-    relationship_type = inflect_field(conn, relationship_field)
-    relationship_url = View.url_for_relationship(view, resource, conn, relationship_type)
-    relationship_view = Keyword.fetch!(relationship_opts, :view)
-
-    relationship_object =
-      RelationshipObject.serialize(
-        relationship_view,
-        relationship,
-        conn,
-        relationship_url
-      )
-
-    relationships = Map.put(relationships, relationship_type, relationship_object)
-    resource_object = %__MODULE__{resource_object | relationships: relationships}
-
-    if Keyword.get(valid_includes, relationship_field) && Loadable.loaded?(relationship) do
-      {included_relationships, serialized_relationship} =
-        do_serialize(
-          relationship_view,
-          relationship,
-          conn,
-          get_relationship_includes(include, relationship_field),
-          options
-        )
-
-      {[serialized_relationship | included_relationships], resource_object}
-    else
-      {nil, resource_object}
-    end
   end
 
   defp get_relationship_includes(include, relationship_name) when is_list(include) do
@@ -191,11 +168,10 @@ defmodule JSONAPI.Document.ResourceObject do
     relationships = view.relationships()
 
     query_includes
-    |> Enum.map(fn
+    |> Enum.flat_map(fn
       {include, _} -> Keyword.take(relationships, [include])
       include -> Keyword.take(relationships, [include])
     end)
-    |> List.flatten()
     |> Enum.uniq()
   end
 
