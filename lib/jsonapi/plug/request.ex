@@ -94,8 +94,9 @@ defmodule JSONAPI.Plug.Request do
       |> parse_filter(query)
       |> parse_sort(query)
       |> parse_pagination(query)
+      |> parse_body(conn)
 
-    Conn.put_private(conn, :jsonapi, %JSONAPI{jsonapi | request: Document.deserialize(view, conn)})
+    Conn.put_private(conn, :jsonapi, jsonapi)
   end
 
   @doc false
@@ -279,6 +280,10 @@ defmodule JSONAPI.Plug.Request do
       raise InvalidQuery, resource: jsonapi.view.type(), param: key, param_type: :include
     end
   end
+
+  @spec parse_include(JSONAPI.t(), Conn.t()) :: JSONAPI.t()
+  defp parse_body(%JSONAPI{} = jsonapi, conn),
+    do: %JSONAPI{jsonapi | request: Document.deserialize(jsonapi.view, conn)}
 
   @doc false
   @spec put_as_tree(term(), term(), term()) :: term()
