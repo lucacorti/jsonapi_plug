@@ -245,8 +245,9 @@ defmodule JSONAPI.View do
   defp namespace(_conn), do: ""
 
   defp port(%Conn{private: %{jsonapi: %JSONAPI{} = jsonapi}, port: port} = conn) do
-    with port when not is_nil(port) <- API.get_config(jsonapi.api, :port, port) do
-      if port == URI.default_port(scheme(conn)), do: nil, else: port
+    case API.get_config(jsonapi.api, :port, port) do
+      nil -> nil
+      port -> if port == URI.default_port(scheme(conn)), do: nil, else: port
     end
   end
 
