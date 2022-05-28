@@ -26,6 +26,11 @@ defmodule JSONAPI.TestSupport.APIs do
     use JSONAPI.API, otp_app: :jsonapi
   end
 
+  defmodule OtherPortAPI do
+    @moduledoc false
+    use JSONAPI.API, otp_app: :jsonapi
+  end
+
   defmodule UnderscoringAPI do
     @moduledoc false
     use JSONAPI.API, otp_app: :jsonapi

@@ -196,40 +196,59 @@ defmodule JSONAPI.View do
     |> Conn.halt()
   end
 
+  @spec url_for_relationship(t(), Resource.t(), Conn.t() | nil, Resource.type()) :: String.t()
+  def url_for_relationship(view, resource, conn, relationship_type) do
+    Enum.join([url_for(view, resource, conn), "relationships", relationship_type], "/")
+  end
+
   @spec url_for(t(), data() | nil, Conn.t() | nil) :: String.t()
   def url_for(view, resource, conn) when is_nil(resource) or is_list(resource) do
     conn
-    |> render_url([view.path() || view.type()])
+    |> render_uri([view.path() || view.type()])
     |> to_string()
   end
 
   def url_for(view, resource, conn) do
     conn
-    |> render_url([view.path() || view.type(), view.id(resource)])
+    |> render_uri([view.path() || view.type(), view.id(resource)])
     |> to_string()
   end
 
-  defp render_url(
-         %Conn{private: %{jsonapi: %JSONAPI{} = jsonapi}, scheme: scheme, host: host},
-         path
-       ) do
-    namespace =
-      case API.get_config(jsonapi.api, :namespace) do
-        nil -> ""
-        namespace -> "/" <> namespace
-      end
-
+  defp render_uri(%Conn{} = conn, path) do
     %URI{
-      scheme: to_string(API.get_config(jsonapi.api, :scheme, scheme)),
-      host: API.get_config(jsonapi.api, :host, host),
-      path: Enum.join([namespace | path], "/")
+      scheme: scheme(conn),
+      host: host(conn),
+      path: Enum.join([namespace(conn) | path], "/"),
+      port: port(conn)
     }
   end
 
-  defp render_url(_conn, path), do: %URI{path: "/" <> Enum.join(path, "/")}
+  defp render_uri(_conn, path), do: %URI{path: "/" <> Enum.join(path, "/")}
 
-  @spec url_for_relationship(t(), Resource.t(), Conn.t() | nil, Resource.type()) :: String.t()
-  def url_for_relationship(view, resource, conn, relationship_type) do
-    Enum.join([url_for(view, resource, conn), "relationships", relationship_type], "/")
+  defp scheme(%Conn{private: %{jsonapi: %JSONAPI{} = jsonapi}, scheme: scheme}),
+    do: to_string(API.get_config(jsonapi.api, :scheme, scheme))
+
+  defp scheme(_conn), do: nil
+
+  defp host(%Conn{private: %{jsonapi: %JSONAPI{} = jsonapi}, host: host}),
+    do: API.get_config(jsonapi.api, :host, host)
+
+  defp host(_conn), do: nil
+
+  defp namespace(%Conn{private: %{jsonapi: %JSONAPI{} = jsonapi}}) do
+    case API.get_config(jsonapi.api, :namespace) do
+      nil -> ""
+      namespace -> "/" <> namespace
+    end
   end
+
+  defp namespace(_conn), do: ""
+
+  defp port(%Conn{private: %{jsonapi: %JSONAPI{} = jsonapi}, port: port} = conn) do
+    with port when not is_nil(port) <- API.get_config(jsonapi.api, :port, port) do
+      if port == URI.default_port(scheme(conn)), do: nil, else: port
+    end
+  end
+
+  defp port(_conn), do: nil
 end

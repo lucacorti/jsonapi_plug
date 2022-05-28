@@ -6,6 +6,7 @@ defmodule JSONAPI.ViewTest do
     DefaultAPI,
     OtherHostAPI,
     OtherNamespaceAPI,
+    OtherPortAPI,
     OtherSchemeAPI,
     UnderscoringAPI
   }
@@ -16,7 +17,7 @@ defmodule JSONAPI.ViewTest do
   alias Plug.{Conn, Parsers}
 
   setup do
-    {:ok, conn: JSONAPI.Plug.call(%Conn{}, api: DasherizingAPI)}
+    {:ok, conn: Plug.Test.conn(:get, "") |> JSONAPI.Plug.call(api: DasherizingAPI)}
   end
 
   test "type/0 when specified via using macro" do
@@ -25,12 +26,7 @@ defmodule JSONAPI.ViewTest do
 
   describe "url_for/3 when host and scheme not configured" do
     setup do
-      {
-        :ok,
-        conn:
-          Plug.Test.conn(:get, "/")
-          |> JSONAPI.Plug.call(api: OtherNamespaceAPI)
-      }
+      {:ok, conn: Plug.Test.conn(:get, "/") |> JSONAPI.Plug.call(api: OtherNamespaceAPI)}
     end
 
     test "url_for/3", %{conn: conn} do
@@ -42,8 +38,20 @@ defmodule JSONAPI.ViewTest do
 
       assert View.url_for(PostView, [], nil) == "/posts"
 
-      assert View.url_for(PostView, %Post{id: 1}, nil) ==
-               "/posts/1"
+      assert View.url_for(PostView, nil, nil) == "/posts"
+      assert View.url_for(PostView, [], nil) == "/posts"
+      assert View.url_for(PostView, %{id: 1}, nil) == "/posts/1"
+      assert View.url_for(PostView, [], nil) == "/posts"
+
+      assert View.url_for(
+               PostView,
+               [],
+               %Conn{conn | port: 123}
+             ) ==
+               "http://www.example.com:123/somespace/posts"
+
+      assert View.url_for(PostView, %{id: 1}, conn) ==
+               "http://www.example.com/somespace/posts/1"
 
       assert View.url_for_relationship(PostView, [], nil, "comments") ==
                "/posts/relationships/comments"
@@ -55,12 +63,7 @@ defmodule JSONAPI.ViewTest do
 
   describe "url_for/3 when host configured" do
     setup do
-      {
-        :ok,
-        conn:
-          Plug.Test.conn(:get, "/")
-          |> JSONAPI.Plug.call(api: OtherHostAPI)
-      }
+      {:ok, conn: Plug.Test.conn(:get, "/") |> JSONAPI.Plug.call(api: OtherHostAPI)}
     end
 
     test "uses API host instead of that on Conn", %{conn: conn} do
@@ -79,7 +82,10 @@ defmodule JSONAPI.ViewTest do
 
   describe "url_for/3 when scheme configured" do
     setup do
-      {:ok, conn: JSONAPI.Plug.call(%Conn{}, api: OtherSchemeAPI)}
+      {:ok,
+       conn:
+         Plug.Test.conn(:get, "https://www.example.com/")
+         |> JSONAPI.Plug.call(api: OtherSchemeAPI)}
     end
 
     test "uses API scheme instead of that on Conn", %{conn: conn} do
@@ -96,12 +102,34 @@ defmodule JSONAPI.ViewTest do
     end
   end
 
-  describe "url_for/3" do
+  describe "url_for/3 when port configured" do
+    setup do
+      {:ok,
+       conn:
+         Plug.Test.conn(:get, "http://www.example.com:42/")
+         |> JSONAPI.Plug.call(api: OtherPortAPI)}
+    end
+
+    test "uses configured port instead of that on Conn", %{conn: conn} do
+      assert View.url_for(PostView, [], conn) == "http://www.example.com:42/posts"
+
+      assert View.url_for(PostView, %{id: 1}, conn) ==
+               "http://www.example.com:42/posts/1"
+
+      assert View.url_for_relationship(PostView, [], conn, "comments") ==
+               "http://www.example.com:42/posts/relationships/comments"
+
+      assert View.url_for_relationship(PostView, %{id: 1}, conn, "comments") ==
+               "http://www.example.com:42/posts/1/relationships/comments"
+    end
+  end
+
+  describe "url_for_pagination/3" do
     setup do
       {
         :ok,
         conn:
-          Plug.Test.conn(:get, "/")
+          Plug.Test.conn(:get, "https://www.example.com/")
           |> JSONAPI.Plug.call(api: OtherSchemeAPI)
           |> Conn.fetch_query_params()
       }
@@ -165,7 +193,7 @@ defmodule JSONAPI.ViewTest do
 
   test "view returns all field names by default" do
     conn =
-      %Conn{}
+      Plug.Test.conn(:get, "/")
       |> Parsers.call(Parsers.init(parsers: [:json], pass: ["text/*"], json_decoder: Jason))
       |> JSONAPI.Plug.call(api: UnderscoringAPI)
       |> Request.call(Request.init(view: UserView))

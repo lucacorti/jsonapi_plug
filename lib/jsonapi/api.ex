@@ -34,6 +34,15 @@ defmodule JSONAPI.API do
         - Default: current `Plug.Conn` connection scheme
         - E.g. if you want generated urls to point to `https://...` pass `scheme: :https`
 
+    - **port**
+
+        Port used for link generation
+
+      - Type: `t:http_port/0`
+      - Default: current `Plug.Conn` connection port
+      - E.g. if you want generated urls to point `...:42/...` pass `port: 42`
+
+
     - **namespace**
 
         Namespace for all resources in your API.
@@ -76,12 +85,13 @@ defmodule JSONAPI.API do
 
   @type t :: module()
 
-  @type config :: :host | :inflection | :namespace | :paginator | :scheme | :version
+  @type config :: :host | :inflection | :namespace | :paginator | :port | :scheme | :version
 
   @type host :: String.t()
   @type inflection :: Resource.inflection()
   @type namespace :: String.t()
   @type paginator :: Paginator.t()
+  @type http_port :: pos_integer()
   @type scheme :: :http | :https
   @type version :: :"1.0"
 
