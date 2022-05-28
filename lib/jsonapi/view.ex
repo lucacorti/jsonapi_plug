@@ -161,18 +161,15 @@ defmodule JSONAPI.View do
 
   @spec for_related_type(t(), Resource.type()) :: t() | nil
   def for_related_type(view, type) do
-    Enum.find_value(
-      view.relationships(),
-      fn {_relationship, options} ->
-        relationship_view = Keyword.fetch!(options, :view)
+    Enum.find_value(view.relationships(), fn {_relationship, options} ->
+      relationship_view = Keyword.fetch!(options, :view)
 
-        if relationship_view.type() == type do
-          relationship_view
-        else
-          nil
-        end
+      if relationship_view.type() == type do
+        relationship_view
+      else
+        nil
       end
-    )
+    end)
   end
 
   @spec render(t(), data() | nil, Conn.t() | nil, Document.meta() | nil, options()) ::
