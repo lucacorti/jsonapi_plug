@@ -383,11 +383,11 @@ defmodule JSONAPI.Plug.Request do
   ```
   """
   @spec normalize_query_params(String.t() | atom() | tuple() | map() | list()) :: map()
-  def normalize_query_params(map) when is_map(map),
-    do: Enum.into(map, %{}, &normalize_query_params/1)
+  def normalize_query_params(params) when is_map(params),
+    do: Enum.into(params, %{}, &normalize_query_params/1)
 
-  def normalize_query_params(values) when is_list(values),
-    do: Enum.map(values, &normalize_query_params/1)
+  def normalize_query_params(params) when is_list(params),
+    do: Enum.map(params, &normalize_query_params/1)
 
   def normalize_query_params({key, value}) when is_map(value),
     do: {Resource.inflect(key, :underscore), normalize_query_params(value)}
