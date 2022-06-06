@@ -186,6 +186,8 @@ defmodule JSONAPI.Document.ResourceObject do
   defp deserialize_id(resource, view, %{"id" => id}),
     do: struct(resource, [{view.id_attribute(), id}])
 
+  defp deserialize_id(resource, _view, _data), do: resource
+
   defp deserialize_attributes(resource, view, %{"attributes" => attributes})
        when is_map(attributes) do
     attrs =

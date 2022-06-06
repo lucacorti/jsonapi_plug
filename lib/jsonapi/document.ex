@@ -240,7 +240,6 @@ defmodule JSONAPI.Document do
       |> Map.from_struct()
       |> Enum.reduce(%{}, fn
         {_key, nil}, data -> data
-        {_key, []}, data -> data
         {_key, %{} = map}, data when map_size(map) == 0 -> data
         {key, value}, data -> Map.put(data, key, value)
       end)
