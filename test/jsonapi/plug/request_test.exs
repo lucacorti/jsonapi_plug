@@ -410,18 +410,18 @@ defmodule JSONAPI.Plug.RequestTest do
       end
     end
 
-    test "parse_filter/2 turns filters key/val pairs" do
-      config = struct(JSONAPI, opts: [filter: ~w(name)], view: MyPostView)
+    test "parse_filter/2 stores filters" do
+      config = struct(JSONAPI, view: MyPostView)
 
-      assert %JSONAPI{filter: [name: "jason"]} =
+      assert %JSONAPI{filter: %{"name" => "jason"}} =
                parse_filter(config, %{"filter" => %{"name" => "jason"}})
     end
 
     test "parse_filter/2 raises on invalid filters" do
       config = struct(JSONAPI, view: MyPostView)
 
-      assert_raise InvalidQuery, "invalid filter, noop for type my-type", fn ->
-        parse_filter(config, %{"filter" => %{"noop" => "jason"}})
+      assert_raise InvalidQuery, "invalid filter, invalid for type my-type", fn ->
+        parse_filter(config, %{"filter" => "invalid"})
       end
     end
 
@@ -485,24 +485,22 @@ defmodule JSONAPI.Plug.RequestTest do
       end
     end
 
-    test "parse_pagination/2 turns a fields map into a map of pagination values" do
+    test "parse_page/2 turns a fields map into a map of pagination values" do
       config = struct(JSONAPI, view: MyPostView)
-      assert %JSONAPI{page: %{}} = parse_pagination(config, config)
+      assert %JSONAPI{page: %{}} = parse_page(config, config)
 
       assert %JSONAPI{page: %{"cursor" => "cursor"}} =
-               parse_pagination(config, %{"page" => %{"cursor" => "cursor"}})
+               parse_page(config, %{"page" => %{"cursor" => "cursor"}})
 
       assert %JSONAPI{page: %{"limit" => "1"}} =
-               parse_pagination(config, %{"page" => %{"limit" => "1"}})
+               parse_page(config, %{"page" => %{"limit" => "1"}})
 
       assert %JSONAPI{page: %{"offset" => "1"}} =
-               parse_pagination(config, %{"page" => %{"offset" => "1"}})
+               parse_page(config, %{"page" => %{"offset" => "1"}})
 
-      assert %JSONAPI{page: %{"page" => "1"}} =
-               parse_pagination(config, %{"page" => %{"page" => "1"}})
+      assert %JSONAPI{page: %{"page" => "1"}} = parse_page(config, %{"page" => %{"page" => "1"}})
 
-      assert %JSONAPI{page: %{"size" => "1"}} =
-               parse_pagination(config, %{"page" => %{"size" => "1"}})
+      assert %JSONAPI{page: %{"size" => "1"}} = parse_page(config, %{"page" => %{"size" => "1"}})
     end
 
     test "put_as_tree/3 builds the path" do

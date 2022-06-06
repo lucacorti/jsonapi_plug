@@ -10,20 +10,20 @@ defmodule JSONAPI do
   @type t :: %__MODULE__{
           api: API.t(),
           fields: map(),
-          filter: keyword(),
+          filter: map(),
           include: keyword(),
           opts: keyword(),
+          page: map(),
           request: Document.t() | nil,
           sort: keyword(),
-          view: View.t(),
-          page: map()
+          view: View.t()
         }
   defstruct api: nil,
             fields: %{},
-            filter: [],
+            filter: %{},
             include: [],
-            page: %{},
             opts: [],
+            page: %{},
             request: nil,
             sort: [],
             view: nil

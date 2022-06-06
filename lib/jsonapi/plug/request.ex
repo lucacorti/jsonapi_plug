@@ -93,37 +93,42 @@ defmodule JSONAPI.Plug.Request do
       |> parse_include(query)
       |> parse_filter(query)
       |> parse_sort(query)
-      |> parse_pagination(query)
+      |> parse_page(query)
       |> parse_body(conn)
 
     Conn.put_private(conn, :jsonapi, jsonapi)
   end
 
   @doc false
-  @spec parse_pagination(JSONAPI.t(), options()) :: JSONAPI.t()
-  def parse_pagination(%JSONAPI{} = jsonapi, %{"page" => page}) when is_map(page),
+  @spec parse_page(JSONAPI.t(), options()) :: JSONAPI.t()
+  def parse_page(%JSONAPI{} = jsonapi, %{"page" => page}) when is_map(page),
     do: %JSONAPI{jsonapi | page: page}
 
-  def parse_pagination(jsonapi, _query),
+  def parse_page(%JSONAPI{view: view}, %{"page" => value}) do
+    raise(InvalidQuery,
+      resource: view.type(),
+      param: value,
+      param_type: :page
+    )
+  end
+
+  def parse_page(jsonapi, _query),
     do: jsonapi
 
   @doc false
   @spec parse_filter(JSONAPI.t(), options()) :: JSONAPI.t()
-  def parse_filter(%JSONAPI{opts: opts, view: view} = jsonapi, %{"filter" => filter})
-      when is_map(filter) do
-    opts_filter = Keyword.get(opts, :filter, [])
+  def parse_filter(%JSONAPI{} = jsonapi, %{"filter" => filter}) when is_map(filter),
+    do: %JSONAPI{jsonapi | filter: filter}
 
-    Enum.reduce(filter, jsonapi, fn {key, val}, jsonapi ->
-      unless key in opts_filter do
-        raise InvalidQuery, resource: view.type(), param: key, param_type: :filter
-      end
-
-      %JSONAPI{jsonapi | filter: Keyword.put(jsonapi.filter, String.to_existing_atom(key), val)}
-    end)
+  def parse_filter(%JSONAPI{view: view}, %{"filter" => value}) do
+    raise(InvalidQuery,
+      resource: view.type(),
+      param: value,
+      param_type: :filter
+    )
   end
 
-  def parse_filter(jsonapi, _query),
-    do: jsonapi
+  def parse_filter(jsonapi, _query), do: jsonapi
 
   @doc false
   @spec parse_fields(JSONAPI.t(), options()) :: JSONAPI.t() | no_return()
@@ -137,8 +142,7 @@ defmodule JSONAPI.Plug.Request do
       requested_fields =
         try do
           value
-          |> String.split(",")
-          |> Enum.filter(&(&1 !== ""))
+          |> String.split(",", trim: true)
           |> Enum.map(&Resource.inflect(&1, :underscore))
           |> Enum.into(MapSet.new(), &String.to_existing_atom/1)
         rescue
@@ -175,6 +179,14 @@ defmodule JSONAPI.Plug.Request do
           }
       end
     end)
+  end
+
+  def parse_fields(%JSONAPI{view: view}, %{"fields" => value}) do
+    raise(InvalidQuery,
+      resource: view.type(),
+      param: value,
+      param_type: :fields
+    )
   end
 
   def parse_fields(jsonapi, _query), do: jsonapi
