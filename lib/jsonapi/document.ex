@@ -238,13 +238,12 @@ defmodule JSONAPI.Document do
     def encode(document, options) do
       document
       |> Map.from_struct()
-      |> Enum.reject(fn
-        {_key, nil} -> true
-        {_key, []} -> true
-        {_key, %{} = map} when map_size(map) == 0 -> true
-        _ -> false
+      |> Enum.reduce(%{}, fn
+        {_key, nil}, data -> data
+        {_key, []}, data -> data
+        {_key, %{} = map}, data when map_size(map) == 0 -> data
+        {key, value}, data -> Map.put(data, key, value)
       end)
-      |> Enum.into(%{})
       |> Jason.Encode.map(options)
     end
   end
