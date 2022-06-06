@@ -168,7 +168,6 @@ defmodule JSONAPI.Plug.Request do
 
           raise InvalidQuery,
             resource: view.type(),
-            message: "invalid fields, #{value} for type #{view.type()}",
             param: bad_fields,
             param_type: :fields
 
