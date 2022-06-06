@@ -14,10 +14,12 @@ defmodule JSONAPI.API do
 
     ```elixir
     config :my_app, MyApp.MyAPI,
+      namespace: "api",
       inflection: :dasherize
     ```
 
     Available options:
+
     - **host**
 
         Hostname used for link generation
@@ -66,7 +68,7 @@ defmodule JSONAPI.API do
 
     - **pagination**
 
-        `JSONAPI.Panination` module for pagination.
+        `JSONAPI.Pagination` module for pagination.
 
         - Type: `t:pagination/0`
         - Default: `nil`, no pagination links are generated
