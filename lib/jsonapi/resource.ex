@@ -9,20 +9,6 @@ defmodule JSONAPI.Resource do
   @type field :: atom()
   @type type :: String.t()
 
-  defmodule NotLoaded do
-    @moduledoc """
-    Placeholder for missing JSON:API fields
-    """
-
-    alias JSONAPI.Resource
-
-    @type t :: %__MODULE__{
-            id: Resource.id() | nil,
-            type: Resource.type() | nil
-          }
-    defstruct [:id, :type]
-  end
-
   @doc """
   Inflects Resource fields for serialization
 

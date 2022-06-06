@@ -175,42 +175,42 @@ defmodule JSONAPI.Document.ResourceObject do
     |> Enum.uniq()
   end
 
-  @spec deserialize(View.t(), Document.payload(), Document.included()) :: Resource.t()
+  @spec deserialize(View.t(), Document.payload(), Document.included()) :: %{String.t() => term()}
   def deserialize(view, data, included) do
-    view.resource()
+    %{}
     |> deserialize_attributes(view, data)
     |> deserialize_relationships(view, data, included)
     |> deserialize_id(view, data)
   end
 
   defp deserialize_id(resource, view, %{"id" => id}),
-    do: struct(resource, [{view.id_attribute(), id}])
+    do: Map.put(resource, to_string(view.id_attribute()), id)
 
   defp deserialize_id(resource, _view, _data), do: resource
 
   defp deserialize_attributes(resource, view, %{"attributes" => attributes})
        when is_map(attributes) do
-    attrs =
-      view.attributes()
-      |> Enum.map(fn attribute ->
-        {from, to} = map_attribute!(attribute)
+    view.attributes()
+    |> Enum.reduce(resource, fn attribute, resource ->
+      {from, to} = map_attribute!(attribute)
 
-        case Map.fetch(attributes, to_string(from)) do
-          {:ok, value} ->
-            {to, value}
+      case Map.fetch(attributes, from) do
+        {:ok, value} ->
+          Map.put(resource, to, value)
 
-          :error ->
-            {to, %Resource.NotLoaded{}}
-        end
-      end)
-
-    struct(resource, attrs)
+        :error ->
+          resource
+      end
+    end)
   end
 
   defp deserialize_attributes(resource, _view, _data), do: resource
 
-  defp map_attribute!(attribute) when is_atom(attribute), do: {attribute, attribute}
-  defp map_attribute!({attribute, options}), do: {attribute, Keyword.get(options, :to, attribute)}
+  defp map_attribute!(attribute) when is_atom(attribute),
+    do: {to_string(attribute), to_string(attribute)}
+
+  defp map_attribute!({attribute, options}) when is_atom(attribute),
+    do: {to_string(attribute), to_string(Keyword.get(options, :to, attribute))}
 
   defp map_attribute!(attribute),
     do: raise("Invalid attribute specification #{inspect(attribute)}")
@@ -222,25 +222,30 @@ defmodule JSONAPI.Document.ResourceObject do
          included
        )
        when is_map(relationships) do
-    attrs =
-      view.relationships()
-      |> Enum.map(fn {from, options} ->
-        many = Keyword.get(options, :many, false)
-        to = Keyword.get(options, :to, from)
+    view.relationships()
+    |> Enum.reduce(resource, fn {relationship, options}, resource ->
+      many = Keyword.get(options, :many, false)
+      {from, to} = map_attribute!(relationship)
 
-        case Map.fetch(relationships, to_string(from)) do
-          {:ok, relationships} when many == true ->
-            {to, Enum.map(relationships, &deserialize_relationship(view, &1, included))}
+      case Map.fetch(relationships, from) do
+        {:ok, relationships} when many == true ->
+          Map.put(
+            resource,
+            to,
+            Enum.map(relationships, &deserialize_relationship(view, &1, included))
+          )
 
-          {:ok, relationship} ->
-            {to, deserialize_relationship(view, relationship, included)}
+        {:ok, relationship} ->
+          Map.put(
+            resource,
+            to,
+            deserialize_relationship(view, relationship, included)
+          )
 
-          :error ->
-            {to, %Resource.NotLoaded{}}
-        end
-      end)
-
-    struct(resource, attrs)
+        :error ->
+          resource
+      end
+    end)
   end
 
   defp deserialize_relationships(resource, _view, _data, _included), do: resource
@@ -250,7 +255,7 @@ defmodule JSONAPI.Document.ResourceObject do
          %{"data" => %{"id" => id, "type" => type}},
          included
        ) do
-    Enum.reduce_while(included, %Resource.NotLoaded{id: id, type: type}, fn
+    Enum.reduce_while(included, %{"id" => id}, fn
       %{"type" => ^type, "id" => ^id} = included_resource, result ->
         case View.for_related_type(view, type) do
           nil -> {:halt, result}

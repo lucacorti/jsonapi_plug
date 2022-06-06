@@ -8,7 +8,6 @@ defmodule JSONAPI.Plug.RequestTest do
 
   alias JSONAPI.{Document, Exceptions.InvalidQuery, Plug.Request}
   alias JSONAPI.TestSupport.APIs.DefaultAPI
-  alias JSONAPI.TestSupport.Resources.{Car, User}
   alias JSONAPI.TestSupport.Views.{CarView, MyPostView, UserView}
   alias Plug.Conn
 
@@ -61,7 +60,7 @@ defmodule JSONAPI.Plug.RequestTest do
           "some-nonsense" => "yup"
         })
 
-      assert %Conn{private: %{jsonapi: %JSONAPI{request: %Document{data: %Car{id: "1"}}}}} =
+      assert %Conn{private: %{jsonapi: %JSONAPI{request: %Document{data: %{"id" => "1"}}}}} =
                Plug.Test.conn("POST", "/", req_body)
                |> put_req_header("content-type", JSONAPI.mime_type())
                |> put_req_header("accept", JSONAPI.mime_type())
@@ -81,10 +80,7 @@ defmodule JSONAPI.Plug.RequestTest do
                private: %{
                  jsonapi: %JSONAPI{
                    request: %Document{
-                     data: [
-                       %Car{id: "1"},
-                       %Car{id: "2"}
-                     ]
+                     data: [%{"id" => "1"}, %{"id" => "2"}]
                    }
                  }
                }
@@ -122,7 +118,7 @@ defmodule JSONAPI.Plug.RequestTest do
           }
         })
 
-      assert %Conn{private: %{jsonapi: %JSONAPI{request: %Document{data: %Car{id: "1"}}}}} =
+      assert %Conn{private: %{jsonapi: %JSONAPI{request: %Document{data: %{"id" => "1"}}}}} =
                Plug.Test.conn("POST", "/", req_body)
                |> put_req_header("content-type", JSONAPI.mime_type())
                |> put_req_header("accept", JSONAPI.mime_type())
@@ -153,7 +149,7 @@ defmodule JSONAPI.Plug.RequestTest do
           }
         })
 
-      assert %Conn{private: %{jsonapi: %JSONAPI{request: %Document{data: %Car{id: "1"}}}}} =
+      assert %Conn{private: %{jsonapi: %JSONAPI{request: %Document{data: %{"id" => "1"}}}}} =
                Plug.Test.conn("POST", "/", req_body)
                |> put_req_header("content-type", JSONAPI.mime_type())
                |> put_req_header("accept", JSONAPI.mime_type())
@@ -184,7 +180,7 @@ defmodule JSONAPI.Plug.RequestTest do
           }
         })
 
-      assert %Conn{private: %{jsonapi: %JSONAPI{request: %Document{data: %Car{id: "1"}}}}} =
+      assert %Conn{private: %{jsonapi: %JSONAPI{request: %Document{data: %{"id" => "1"}}}}} =
                Plug.Test.conn("POST", "/", req_body)
                |> put_req_header("content-type", JSONAPI.mime_type())
                |> put_req_header("accept", JSONAPI.mime_type())
@@ -192,7 +188,7 @@ defmodule JSONAPI.Plug.RequestTest do
     end
 
     test "converts attributes and relationships to flattened data structure" do
-      assert %Document{data: %User{id: "1"}} =
+      assert %Document{data: %{"id" => "1"}} =
                Document.deserialize(UserView, %Conn{
                  body_params: %{
                    "data" => %{
@@ -218,7 +214,7 @@ defmodule JSONAPI.Plug.RequestTest do
     end
 
     test "converts to many relationship" do
-      assert %Document{data: %User{id: "1"}} =
+      assert %Document{data: %{"id" => "1"}} =
                Document.deserialize(UserView, %Conn{
                  body_params: %{
                    "data" => %{
@@ -241,7 +237,7 @@ defmodule JSONAPI.Plug.RequestTest do
     end
 
     test "converts polymorphic" do
-      assert %Document{data: %User{id: "1"}} =
+      assert %Document{data: %{"id" => "1"}} =
                Document.deserialize(UserView, %Conn{
                  body_params: %{
                    "data" => %{
@@ -264,7 +260,7 @@ defmodule JSONAPI.Plug.RequestTest do
     end
 
     test "processes single includes" do
-      assert %Document{data: %User{id: "1", first_name: "Jerome"}} =
+      assert %Document{data: %{"id" => "1", "first_name" => "Jerome"}} =
                Document.deserialize(UserView, %Conn{
                  body_params: %{
                    "data" => %{
@@ -288,7 +284,7 @@ defmodule JSONAPI.Plug.RequestTest do
     end
 
     test "processes has many includes" do
-      assert %Document{data: %User{id: "1", first_name: "Jerome"}} =
+      assert %Document{data: %{"id" => "1", "first_name" => "Jerome"}} =
                Document.deserialize(UserView, %Conn{
                  body_params: %{
                    "data" => %{
@@ -337,12 +333,7 @@ defmodule JSONAPI.Plug.RequestTest do
     end
 
     test "processes simple array of data" do
-      assert %Document{
-               data: [
-                 %User{id: "1"},
-                 %User{id: "2"}
-               ]
-             } =
+      assert %Document{data: [%{"id" => "1"}, %{"id" => "2"}]} =
                Document.deserialize(UserView, %Conn{
                  body_params: %{
                    "data" => [
@@ -354,7 +345,7 @@ defmodule JSONAPI.Plug.RequestTest do
     end
 
     test "processes empty keys" do
-      assert %Document{data: %User{id: "1"}} =
+      assert %Document{data: %{"id" => "1"}} =
                Document.deserialize(UserView, %Conn{
                  body_params: %{
                    "data" => %{
@@ -369,7 +360,7 @@ defmodule JSONAPI.Plug.RequestTest do
     end
 
     test "processes empty data" do
-      assert %Document{data: %User{id: "1"}} =
+      assert %Document{data: %{"id" => "1"}} =
                Document.deserialize(UserView, %Conn{
                  body_params: %{
                    "data" => %{

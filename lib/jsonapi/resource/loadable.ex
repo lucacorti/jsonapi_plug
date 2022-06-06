@@ -7,11 +7,7 @@ defprotocol JSONAPI.Resource.Loadable do
   def loaded?(resource)
 end
 
-defimpl JSONAPI.Resource.Loadable, for: Ecto.Relationship.NotLoaded do
-  def loaded?(_resource), do: false
-end
-
-defimpl JSONAPI.Resource.Loadable, for: JSONAPI.Resource.NotLoaded do
+defimpl JSONAPI.Resource.Loadable, for: Ecto.Association.NotLoaded do
   def loaded?(_resource), do: false
 end
 

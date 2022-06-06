@@ -584,7 +584,7 @@ defmodule JSONAPI.DocumentTest do
     end
 
     test "deserialize single resource object" do
-      assert %Document{data: %Post{id: "1"}} =
+      assert %Document{data: %{"id" => "1"}} =
                Document.deserialize(
                  PostView,
                  Plug.Test.conn(:post, "/posts", %{"data" => %{"type" => "post", "id" => "1"}})
@@ -592,7 +592,7 @@ defmodule JSONAPI.DocumentTest do
     end
 
     test "deserialize one element resource list" do
-      assert %Document{data: [%Post{id: "1"}]} =
+      assert %Document{data: [%{"id" => "1"}]} =
                Document.deserialize(
                  PostView,
                  Plug.Test.conn(:post, "/posts", %{"data" => [%{"type" => "post", "id" => "1"}]})
@@ -600,7 +600,7 @@ defmodule JSONAPI.DocumentTest do
     end
 
     test "deserialize multiple element resource list" do
-      assert %Document{data: [%Post{id: "1"}, %Post{id: "2"}, %Post{id: "3"}]} =
+      assert %Document{data: [%{"id" => "1"}, %{"id" => "2"}, %{"id" => "3"}]} =
                Document.deserialize(
                  PostView,
                  Plug.Test.conn(:post, "/posts", %{
@@ -614,7 +614,7 @@ defmodule JSONAPI.DocumentTest do
     end
 
     test "deserialize resource with included relationship" do
-      assert %Document{data: %Post{id: "1", author: %User{id: "1"}}} =
+      assert %Document{data: %{"id" => "1", "author" => %{"id" => "1"}}} =
                Document.deserialize(
                  PostView,
                  Plug.Test.conn(:post, "/posts", %{
@@ -640,9 +640,9 @@ defmodule JSONAPI.DocumentTest do
   test "deserialize resource list with nested included relationship" do
     assert %Document{
              data: [
-               %Post{id: "1", author: %User{id: "1", company: %Company{id: "1"}}},
-               %Post{id: "2", author: %User{id: "1", company: %Company{id: "1"}}},
-               %Post{id: "3", author: %User{id: "1", company: %Company{id: "1"}}}
+               %{"id" => "1", "author" => %{"id" => "1", "company" => %{"id" => "1"}}},
+               %{"id" => "2", "author" => %{"id" => "1", "company" => %{"id" => "1"}}},
+               %{"id" => "3", "author" => %{"id" => "1", "company" => %{"id" => "1"}}}
              ]
            } =
              Document.deserialize(

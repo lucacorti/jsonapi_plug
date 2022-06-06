@@ -197,17 +197,17 @@ defmodule JSONAPI.Document do
     }
   end
 
-  defp deserialize_data(%__MODULE__{} = document, view, %{"data" => data, "included" => included})
-       when is_map(data) and is_list(included) do
-    %__MODULE__{document | data: ResourceObject.deserialize(view, data, included)}
-  end
-
   defp deserialize_data(%__MODULE__{} = document, view, %{"data" => data})
        when is_list(data) do
     %__MODULE__{
       document
       | data: Enum.map(data, &ResourceObject.deserialize(view, &1, []))
     }
+  end
+
+  defp deserialize_data(%__MODULE__{} = document, view, %{"data" => data, "included" => included})
+       when is_map(data) and is_list(included) do
+    %__MODULE__{document | data: ResourceObject.deserialize(view, data, included)}
   end
 
   defp deserialize_data(%__MODULE__{} = document, view, %{"data" => data})
