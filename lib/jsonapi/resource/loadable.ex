@@ -11,6 +11,10 @@ defimpl JSONAPI.Resource.Loadable, for: Ecto.Relationship.NotLoaded do
   def loaded?(_resource), do: false
 end
 
+defimpl JSONAPI.Resource.Loadable, for: JSONAPI.Resource.NotLoaded do
+  def loaded?(_resource), do: false
+end
+
 defimpl JSONAPI.Resource.Loadable, for: Atom do
   def loaded?(nil = _atom), do: false
   def loaded?(_atom), do: true
