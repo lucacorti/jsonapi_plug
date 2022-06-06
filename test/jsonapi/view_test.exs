@@ -13,7 +13,7 @@ defmodule JSONAPI.ViewTest do
 
   alias JSONAPI.TestSupport.Resources.{Comment, Post, User}
   alias JSONAPI.TestSupport.Views.{CommentView, MyPostView, PostView, UserView}
-  alias JSONAPI.{Document, Document.ResourceObject, Paginator, Plug.Request, View}
+  alias JSONAPI.{Document, Document.ResourceObject, Pagination, Plug.Request, View}
   alias Plug.{Conn, Parsers}
 
   setup do
@@ -136,23 +136,23 @@ defmodule JSONAPI.ViewTest do
     end
 
     test "with pagination information", %{conn: conn} do
-      assert Paginator.url_for(PostView, nil, conn, %{}) ==
+      assert Pagination.url_for(PostView, nil, conn, %{}) ==
                "https://www.example.com/posts"
 
-      assert Paginator.url_for(PostView, nil, conn, %{number: 1, size: 10}) ==
+      assert Pagination.url_for(PostView, nil, conn, %{number: 1, size: 10}) ==
                "https://www.example.com/posts?page%5Bnumber%5D=1&page%5Bsize%5D=10"
     end
 
     test "with query parameters", %{conn: conn} do
       conn_with_query_params = update_in(conn.query_params, &Map.put(&1, "comments", [5, 2]))
 
-      assert Paginator.url_for(PostView, nil, conn_with_query_params, %{
+      assert Pagination.url_for(PostView, nil, conn_with_query_params, %{
                number: 1,
                size: 10
              }) ==
                "https://www.example.com/posts?comments%5B%5D=5&comments%5B%5D=2&page%5Bnumber%5D=1&page%5Bsize%5D=10"
 
-      assert Paginator.url_for(PostView, nil, conn_with_query_params, %{}) ==
+      assert Pagination.url_for(PostView, nil, conn_with_query_params, %{}) ==
                "https://www.example.com/posts?comments%5B%5D=5&comments%5B%5D=2"
     end
   end

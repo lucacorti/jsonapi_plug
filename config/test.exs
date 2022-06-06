@@ -9,10 +9,10 @@ alias JSONAPI.TestSupport.APIs.{
   UnderscoringAPI
 }
 
-alias JSONAPI.TestSupport.Paginators.PageBasedPaginator
+alias JSONAPI.TestSupport.Pagination.PageBasedPagination
 
 config :jsonapi, DasherizingAPI, inflection: :dasherize
-config :jsonapi, DefaultAPI, paginator: PageBasedPaginator
+config :jsonapi, DefaultAPI, pagination: PageBasedPagination
 config :jsonapi, OtherHostAPI, host: "www.otherhost.com"
 config :jsonapi, OtherNamespaceAPI, namespace: "somespace"
 config :jsonapi, OtherPortAPI, port: 42

@@ -6,7 +6,7 @@ defmodule JSONAPI.DocumentTest do
     Document.RelationshipObject,
     Document.ResourceIdentifierObject,
     Document.ResourceObject,
-    Paginator,
+    Pagination,
     Plug.Request,
     View
   }
@@ -484,9 +484,9 @@ defmodule JSONAPI.DocumentTest do
         |> Request.call(Request.init(view: PostView))
 
       page = conn.private.jsonapi.page
-      first = Paginator.url_for(PostView, [%Post{id: 1}], conn, %{page | "page" => 1})
-      last = Paginator.url_for(PostView, [%Post{id: 1}], conn, %{page | "page" => 3})
-      self = Paginator.url_for(PostView, [%Post{id: 1}], conn, page)
+      first = Pagination.url_for(PostView, [%Post{id: 1}], conn, %{page | "page" => 1})
+      last = Pagination.url_for(PostView, [%Post{id: 1}], conn, %{page | "page" => 3})
+      self = Pagination.url_for(PostView, [%Post{id: 1}], conn, page)
 
       assert %Document{links: links} =
                Document.serialize(

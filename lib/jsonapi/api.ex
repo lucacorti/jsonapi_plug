@@ -64,11 +64,11 @@ defmodule JSONAPI.API do
         - Default: `:camelize`
         - E.g. if you want your resources field names to be dasherized, pass `inflection: :dasherize`
 
-    - **paginator**
+    - **pagination**
 
-        `JSONAPI.Paginator` module for pagination.
+        `JSONAPI.Panination` module for pagination.
 
-        - Type: `t:paginator/0`
+        - Type: `t:pagination/0`
         - Default: `nil`, no pagination links are generated
 
     - **version**
@@ -81,16 +81,16 @@ defmodule JSONAPI.API do
     The API module can be overriden per plug/controller, see `JSONAPI.Plug.Request` for the details.
   """
 
-  alias JSONAPI.{Paginator, Resource}
+  alias JSONAPI.{Pagination, Resource}
 
   @type t :: module()
 
-  @type config :: :host | :inflection | :namespace | :paginator | :port | :scheme | :version
+  @type config :: :host | :inflection | :namespace | :pagination | :port | :scheme | :version
 
   @type host :: String.t()
   @type inflection :: Resource.inflection()
   @type namespace :: String.t()
-  @type paginator :: Paginator.t()
+  @type pagination :: Pagination.t()
   @type http_port :: pos_integer()
   @type scheme :: :http | :https
   @type version :: :"1.0"
