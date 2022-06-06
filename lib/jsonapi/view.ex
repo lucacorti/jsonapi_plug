@@ -120,8 +120,7 @@ defmodule JSONAPI.View do
       @__resource_type__ unquote(resource)
                          |> Module.split()
                          |> List.last()
-                         |> String.downcase()
-                         |> Resource.inflect(:dasherize)
+                         |> Resource.inflect(:camelize)
 
       @impl JSONAPI.View
       def id(resource) do
