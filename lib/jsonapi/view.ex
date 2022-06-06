@@ -156,6 +156,18 @@ defmodule JSONAPI.View do
       def type, do: @__resource_type__
 
       defoverridable JSONAPI.View
+
+      def render(action, %{data: data, conn: conn, meta: meta, options: options})
+          when action in ["create.json", "index.json", "show.json", "update.json"],
+          do: JSONAPI.View.render(__MODULE__, data, conn, meta, options)
+
+      def render(action, %{data: data, conn: conn, meta: meta})
+          when action in ["create.json", "index.json", "show.json", "update.json"],
+          do: JSONAPI.View.render(__MODULE__, data, conn, meta)
+
+      def render(action, %{data: data, conn: conn})
+          when action in ["create.json", "index.json", "show.json", "update.json"],
+          do: JSONAPI.View.render(__MODULE__, data, conn)
     end
   end
 
