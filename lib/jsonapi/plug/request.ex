@@ -100,7 +100,7 @@ defmodule JSONAPI.Plug.Request do
   end
 
   @doc false
-  @spec parse_page(JSONAPI.t(), options()) :: JSONAPI.t()
+  @spec parse_page(JSONAPI.t(), options()) :: JSONAPI.t() | no_return()
   def parse_page(%JSONAPI{} = jsonapi, %{"page" => page}) when is_map(page),
     do: %JSONAPI{jsonapi | page: page}
 
@@ -116,7 +116,7 @@ defmodule JSONAPI.Plug.Request do
     do: jsonapi
 
   @doc false
-  @spec parse_filter(JSONAPI.t(), options()) :: JSONAPI.t()
+  @spec parse_filter(JSONAPI.t(), options()) :: JSONAPI.t() | no_return()
   def parse_filter(%JSONAPI{} = jsonapi, %{"filter" => filter}) when is_map(filter),
     do: %JSONAPI{jsonapi | filter: filter}
 
@@ -202,7 +202,7 @@ defmodule JSONAPI.Plug.Request do
   end
 
   @doc false
-  @spec parse_sort(JSONAPI.t(), options()) :: JSONAPI.t()
+  @spec parse_sort(JSONAPI.t(), options()) :: JSONAPI.t() | no_return()
   def parse_sort(%JSONAPI{opts: opts, view: view} = jsonapi, %{"sort" => sort}) do
     sort =
       sort
@@ -228,7 +228,7 @@ defmodule JSONAPI.Plug.Request do
   defp build_sort("-", field), do: [desc: field]
 
   @doc false
-  @spec parse_include(JSONAPI.t(), options()) :: JSONAPI.t()
+  @spec parse_include(JSONAPI.t(), options()) :: JSONAPI.t() | no_return()
   def parse_include(%JSONAPI{view: view} = jsonapi, %{"include" => include}) do
     valid_includes = view.relationships()
 
@@ -292,7 +292,7 @@ defmodule JSONAPI.Plug.Request do
     end
   end
 
-  @spec parse_include(JSONAPI.t(), Conn.t()) :: JSONAPI.t()
+  @spec parse_body(JSONAPI.t(), Conn.t()) :: JSONAPI.t()
   defp parse_body(%JSONAPI{} = jsonapi, conn),
     do: %JSONAPI{jsonapi | request: Document.deserialize(jsonapi.view, conn)}
 
