@@ -15,7 +15,6 @@ defmodule JSONAPI.Plug.Request do
 
   ```
   plug JSONAPI.Plug.Request,
-    filter: ~w(title),
     sort: ~w(created_at title),
     view: MyApp.MyView
   ```
@@ -29,9 +28,9 @@ defmodule JSONAPI.Plug.Request do
     private: %{...
       jsonapi: %JSONAPI{
         fields: %{"my-type" => [:id, :text], "comment" => [:id, :body],
-        filter: [title: "my title"] # Easily reduceable into ecto where clauses
+        filter: %{"title" => "my title"} # Easily reduceable into ecto where clauses
         include: [comments: :user] # Easily insertable into a Repo.preload,
-        opts: [sort: ["created_at", "title"], filter: ["title"]],
+        opts: [sort: ["created_at", "title"]],
         page: %{
           limit: limit,
           offset: offset,

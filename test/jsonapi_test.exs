@@ -29,8 +29,7 @@ defmodule JSONAPITest do
 
     plug JSONAPI.Plug.Request,
       view: PostView,
-      sort: [:text],
-      filter: [:text]
+      sort: [:text]
 
     plug :passthrough
 
