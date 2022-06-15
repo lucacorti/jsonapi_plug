@@ -21,7 +21,6 @@ defmodule JSONAPI.Document.RelationshipObject do
     %__MODULE__{}
     |> serialize_data(view, resources)
     |> serialize_links(view, resources, conn, url)
-    |> serialize_meta(view, resources, conn)
   end
 
   defp serialize_data(%__MODULE__{} = relationship, view, resources) when is_list(resources),
@@ -36,11 +35,4 @@ defmodule JSONAPI.Document.RelationshipObject do
   defp serialize_links(%__MODULE__{} = relationship, view, resources, conn, url) do
     %__MODULE__{relationship | links: %{self: url, related: View.url_for(view, resources, conn)}}
   end
-
-  defp serialize_meta(%__MODULE__{} = relationship, view, resources, conn)
-       when is_list(resources),
-       do: %__MODULE__{relationship | meta: Enum.map(resources, &view.meta(&1, conn))}
-
-  defp serialize_meta(%__MODULE__{} = relationship, view, resource, conn),
-    do: %__MODULE__{relationship | meta: view.meta(resource, conn)}
 end
