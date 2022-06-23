@@ -7,21 +7,21 @@ defmodule JSONAPI.Exceptions do
     """
     defexception plug_status: 400,
                  message: "invalid query",
-                 resource: nil,
+                 type: nil,
                  param: nil,
-                 param_type: nil
+                 value: nil
 
     @spec exception(keyword()) :: Exception.t()
     def exception(opts) do
-      resource = Keyword.fetch!(opts, :resource)
+      type = Keyword.fetch!(opts, :type)
+      value = Keyword.fetch!(opts, :value)
       param = Keyword.fetch!(opts, :param)
-      type = Keyword.fetch!(opts, :param_type)
 
       %InvalidQuery{
-        message: "invalid #{type}, #{param} for type #{resource}",
-        resource: resource,
+        message: "invalid parameter #{param}=#{value} for type #{type}",
+        type: type,
         param: param,
-        param_type: type
+        value: value
       }
     end
   end

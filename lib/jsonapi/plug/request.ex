@@ -105,9 +105,9 @@ defmodule JSONAPI.Plug.Request do
 
   def parse_page(%JSONAPI{view: view}, %{"page" => value}) do
     raise(InvalidQuery,
-      resource: view.type(),
-      param: value,
-      param_type: :page
+      type: view.type(),
+      param: :page,
+      value: value
     )
   end
 
@@ -121,9 +121,9 @@ defmodule JSONAPI.Plug.Request do
 
   def parse_filter(%JSONAPI{view: view}, %{"filter" => value}) do
     raise(InvalidQuery,
-      resource: view.type(),
-      param: value,
-      param_type: :filter
+      type: view.type(),
+      param: :filter,
+      value: value
     )
   end
 
@@ -147,9 +147,9 @@ defmodule JSONAPI.Plug.Request do
         rescue
           ArgumentError ->
             reraise InvalidQuery.exception(
-                      resource: view.type(),
-                      param: value,
-                      param_type: :fields
+                      type: view.type(),
+                      param: :fields,
+                      value: value
                     ),
                     __STACKTRACE__
         end
@@ -166,9 +166,9 @@ defmodule JSONAPI.Plug.Request do
             |> Enum.join(",")
 
           raise InvalidQuery,
-            resource: view.type(),
-            param: bad_fields,
-            param_type: :fields
+            type: view.type(),
+            param: :fields,
+            value: bad_fields
 
         _ ->
           %JSONAPI{
@@ -181,9 +181,9 @@ defmodule JSONAPI.Plug.Request do
 
   def parse_fields(%JSONAPI{view: view}, %{"fields" => value}) do
     raise(InvalidQuery,
-      resource: view.type(),
-      param: value,
-      param_type: :fields
+      type: view.type(),
+      param: :fields,
+      value: value
     )
   end
 
@@ -194,7 +194,7 @@ defmodule JSONAPI.Plug.Request do
       view.attributes()
     else
       case View.for_related_type(view, type) do
-        nil -> raise InvalidQuery, resource: view.type(), param: type, param_type: :fields
+        nil -> raise InvalidQuery, type: view.type(), param: :fields, value: type
         view -> view.attributes()
       end
     end
@@ -211,7 +211,7 @@ defmodule JSONAPI.Plug.Request do
         [_, direction, field] = Regex.run(~r/(-?)(\S*)/, field)
 
         unless field in valid_sort do
-          raise InvalidQuery, resource: view.type(), param: field, param_type: :sort
+          raise InvalidQuery, type: view.type(), param: :sort, value: field
         end
 
         build_sort(direction, String.to_existing_atom(field))
@@ -246,9 +246,9 @@ defmodule JSONAPI.Plug.Request do
             rescue
               ArgumentError ->
                 reraise InvalidQuery.exception(
-                          resource: view.type(),
-                          param: inc,
-                          param_type: :include
+                          type: view.type(),
+                          param: :include,
+                          value: inc
                         ),
                         __STACKTRACE__
             end
@@ -256,7 +256,7 @@ defmodule JSONAPI.Plug.Request do
           if Enum.any?(valid_includes, fn {key, _val} -> key == inc end) do
             [inc]
           else
-            raise InvalidQuery, resource: view.type(), param: inc, param_type: :include
+            raise InvalidQuery, type: view.type(), param: :include, value: inc
           end
         end
       end)
@@ -275,9 +275,9 @@ defmodule JSONAPI.Plug.Request do
       rescue
         ArgumentError ->
           reraise InvalidQuery.exception(
-                    resource: jsonapi.view.type(),
-                    param: key,
-                    param_type: :include
+                    type: jsonapi.view.type(),
+                    param: :include,
+                    value: key
                   ),
                   __STACKTRACE__
       end
@@ -287,7 +287,7 @@ defmodule JSONAPI.Plug.Request do
       path = Enum.slice(keys, 0, Enum.count(keys) - 1)
       put_as_tree([], path, last)
     else
-      raise InvalidQuery, resource: jsonapi.view.type(), param: key, param_type: :include
+      raise InvalidQuery, type: jsonapi.view.type(), param: :include, value: key
     end
   end
 

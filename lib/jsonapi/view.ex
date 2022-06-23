@@ -4,7 +4,7 @@ defmodule JSONAPI.View do
   rendering of your JSONAPI documents.
 
       defmodule PostView do
-        use JSONAPI.View, resource: Post
+        use JSONAPI.View, type: "post"
 
         @impl JSONAPI.View
         def attributes, do: [:id, :text, :body]
@@ -18,14 +18,14 @@ defmodule JSONAPI.View do
       end
 
       defmodule UserView do
-        use JSONAPI.View, resource: User
+        use JSONAPI.View, type: "user"
 
         @impl JSONAPI.View
         def attributes, do: [:id, :username]
       end
 
       defmodule CommentView do
-        use JSONAPI.View, resource: Comment
+        use JSONAPI.View, type: "comment
 
         @impl JSONAPI.View
         def attributes, do: [:id, :text]
@@ -35,7 +35,7 @@ defmodule JSONAPI.View do
       end
 
       defmodule DogView do
-        use JSONAPI.View, resource: Dog
+        use JSONAPI.View, type: "dog"
       end
 
   You can now call `View.render(UserView, user, conn)` and it will render a valid jsonapi doc.
@@ -48,7 +48,7 @@ defmodule JSONAPI.View do
   the same name as the field it will be producing:
 
       defmodule UserView do
-        use JSONAPI.View, resource: User
+        use JSONAPI.View, type: "user"
 
         @impl JSONAPI.View
         def attributes, do: [:id, :username, :fullname]
@@ -98,17 +98,15 @@ defmodule JSONAPI.View do
   @callback meta(Resource.t(), Conn.t() | nil) :: Document.meta()
   @callback path :: String.t() | nil
   @callback relationships :: [{Resource.field(), keyword(relationship_opts())}]
-  @callback resource :: Resource.t()
   @callback type :: Resource.type()
 
   defmacro __using__(opts \\ []) do
     {id_attribute, opts} = Keyword.pop(opts, :id_attribute, :id)
     {path, opts} = Keyword.pop(opts, :path)
+    {type, _opts} = Keyword.pop(opts, :type)
 
-    {resource, _opts} = Keyword.pop(opts, :resource)
-
-    unless resource do
-      raise "You must pass the :resource option to JSONAPI.View"
+    unless type do
+      raise "You must pass the :type option to JSONAPI.View"
     end
 
     quote do
@@ -116,11 +114,7 @@ defmodule JSONAPI.View do
 
       @__id_attribute__ unquote(id_attribute)
       @__path__ unquote(path)
-      @__resource__ struct(unquote(resource))
-      @__resource_type__ unquote(resource)
-                         |> Module.split()
-                         |> List.last()
-                         |> Resource.inflect(:camelize)
+      @__resource_type__ unquote(type)
 
       @impl JSONAPI.View
       def id(resource) do
@@ -147,9 +141,6 @@ defmodule JSONAPI.View do
 
       @impl JSONAPI.View
       def relationships, do: []
-
-      @impl JSONAPI.View
-      def resource, do: @__resource__
 
       @impl JSONAPI.View
       def type, do: @__resource_type__

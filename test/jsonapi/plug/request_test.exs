@@ -396,7 +396,7 @@ defmodule JSONAPI.Plug.RequestTest do
     test "parse_sort/2 raises on invalid sorts" do
       config = struct(JSONAPI, view: MyPostView)
 
-      assert_raise InvalidQuery, "invalid sort, name for type my-type", fn ->
+      assert_raise InvalidQuery, "invalid parameter sort=name for type my-type", fn ->
         parse_sort(config, %{"sort" => "name"})
       end
     end
@@ -411,7 +411,7 @@ defmodule JSONAPI.Plug.RequestTest do
     test "parse_filter/2 raises on invalid filters" do
       config = struct(JSONAPI, view: MyPostView)
 
-      assert_raise InvalidQuery, "invalid filter, invalid for type my-type", fn ->
+      assert_raise InvalidQuery, "invalid parameter filter=invalid for type my-type", fn ->
         parse_filter(config, %{"filter" => "invalid"})
       end
     end
@@ -440,19 +440,23 @@ defmodule JSONAPI.Plug.RequestTest do
     test "parse_include/2 errors with invalid includes" do
       config = struct(JSONAPI, view: MyPostView)
 
-      assert_raise InvalidQuery, "invalid include, user for type my-type", fn ->
+      assert_raise InvalidQuery, "invalid parameter include=user for type my-type", fn ->
         parse_include(config, %{"include" => "user,comments.author"})
       end
 
-      assert_raise InvalidQuery, "invalid include, comments.author for type my-type", fn ->
-        parse_include(config, %{"include" => "comments.author"})
-      end
+      assert_raise InvalidQuery,
+                   "invalid parameter include=comments.author for type my-type",
+                   fn ->
+                     parse_include(config, %{"include" => "comments.author"})
+                   end
 
-      assert_raise InvalidQuery, "invalid include, comments.author.user for type my-type", fn ->
-        parse_include(config, %{"include" => "comments.author.user"})
-      end
+      assert_raise InvalidQuery,
+                   "invalid parameter include=comments.author.user for type my-type",
+                   fn ->
+                     parse_include(config, %{"include" => "comments.author.user"})
+                   end
 
-      assert_raise InvalidQuery, "invalid include, fake_rel for type my-type", fn ->
+      assert_raise InvalidQuery, "invalid parameter include=fake_rel for type my-type", fn ->
         assert parse_include(config, %{"include" => "fake-rel"})
       end
     end
@@ -467,11 +471,11 @@ defmodule JSONAPI.Plug.RequestTest do
     test "parse_fields/2 raises on invalid parsing" do
       config = struct(JSONAPI, view: MyPostView)
 
-      assert_raise InvalidQuery, "invalid fields, blag for type my-type", fn ->
+      assert_raise InvalidQuery, "invalid parameter fields=blag for type my-type", fn ->
         parse_fields(config, %{"fields" => %{"my-type" => "blag"}})
       end
 
-      assert_raise InvalidQuery, "invalid fields, username for type my-type", fn ->
+      assert_raise InvalidQuery, "invalid parameter fields=username for type my-type", fn ->
         parse_fields(config, %{"fields" => %{"my-type" => "username"}})
       end
     end

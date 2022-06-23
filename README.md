@@ -68,7 +68,7 @@ Then define a view module to render your resource:
 
 ```elixir
 defmodule MyApp.PostView do
-  use JSONAPI.View, resource: MyApp.Post
+  use JSONAPI.View, type: "post"
 
   @impl JSONAPI.View
   def attributes, do: [:title, :text, :excerpt]

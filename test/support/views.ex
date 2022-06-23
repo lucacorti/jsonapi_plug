@@ -1,18 +1,18 @@
 defmodule JSONAPI.TestSupport.Views do
   @moduledoc false
 
-  alias JSONAPI.TestSupport.Resources.{Car, Comment, Company, Industry, Post, Tag, User}
+  alias JSONAPI.TestSupport.Resources.{Post, User}
 
   defmodule CarView do
     @moduledoc false
 
-    use JSONAPI.View, resource: Car
+    use JSONAPI.View, type: "car"
   end
 
   defmodule CommentView do
     @moduledoc false
 
-    use JSONAPI.View, resource: Comment
+    use JSONAPI.View, type: "comment"
 
     alias JSONAPI.TestSupport.Views.UserView
 
@@ -26,7 +26,7 @@ defmodule JSONAPI.TestSupport.Views do
   defmodule CompanyView do
     @moduledoc false
 
-    use JSONAPI.View, resource: Company
+    use JSONAPI.View, type: "company"
 
     alias JSONAPI.TestSupport.Views.IndustryView
 
@@ -40,7 +40,7 @@ defmodule JSONAPI.TestSupport.Views do
   defmodule ExpensiveResourceView do
     @moduledoc false
 
-    use JSONAPI.View, resource: Post
+    use JSONAPI.View, type: "post"
 
     @impl JSONAPI.View
     def type, do: "expensive-post"
@@ -68,7 +68,7 @@ defmodule JSONAPI.TestSupport.Views do
   defmodule IndustryView do
     @moduledoc false
 
-    use JSONAPI.View, resource: Industry
+    use JSONAPI.View, type: "industry"
 
     alias JSONAPI.TestSupport.Views.TagView
 
@@ -82,7 +82,7 @@ defmodule JSONAPI.TestSupport.Views do
   defmodule MyPostView do
     @moduledoc false
 
-    use JSONAPI.View, resource: Post
+    use JSONAPI.View, type: "post"
 
     alias JSONAPI.TestSupport.Views.{CommentView, UserView}
 
@@ -104,7 +104,7 @@ defmodule JSONAPI.TestSupport.Views do
   defmodule NotIncludedView do
     @moduledoc false
 
-    use JSONAPI.View, resource: Post
+    use JSONAPI.View, type: "post"
 
     alias JSONAPI.TestSupport.Views.{CommentView, UserView}
 
@@ -125,7 +125,7 @@ defmodule JSONAPI.TestSupport.Views do
   defmodule PostView do
     @moduledoc false
 
-    use JSONAPI.View, resource: Post, path: "posts"
+    use JSONAPI.View, type: "post", path: "posts"
 
     alias JSONAPI.TestSupport.Views.{CommentView, UserView}
 
@@ -151,13 +151,13 @@ defmodule JSONAPI.TestSupport.Views do
   defmodule TagView do
     @moduledoc false
 
-    use JSONAPI.View, resource: Tag
+    use JSONAPI.View, type: "tag"
   end
 
   defmodule UserView do
     @moduledoc false
 
-    use JSONAPI.View, resource: User, path: "users"
+    use JSONAPI.View, type: "user", path: "users"
 
     alias JSONAPI.TestSupport.Views.{CompanyView, MyPostView}
 
