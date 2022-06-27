@@ -12,41 +12,31 @@ defmodule JSONAPI.TestSupport.Views do
   defmodule CommentView do
     @moduledoc false
 
-    use JSONAPI.View, type: "comment"
-
     alias JSONAPI.TestSupport.Views.UserView
 
-    @impl JSONAPI.View
-    def attributes, do: [:body, :text]
-
-    @impl JSONAPI.View
-    def relationships, do: [user: [view: UserView]]
+    use JSONAPI.View,
+      type: "comment",
+      attributes: [:body, :text],
+      relationships: [user: [view: UserView]]
   end
 
   defmodule CompanyView do
     @moduledoc false
 
-    use JSONAPI.View, type: "company"
-
     alias JSONAPI.TestSupport.Views.IndustryView
 
-    @impl JSONAPI.View
-    def attributes, do: [:name]
-
-    @impl JSONAPI.View
-    def relationships, do: [industry: [view: IndustryView]]
+    use JSONAPI.View,
+      type: "company",
+      attributes: [:name],
+      relationships: [industry: [view: IndustryView]]
   end
 
   defmodule ExpensiveResourceView do
     @moduledoc false
 
-    use JSONAPI.View, type: "post"
-
-    @impl JSONAPI.View
-    def type, do: "expensive-post"
-
-    @impl JSONAPI.View
-    def attributes, do: [:name]
+    use JSONAPI.View,
+      type: "expensive-post",
+      attributes: [:name]
 
     @impl JSONAPI.View
     def links(nil, _conn), do: %{}
@@ -68,33 +58,23 @@ defmodule JSONAPI.TestSupport.Views do
   defmodule IndustryView do
     @moduledoc false
 
-    use JSONAPI.View, type: "industry"
-
     alias JSONAPI.TestSupport.Views.TagView
 
-    @impl JSONAPI.View
-    def attributes, do: [:name]
-
-    @impl JSONAPI.View
-    def relationships, do: [tags: [view: TagView]]
+    use JSONAPI.View,
+      type: "industry",
+      attributes: [:name],
+      relationships: [tags: [view: TagView]]
   end
 
   defmodule MyPostView do
     @moduledoc false
 
-    use JSONAPI.View, type: "post"
-
     alias JSONAPI.TestSupport.Views.{CommentView, UserView}
 
-    @impl JSONAPI.View
-    def type, do: "my-type"
-
-    @impl JSONAPI.View
-    def attributes, do: [:text, :body]
-
-    @impl JSONAPI.View
-    def relationships,
-      do: [
+    use JSONAPI.View,
+      type: "my-type",
+      attributes: [:text, :body],
+      relationships: [
         author: [view: UserView],
         comments: [view: CommentView, many: true],
         best_friends: [view: UserView, many: true]
@@ -104,19 +84,12 @@ defmodule JSONAPI.TestSupport.Views do
   defmodule NotIncludedView do
     @moduledoc false
 
-    use JSONAPI.View, type: "post"
-
     alias JSONAPI.TestSupport.Views.{CommentView, UserView}
 
-    @impl JSONAPI.View
-    def type, do: "not-included"
-
-    @impl JSONAPI.View
-    def attributes, do: [:foo]
-
-    @impl JSONAPI.View
-    def relationships,
-      do: [
+    use JSONAPI.View,
+      type: "not-included",
+      attributes: [:foo],
+      relationships: [
         author: [view: UserView],
         best_comments: [view: CommentView, many: true]
       ]
@@ -125,26 +98,23 @@ defmodule JSONAPI.TestSupport.Views do
   defmodule PostView do
     @moduledoc false
 
-    use JSONAPI.View, type: "post", path: "posts"
-
     alias JSONAPI.TestSupport.Views.{CommentView, UserView}
 
-    @impl JSONAPI.View
-    def attributes,
-      do: [:text, :body, :excerpt, :first_character, :full_description, :inserted_at]
-
-    @impl JSONAPI.View
-    def meta(%Post{} = post, _conn), do: %{meta_text: "meta_#{post.text}"}
-
-    @impl JSONAPI.View
-    def relationships,
-      do: [
+    use JSONAPI.View,
+      type: "post",
+      path: "posts",
+      attributes: [:text, :body, :excerpt, :first_character, :full_description, :inserted_at],
+      relationships: [
         author: [view: UserView],
         best_comments: [view: CommentView, many: true],
         other_user: [view: UserView]
       ]
 
+    @impl JSONAPI.View
+    def meta(%Post{} = post, _conn), do: %{meta_text: "meta_#{post.text}"}
+
     def excerpt(%Post{} = post, _conn), do: String.slice(post.text, 0..1)
+
     def first_character(%Post{} = post, _conn), do: String.first(post.text)
   end
 
@@ -157,17 +127,13 @@ defmodule JSONAPI.TestSupport.Views do
   defmodule UserView do
     @moduledoc false
 
-    use JSONAPI.View, type: "user", path: "users"
-
     alias JSONAPI.TestSupport.Views.{CompanyView, MyPostView}
 
-    @impl JSONAPI.View
-    def attributes,
-      do: [:age, :first_name, :last_name, :full_name, :username, :password]
-
-    @impl JSONAPI.View
-    def relationships,
-      do: [
+    use JSONAPI.View,
+      type: "user",
+      path: "users",
+      attributes: [:age, :first_name, :last_name, :full_name, :username, :password],
+      relationships: [
         company: [view: CompanyView],
         top_posts: [view: MyPostView, many: true]
       ]

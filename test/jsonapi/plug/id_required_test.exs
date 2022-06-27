@@ -59,12 +59,12 @@ defmodule JSONAPI.Plug.IdRequiredTest do
   end
 
   defp call_plug(%{path_info: [_, id]} = conn) do
-    parser_opts = Parsers.init(parsers: [:json], pass: ["text/*"], json_decoder: Jason)
+    parser_options = Parsers.init(parsers: [:json], pass: ["text/*"], json_decoder: Jason)
 
     conn
     |> Conn.put_req_header("content-type", "application/json")
     |> Map.put(:path_params, %{"id" => id})
-    |> Parsers.call(parser_opts)
+    |> Parsers.call(parser_options)
     |> IdRequired.call([])
   end
 end

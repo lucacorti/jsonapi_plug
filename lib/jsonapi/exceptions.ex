@@ -12,10 +12,10 @@ defmodule JSONAPI.Exceptions do
                  value: nil
 
     @spec exception(keyword()) :: Exception.t()
-    def exception(opts) do
-      type = Keyword.fetch!(opts, :type)
-      value = Keyword.fetch!(opts, :value)
-      param = Keyword.fetch!(opts, :param)
+    def exception(options) do
+      type = Keyword.fetch!(options, :type)
+      value = Keyword.fetch!(options, :value)
+      param = Keyword.fetch!(options, :param)
 
       %InvalidQuery{
         message: "invalid parameter #{param}=#{value} for type #{type}",

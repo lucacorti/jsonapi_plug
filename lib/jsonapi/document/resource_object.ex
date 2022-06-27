@@ -117,12 +117,12 @@ defmodule JSONAPI.Document.ResourceObject do
     |> Enum.flat_map_reduce(
       resource_object,
       fn
-        {relationship_field, relationship_opts},
+        {relationship_field, relationship_options},
         %__MODULE__{relationships: relationships} = resource_object ->
           relationship = Map.get(resource, relationship_field)
           relationship_type = inflect_field(conn, relationship_field)
           relationship_url = View.url_for_relationship(view, resource, conn, relationship_type)
-          relationship_view = Keyword.fetch!(relationship_opts, :view)
+          relationship_view = Keyword.fetch!(relationship_options, :view)
 
           relationship_object =
             RelationshipObject.serialize(

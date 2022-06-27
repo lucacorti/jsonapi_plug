@@ -30,7 +30,7 @@ defmodule JSONAPI.Plug.Request do
         fields: %{"my-type" => [:id, :text], "comment" => [:id, :body],
         filter: %{"title" => "my title"} # Easily reduceable into ecto where clauses
         include: [comments: :user] # Easily insertable into a Repo.preload,
-        opts: [sort: ["created_at", "title"]],
+        options: [sort: ["created_at", "title"]],
         page: %{
           limit: limit,
           offset: offset,
@@ -69,13 +69,13 @@ defmodule JSONAPI.Plug.Request do
   @behaviour Plug
 
   @impl Plug
-  def init(opts), do: opts
+  def init(options), do: options
 
   @impl Plug
-  def call(%Conn{private: %{jsonapi: %JSONAPI{} = jsonapi}} = conn, opts) do
-    {api, opts} = Keyword.pop(opts, :api, jsonapi.api)
+  def call(%Conn{private: %{jsonapi: %JSONAPI{} = jsonapi}} = conn, options) do
+    {api, options} = Keyword.pop(options, :api, jsonapi.api)
 
-    {view, opts} = Keyword.pop(opts, :view)
+    {view, options} = Keyword.pop(options, :view)
 
     unless view do
       raise "You must pass the :view option to JSONAPI.Plug.Request"
@@ -87,7 +87,7 @@ defmodule JSONAPI.Plug.Request do
 
     jsonapi =
       jsonapi
-      |> struct(api: api, opts: Enum.into(opts, %{}), view: view)
+      |> struct(api: api, options: Enum.into(options, %{}), view: view)
       |> parse_fields(query)
       |> parse_include(query)
       |> parse_filter(query)
@@ -202,12 +202,12 @@ defmodule JSONAPI.Plug.Request do
 
   @doc false
   @spec parse_sort(JSONAPI.t(), options()) :: JSONAPI.t() | no_return()
-  def parse_sort(%JSONAPI{opts: opts, view: view} = jsonapi, %{"sort" => sort}) do
+  def parse_sort(%JSONAPI{options: options, view: view} = jsonapi, %{"sort" => sort}) do
     sort =
       sort
       |> String.split(",")
       |> Enum.map(fn field ->
-        valid_sort = Keyword.get(opts, :sort, [])
+        valid_sort = Keyword.get(options, :sort, [])
         [_, direction, field] = Regex.run(~r/(-?)(\S*)/, field)
 
         unless field in valid_sort do

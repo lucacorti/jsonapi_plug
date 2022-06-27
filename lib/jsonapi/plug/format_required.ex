@@ -14,10 +14,10 @@ defmodule JSONAPI.Plug.FormatRequired do
   @behaviour Plug
 
   @impl Plug
-  def init(opts), do: opts
+  def init(options), do: options
 
   @impl Plug
-  def call(%{method: method} = conn, _opts) when method in ["DELETE", "GET", "HEAD"], do: conn
+  def call(%{method: method} = conn, _options) when method in ["DELETE", "GET", "HEAD"], do: conn
 
   def call(%{method: "POST", params: %{"data" => %{"type" => _}}} = conn, _), do: conn
 

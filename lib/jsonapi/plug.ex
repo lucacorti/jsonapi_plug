@@ -12,8 +12,8 @@ defmodule JSONAPI.Plug do
   plug JSONAPI.Plug.IdRequired
   plug JSONAPI.Plug.ResponseContentType
 
-  def config_api(conn, opts) do
-    {api, _opts} = Keyword.pop(opts, :api)
+  def config_api(conn, options) do
+    {api, _options} = Keyword.pop(options, :api)
 
     unless api do
       raise "You must pass the :api option to JSONAPI.Plug"

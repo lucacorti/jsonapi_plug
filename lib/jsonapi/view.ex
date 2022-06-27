@@ -3,38 +3,33 @@ defmodule JSONAPI.View do
   A View is simply a module that defines certain callbacks to configure proper
   rendering of your JSONAPI documents.
 
-      defmodule PostView do
-        use JSONAPI.View, type: "post"
-
-        @impl JSONAPI.View
-        def attributes, do: [:id, :text, :body]
-
-        @impl JSONAPI.View
-        def relationships,
-          do: [
+      defmodule MyApp.PostView do
+        alias MyApp.{CommentView, UserView}
+        use JSONAPI.View,
+          type: "post",
+          attributes: [:id, :text, :body]
+          relationships: [
             author: [view: UserView],
             comments: [many: true, view: CommentView]
           ]
       end
 
-      defmodule UserView do
-        use JSONAPI.View, type: "user"
-
-        @impl JSONAPI.View
-        def attributes, do: [:id, :username]
+      defmodule MyApp.UserView do
+        use JSONAPI.View,
+          type: "user",
+          attributes: [:id, :username]
       end
 
-      defmodule CommentView do
-        use JSONAPI.View, type: "comment
+      defmodule MyApp.CommentView do
+        alias MyApp.UserView
 
-        @impl JSONAPI.View
-        def attributes, do: [:id, :text]
-
-        @impl JSONAPI.View
-        def relationships, do: [user: [view: UserView]]
+        use JSONAPI.View,
+          type: "comment,
+          attributes: [:id, :text]
+          relationships: [user: [view: UserView]]
       end
 
-      defmodule DogView do
+      defmodule MyApp.DogView do
         use JSONAPI.View, type: "dog"
       end
 
@@ -47,13 +42,12 @@ defmodule JSONAPI.View do
   2-arity function inside the view that takes `resource` and `conn` as arguments and has
   the same name as the field it will be producing:
 
-      defmodule UserView do
-        use JSONAPI.View, type: "user"
+      defmodule MyApp.UserView do
+        use JSONAPI.View,
+          type: "user",
+          attributes: [:id, :username, :fullname]
 
-        @impl JSONAPI.View
-        def attributes, do: [:id, :username, :fullname]
-
-        def fullname(resource, conn), do: "fullname"
+        def fullname(resource, conn), do: "\#{resouce.first_name} \#{resource.last_name}"
       end
 
   ## Relationships
@@ -75,10 +69,10 @@ defmodule JSONAPI.View do
 
   So for example:
   `GET /posts?include=post.author` if the author record is loaded on the Post, and you are using
-  the `JSONAPI.Plug.Request` it will be included in the `includes` section of the JSONAPI document.
+  the `JSONAPI.Plug.Request` it will be included in the `included` section of the JSONAPI document.
 
-  The default behaviour for `host` and `scheme` is to derive it from the `conn` provided, while the
-  default style for presentation in names is to be camelized.
+  When rendering resource links, the default behaviour is to is to derive values for `host`, `port`
+  and `scheme` from the connection. You can override them via your application configuration.
   """
 
   alias JSONAPI.{API, Document, Document.ErrorObject, Resource, Resource}
@@ -87,23 +81,24 @@ defmodule JSONAPI.View do
   @type t :: module()
   @type options :: keyword()
   @type data :: Resource.t() | [Resource.t()]
-
-  @type attribute_opts :: [to: Resource.field()]
-  @type relationship_opts :: [many: boolean(), to: Resource.field(), view: t()]
+  @type attribute_options :: [to: Resource.field()]
+  @type relationship_options :: [many: boolean(), to: Resource.field(), view: t()]
 
   @callback id(Resource.t()) :: Resource.id()
   @callback id_attribute :: Resource.field()
-  @callback attributes :: [Resource.field() | keyword(attribute_opts())]
+  @callback attributes :: [Resource.field() | keyword(attribute_options())]
   @callback links(Resource.t(), Conn.t() | nil) :: Document.links()
   @callback meta(Resource.t(), Conn.t() | nil) :: Document.meta()
   @callback path :: String.t() | nil
-  @callback relationships :: [{Resource.field(), keyword(relationship_opts())}]
+  @callback relationships :: [{Resource.field(), keyword(relationship_options())}]
   @callback type :: Resource.type()
 
-  defmacro __using__(opts \\ []) do
-    {id_attribute, opts} = Keyword.pop(opts, :id_attribute, :id)
-    {path, opts} = Keyword.pop(opts, :path)
-    {type, _opts} = Keyword.pop(opts, :type)
+  defmacro __using__(options \\ []) do
+    {attributes, options} = Keyword.pop(options, :attributes, [])
+    {id_attribute, options} = Keyword.pop(options, :id_attribute, :id)
+    {path, options} = Keyword.pop(options, :path)
+    {relationships, options} = Keyword.pop(options, :relationships, [])
+    {type, _options} = Keyword.pop(options, :type)
 
     unless type do
       raise "You must pass the :type option to JSONAPI.View"
@@ -112,23 +107,19 @@ defmodule JSONAPI.View do
     quote do
       @behaviour JSONAPI.View
 
-      @__id_attribute__ unquote(id_attribute)
-      @__path__ unquote(path)
-      @__resource_type__ unquote(type)
-
       @impl JSONAPI.View
       def id(resource) do
-        case Map.fetch(resource, id_attribute()) do
+        case Map.fetch(resource, unquote(id_attribute)) do
           {:ok, id} -> to_string(id)
           :error -> raise "Resources must have an id defined"
         end
       end
 
       @impl JSONAPI.View
-      def id_attribute, do: @__id_attribute__
+      def id_attribute, do: unquote(id_attribute)
 
       @impl JSONAPI.View
-      def attributes, do: []
+      def attributes, do: unquote(attributes)
 
       @impl JSONAPI.View
       def links(_resource, _conn), do: %{}
@@ -137,13 +128,13 @@ defmodule JSONAPI.View do
       def meta(_resource, _conn), do: %{}
 
       @impl JSONAPI.View
-      def path, do: @__path__
+      def path, do: unquote(path)
 
       @impl JSONAPI.View
-      def relationships, do: []
+      def relationships, do: unquote(relationships)
 
       @impl JSONAPI.View
-      def type, do: @__resource_type__
+      def type, do: unquote(type)
 
       defoverridable JSONAPI.View
 

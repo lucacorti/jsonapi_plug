@@ -68,10 +68,9 @@ Then define a view module to render your resource:
 
 ```elixir
 defmodule MyApp.PostView do
-  use JSONAPI.View, type: "post"
-
-  @impl JSONAPI.View
-  def attributes, do: [:title, :text, :excerpt]
+  use JSONAPI.View,
+    type: "post"
+    attributes: [:title, :text, :excerpt],
 
   @impl JSONAPI.View
   def meta(%Post{} = post, _conn), do: %{slug: to_slug(post.title)}

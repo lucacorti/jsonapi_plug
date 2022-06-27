@@ -11,11 +11,12 @@ defmodule JSONAPI.Plug.IdRequired do
   @behaviour Plug
 
   @impl Plug
-  def init(opts), do: opts
+  def init(options), do: options
 
   @impl Plug
-  def call(%Conn{method: method} = conn, _opts) when method in ["DELETE", "GET", "HEAD", "POST"],
-    do: conn
+  def call(%Conn{method: method} = conn, _options)
+      when method in ["DELETE", "GET", "HEAD", "POST"],
+      do: conn
 
   def call(%Conn{params: %{"data" => %{"id" => id}, "id" => id}} = conn, _)
       when is_binary(id) and byte_size(id) > 0,

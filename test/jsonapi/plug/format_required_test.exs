@@ -163,11 +163,11 @@ defmodule JSONAPI.Plug.FormatRequiredTest do
   end
 
   defp call_plug(conn) do
-    parser_opts = Parsers.init(parsers: [:json], pass: ["text/*"], json_decoder: Jason)
+    parser_options = Parsers.init(parsers: [:json], pass: ["text/*"], json_decoder: Jason)
 
     conn
     |> Conn.put_req_header("content-type", "application/json")
-    |> Parsers.call(parser_opts)
+    |> Parsers.call(parser_options)
     |> FormatRequired.call([])
   end
 end
