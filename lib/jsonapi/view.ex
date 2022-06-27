@@ -146,26 +146,19 @@ defmodule JSONAPI.View do
 
       defoverridable JSONAPI.View
 
-      def render(action, %{data: data, conn: conn} = assigns)
+      def render(action, assigns)
           when action in ["create.json", "index.json", "show.json", "update.json"] do
         JSONAPI.View.render(
           __MODULE__,
-          data,
-          conn,
+          Map.get(assigns, :data),
+          Map.get(assigns, :conn),
           Map.get(assigns, :meta),
           Map.get(assigns, :options)
         )
       end
 
-      def render(action, %{data: data, conn: conn}) do
-        raise(
-          RuntimeError,
-          "invalid action #{action}, use one of create.json, index.json, show.json, update.json"
-        )
-      end
-
-      def render(_action, _assigns) do
-        raise RuntimeError, "you must pass at least :data and :conn to the view assigns."
+      def render(action, _assigns) do
+        raise "invalid action #{action}, use one of create.json, index.json, show.json, update.json"
       end
     end
   end
