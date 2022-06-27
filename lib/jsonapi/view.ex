@@ -3,37 +3,45 @@ defmodule JSONAPI.View do
   A View is simply a module that defines certain callbacks to configure proper
   rendering of your JSONAPI documents.
 
-      defmodule MyApp.PostView do
-        alias MyApp.{CommentView, UserView}
+      defmodule MyApp.PostsView do
+        alias MyApp.{CommentsView, UsersView}
+
         use JSONAPI.View,
           type: "post",
           attributes: [:id, :text, :body]
           relationships: [
-            author: [view: UserView],
-            comments: [many: true, view: CommentView]
+            author: [view: UsersView],
+            comments: [many: true, view: CommentsView]
           ]
       end
 
-      defmodule MyApp.UserView do
+      defmodule MyApp.UsersView do
         use JSONAPI.View,
           type: "user",
           attributes: [:id, :username]
       end
 
       defmodule MyApp.CommentView do
-        alias MyApp.UserView
+        alias MyApp.UsersView
 
         use JSONAPI.View,
           type: "comment,
           attributes: [:id, :text]
-          relationships: [user: [view: UserView]]
+          relationships: [user: [view: UsersView]]
       end
 
       defmodule MyApp.DogView do
         use JSONAPI.View, type: "dog"
       end
 
-  You can now call `View.render(UserView, user, conn)` and it will render a valid jsonapi doc.
+  You can now call `UsersView.render(user, conn)` or `View.render(UsersView, user, conn)`
+  to render a valid JSON:API document from your data. If you use phoenix, you can use:
+
+    conn
+    |> put_view(UsersView)
+    |> render("show.json", %{data: data, conn: conn, meta: meta, options: options})
+
+  in your controller code to render the document in the same way.
 
   ## Fields
 
@@ -138,17 +146,27 @@ defmodule JSONAPI.View do
 
       defoverridable JSONAPI.View
 
-      def render(action, %{data: data, conn: conn, meta: meta, options: options})
-          when action in ["create.json", "index.json", "show.json", "update.json"],
-          do: JSONAPI.View.render(__MODULE__, data, conn, meta, options)
+      def render(action, %{data: data, conn: conn} = assigns)
+          when action in ["create.json", "index.json", "show.json", "update.json"] do
+        JSONAPI.View.render(
+          __MODULE__,
+          data,
+          conn,
+          Map.get(assigns, :meta),
+          Map.get(assigns, :options)
+        )
+      end
 
-      def render(action, %{data: data, conn: conn, meta: meta})
-          when action in ["create.json", "index.json", "show.json", "update.json"],
-          do: JSONAPI.View.render(__MODULE__, data, conn, meta)
+      def render(action, %{data: data, conn: conn}) do
+        raise(
+          RuntimeError,
+          "invalid action #{action}, use one of create.json, index.json, show.json, update.json"
+        )
+      end
 
-      def render(action, %{data: data, conn: conn})
-          when action in ["create.json", "index.json", "show.json", "update.json"],
-          do: JSONAPI.View.render(__MODULE__, data, conn)
+      def render(_action, _assigns) do
+        raise RuntimeError, "you must pass at least :data and :conn to the view assigns."
+      end
     end
   end
 
@@ -167,7 +185,7 @@ defmodule JSONAPI.View do
 
   @spec render(t(), data() | nil, Conn.t() | nil, Document.meta() | nil, options()) ::
           Document.t()
-  def render(view, data, conn \\ nil, meta \\ nil, options \\ []),
+  def render(view, data \\ nil, conn \\ nil, meta \\ nil, options \\ []),
     do: Document.serialize(%Document{data: data, meta: meta}, view, conn, options)
 
   @spec send_error(Conn.t(), Conn.status(), [ErrorObject.t()]) :: Conn.t()
