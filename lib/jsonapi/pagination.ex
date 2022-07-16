@@ -30,8 +30,8 @@ defmodule JSONAPI.Pagination do
   alias Plug.Conn
 
   @type t :: module()
-
-  @type links :: %{(:first | :last | :next | :prev) => String.t()}
+  @type link :: :first | :last | :next | :prev
+  @type links :: %{link() => String.t()}
 
   @type options :: Keyword.t()
 
