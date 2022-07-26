@@ -381,7 +381,7 @@ defmodule JSONAPI.Plug.RequestTest do
 
   describe "query parameters" do
     test "parse_sort/2 turns sorts into valid ecto sorts" do
-      config = struct(JSONAPI, options: [sort: ~w(name title)], view: MyPostView)
+      config = struct(JSONAPI, options: %{sort: ~w(name title)}, view: MyPostView)
 
       assert %JSONAPI{sort: [asc: :name, asc: :title]} =
                parse_sort(config, %{"sort" => "name,title"})
@@ -394,7 +394,7 @@ defmodule JSONAPI.Plug.RequestTest do
     end
 
     test "parse_sort/2 raises on invalid sorts" do
-      config = struct(JSONAPI, view: MyPostView)
+      config = struct(JSONAPI, options: %{}, view: MyPostView)
 
       assert_raise InvalidQuery, "invalid parameter sort=name for type my-type", fn ->
         parse_sort(config, %{"sort" => "name"})
