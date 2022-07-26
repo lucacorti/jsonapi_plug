@@ -107,7 +107,11 @@ defmodule JSONAPI.Document do
         {included, [resource_object | resource_objects]}
       end)
 
-    %__MODULE__{document | data: data, included: included |> List.flatten() |> Enum.uniq()}
+    %__MODULE__{
+      document
+      | data: Enum.reverse(data),
+        included: included |> List.flatten() |> Enum.uniq()
+    }
   end
 
   defp serialize_data(%__MODULE__{data: resource} = document, view, conn, options) do
