@@ -207,7 +207,7 @@ defmodule JSONAPI.Plug.Request do
       sort
       |> String.split(",")
       |> Enum.map(fn field ->
-        valid_sort = Keyword.get(options, :sort, [])
+        valid_sort = Map.get(options, :sort, [])
         [_, direction, field] = Regex.run(~r/(-?)(\S*)/, field)
 
         unless field in valid_sort do

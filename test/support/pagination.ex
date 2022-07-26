@@ -22,9 +22,7 @@ defmodule JSONAPI.TestSupport.Pagination do
         |> Map.get("size", "0")
         |> String.to_integer()
 
-      total_pages =
-        options
-        |> Keyword.get(:total_pages, 0)
+      total_pages = Keyword.get(options, :total_pages, 0)
 
       %{
         first: Pagination.url_for(view, resources, conn, Map.put(page, "page", 1)),
