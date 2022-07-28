@@ -89,16 +89,23 @@ defmodule JSONAPI.View do
   @type t :: module()
   @type options :: keyword()
   @type data :: Resource.t() | [Resource.t()]
-  @type attribute_options :: [to: Resource.field()]
-  @type relationship_options :: [many: boolean(), to: Resource.field(), view: t()]
+  @type attribute_options :: [
+          name: Resource.field(),
+          serialize: boolean() | (Resource.t(), Conn.t() -> term()),
+          deserialize: boolean() | (Resource.t(), Conn.t() -> term())
+        ]
+  @type relationship_options :: [many: boolean(), name: Resource.field(), view: t()]
+  @type attribute :: Resource.field() | {Resource.field(), attribute_options()}
+  @type relationship :: {Resource.field(), relationship_options()}
+  @type field :: attribute() | relationship()
 
   @callback id(Resource.t()) :: Resource.id()
   @callback id_attribute :: Resource.field()
-  @callback attributes :: [Resource.field() | keyword(attribute_options())]
+  @callback attributes :: [attribute()]
   @callback links(Resource.t(), Conn.t() | nil) :: Document.links()
   @callback meta(Resource.t(), Conn.t() | nil) :: Document.meta()
   @callback path :: String.t() | nil
-  @callback relationships :: [{Resource.field(), keyword(relationship_options())}]
+  @callback relationships :: [relationship()]
   @callback type :: Resource.type()
 
   defmacro __using__(options \\ []) do
@@ -163,6 +170,25 @@ defmodule JSONAPI.View do
     end
   end
 
+  @spec field_name(field()) :: Resource.field()
+  def field_name(field) when is_atom(field), do: field
+  def field_name({name, nil}), do: name
+  def field_name({name, options}) when is_list(options), do: name
+
+  def field_name(field),
+    do: raise("invalid field definition: #{inspect(field)}")
+
+  @spec field_option(field(), atom(), term()) :: term()
+  def field_option(name, _option, default) when is_atom(name), do: default
+
+  def field_option({_name, nil}, _option, default), do: default
+
+  def field_option({_name, options}, option, default) when is_list(options),
+    do: Keyword.get(options, option, default)
+
+  def field_option(field, _option, _default),
+    do: raise("invalid field definition: #{inspect(field)}")
+
   @spec for_related_type(t(), Resource.type()) :: t() | nil
   def for_related_type(view, type) do
     Enum.find_value(view.relationships(), fn {_relationship, options} ->
@@ -190,7 +216,8 @@ defmodule JSONAPI.View do
       Jason.encode!(%Document{
         errors:
           Enum.map(errors, fn %ErrorObject{} = error ->
-            %ErrorObject{error | status: Integer.to_string(status)}
+            code = Conn.Status.code(status)
+            %ErrorObject{error | status: to_string(code), title: Conn.Status.reason_phrase(code)}
           end)
       })
     )

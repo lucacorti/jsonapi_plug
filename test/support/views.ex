@@ -103,7 +103,14 @@ defmodule JSONAPI.TestSupport.Views do
     use JSONAPI.View,
       type: "post",
       path: "posts",
-      attributes: [:text, :body, :excerpt, :first_character, :full_description, :inserted_at],
+      attributes: [
+        text: nil,
+        body: nil,
+        excerpt: [serialize: fn %Post{} = post, _conn -> String.slice(post.text, 0..1) end],
+        first_character: [serialize: fn %Post{} = post, _conn -> String.first(post.text) end],
+        full_description: nil,
+        inserted_at: nil
+      ],
       relationships: [
         author: [view: UserView],
         best_comments: [view: CommentView, many: true],
@@ -112,10 +119,6 @@ defmodule JSONAPI.TestSupport.Views do
 
     @impl JSONAPI.View
     def meta(%Post{} = post, _conn), do: %{meta_text: "meta_#{post.text}"}
-
-    def excerpt(%Post{} = post, _conn), do: String.slice(post.text, 0..1)
-
-    def first_character(%Post{} = post, _conn), do: String.first(post.text)
   end
 
   defmodule TagView do
@@ -132,12 +135,20 @@ defmodule JSONAPI.TestSupport.Views do
     use JSONAPI.View,
       type: "user",
       path: "users",
-      attributes: [:age, :first_name, :last_name, :full_name, :username, :password],
+      attributes: [
+        age: nil,
+        first_name: nil,
+        last_name: nil,
+        full_name: [serialize: &full_name/2],
+        username: nil,
+        password: nil
+      ],
       relationships: [
         company: [view: CompanyView],
         top_posts: [view: MyPostView, many: true]
       ]
 
-    def full_name(%User{} = user, _conn), do: Enum.join([user.first_name, user.last_name], " ")
+    defp full_name(%User{} = user, _conn),
+      do: Enum.join([user.first_name, user.last_name], " ")
   end
 end

@@ -62,36 +62,50 @@ defmodule JSONAPI.Document.ResourceObject do
 
   defp serialize_attributes(%__MODULE__{} = resource_object, view, resource, conn) do
     attributes =
-      view
-      |> attributes_for_type(conn)
-      |> Enum.reduce(%{}, fn field, attributes ->
-        value =
-          if function_exported?(view, field, 2) do
-            apply(view, field, [resource, conn])
-          else
-            Map.get(resource, field)
-          end
+      view.attributes()
+      |> requested_fields(view, conn)
+      |> Enum.reduce(%{}, fn attribute, attributes ->
+        name = View.field_name(attribute)
 
-        Map.put(attributes, inflect_field(conn, field), value)
+        case View.field_option(attribute, :serialize, true) do
+          false ->
+            attributes
+
+          true ->
+            value = Map.get(resource, name)
+
+            Map.put(attributes, recase_field(conn, name), value)
+
+          serialize when is_function(serialize, 2) ->
+            value = serialize.(resource, conn)
+
+            Map.put(attributes, recase_field(conn, name), value)
+        end
       end)
 
     %__MODULE__{resource_object | attributes: attributes}
   end
 
-  defp inflect_field(%Conn{private: %{jsonapi: %JSONAPI{} = jsonapi}}, field),
-    do: Resource.inflect(field, API.get_config(jsonapi.api, :inflection, :camelize))
+  defp requested_fields(attributes, view, %Conn{
+         private: %{jsonapi: %JSONAPI{fields: fields}}
+       })
+       when is_map(fields) do
+    case fields[view.type()] do
+      nil ->
+        attributes
 
-  defp inflect_field(_conn, field),
-    do: Resource.inflect(field, :camelize)
-
-  defp attributes_for_type(view, %Conn{private: %{jsonapi: %JSONAPI{fields: %{}} = jsonapi}}) do
-    view.attributes()
-    |> MapSet.new()
-    |> MapSet.intersection(MapSet.new(jsonapi.fields[view.type()] || view.attributes()))
-    |> MapSet.to_list()
+      fields when is_list(fields) ->
+        Enum.filter(attributes, fn attribute -> View.field_name(attribute) in fields end)
+    end
   end
 
-  defp attributes_for_type(view, _conn), do: view.attributes()
+  defp requested_fields(attributes, _view, _conn), do: attributes
+
+  defp recase_field(%Conn{private: %{jsonapi: %JSONAPI{} = jsonapi}}, field),
+    do: Resource.recase(field, API.get_config(jsonapi.api, :case, :camelize))
+
+  defp recase_field(_conn, field),
+    do: Resource.recase(field, :camelize)
 
   defp serialize_links(%__MODULE__{} = resource_object, view, resource, conn) do
     links =
@@ -120,7 +134,7 @@ defmodule JSONAPI.Document.ResourceObject do
         {relationship_field, relationship_options},
         %__MODULE__{relationships: relationships} = resource_object ->
           relationship = Map.get(resource, relationship_field)
-          relationship_type = inflect_field(conn, relationship_field)
+          relationship_type = recase_field(conn, relationship_field)
           relationship_url = View.url_for_relationship(view, resource, conn, relationship_type)
           relationship_view = Keyword.fetch!(relationship_options, :view)
 
@@ -175,11 +189,12 @@ defmodule JSONAPI.Document.ResourceObject do
     |> Enum.uniq()
   end
 
-  @spec deserialize(View.t(), Document.payload(), Document.included()) :: %{String.t() => term()}
-  def deserialize(view, data, included) do
+  @spec deserialize(View.t(), Conn.t(), Document.payload(), Document.included()) ::
+          %{String.t() => term()}
+  def deserialize(view, conn, data, included) do
     %{}
-    |> deserialize_attributes(view, data)
-    |> deserialize_relationships(view, data, included)
+    |> deserialize_attributes(view, conn, data)
+    |> deserialize_relationships(view, conn, data, included)
     |> deserialize_id(view, data)
   end
 
@@ -188,58 +203,63 @@ defmodule JSONAPI.Document.ResourceObject do
 
   defp deserialize_id(resource, _view, _data), do: resource
 
-  defp deserialize_attributes(resource, view, %{"attributes" => attributes})
+  defp deserialize_attributes(resource, view, conn, %{"attributes" => attributes})
        when is_map(attributes) do
     view.attributes()
     |> Enum.reduce(resource, fn attribute, resource ->
-      {from, to} = map_attribute!(attribute)
-
-      case Map.fetch(attributes, from) do
-        {:ok, value} ->
-          Map.put(resource, to, value)
-
-        :error ->
+      case View.field_option(attribute, :deserialize, true) do
+        false ->
           resource
+
+        true ->
+          name = View.field_name(attribute)
+
+          Map.put(
+            resource,
+            to_string(View.field_option(attribute, :name, name)),
+            Map.get(attributes, recase_field(conn, to_string(name)))
+          )
+
+        deserialize when is_function(deserialize, 2) ->
+          name = View.field_name(attribute)
+
+          Map.put(
+            resource,
+            to_string(View.field_option(attribute, :name, name)),
+            deserialize.(resource, conn)
+          )
       end
     end)
   end
 
-  defp deserialize_attributes(resource, _view, _data), do: resource
-
-  defp map_attribute!(attribute) when is_atom(attribute),
-    do: {to_string(attribute), to_string(attribute)}
-
-  defp map_attribute!({attribute, options}) when is_atom(attribute),
-    do: {to_string(attribute), to_string(Keyword.get(options, :to, attribute))}
-
-  defp map_attribute!(attribute),
-    do: raise("Invalid attribute specification #{inspect(attribute)}")
+  defp deserialize_attributes(resource, _view, _conn, _data), do: resource
 
   defp deserialize_relationships(
          resource,
          view,
-         %{"relationships" => relationships} = _data,
+         conn,
+         %{"relationships" => relationships},
          included
        )
        when is_map(relationships) do
     view.relationships()
-    |> Enum.reduce(resource, fn {relationship, options}, resource ->
-      many = Keyword.get(options, :many, false)
-      {from, to} = map_attribute!(relationship)
+    |> Enum.reduce(resource, fn relationship, resource ->
+      many = View.field_option(relationship, :many, false)
+      name = View.field_name(relationship)
 
-      case Map.fetch(relationships, from) do
-        {:ok, relationships} when many == true ->
+      case Map.fetch(relationships, recase_field(conn, to_string(name))) do
+        {:ok, data} when many == true ->
           Map.put(
             resource,
-            to,
-            Enum.map(relationships, &deserialize_relationship(view, &1, included))
+            to_string(View.field_option(relationship, :name, name)),
+            Enum.map(data, &deserialize_relationship_data(view, conn, &1, included))
           )
 
-        {:ok, relationship} ->
+        {:ok, data} ->
           Map.put(
             resource,
-            to,
-            deserialize_relationship(view, relationship, included)
+            to_string(View.field_option(relationship, :name, name)),
+            deserialize_relationship_data(view, conn, data, included)
           )
 
         :error ->
@@ -248,10 +268,11 @@ defmodule JSONAPI.Document.ResourceObject do
     end)
   end
 
-  defp deserialize_relationships(resource, _view, _data, _included), do: resource
+  defp deserialize_relationships(resource, _view, _conn, _data, _included), do: resource
 
-  defp deserialize_relationship(
+  defp deserialize_relationship_data(
          view,
+         conn,
          %{"data" => %{"id" => id, "type" => type}},
          included
        ) do
@@ -259,7 +280,7 @@ defmodule JSONAPI.Document.ResourceObject do
       %{"type" => ^type, "id" => ^id} = included_resource, result ->
         case View.for_related_type(view, type) do
           nil -> {:halt, result}
-          related_view -> {:halt, deserialize(related_view, included_resource, included)}
+          related_view -> {:halt, deserialize(related_view, conn, included_resource, included)}
         end
 
       _included_resource, result ->

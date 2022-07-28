@@ -31,10 +31,10 @@ defmodule JSONAPI.Plug.ContentTypeNegotiation do
         conn
 
       {false, _} ->
-        View.send_error(conn, 415, [%ErrorObject{}])
+        View.send_error(conn, :unsupported_media_type, [%ErrorObject{}])
 
       {_, false} ->
-        View.send_error(conn, 406, [%ErrorObject{}])
+        View.send_error(conn, :not_acceptable, [%ErrorObject{}])
     end
   end
 

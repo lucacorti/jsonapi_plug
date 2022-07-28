@@ -16,8 +16,11 @@ defmodule JSONAPI.Plug.IdRequiredTest do
 
     %{"errors" => [error]} = Jason.decode!(conn.resp_body)
 
-    assert %{"source" => %{"pointer" => "/data/id"}, "title" => "Missing id in data parameter"} =
-             error
+    assert %{
+             "source" => %{"pointer" => "/data/id"},
+             "status" => "400",
+             "title" => "Bad Request"
+           } = error
   end
 
   test "halts and returns an error if id attribute is not a string" do
@@ -31,8 +34,11 @@ defmodule JSONAPI.Plug.IdRequiredTest do
 
     %{"errors" => [error]} = Jason.decode!(conn.resp_body)
 
-    assert %{"source" => %{"pointer" => "/data/id"}, "title" => "Malformed id in data parameter"} =
-             error
+    assert %{
+             "source" => %{"pointer" => "/data/id"},
+             "status" => "422",
+             "title" => "Unprocessable Entity"
+           } = error
   end
 
   test "halts and returns an error if id attribute and url id are mismatched" do
@@ -46,7 +52,11 @@ defmodule JSONAPI.Plug.IdRequiredTest do
 
     %{"errors" => [error]} = Jason.decode!(conn.resp_body)
 
-    assert %{"source" => %{"pointer" => "/data/id"}, "title" => "Mismatched id parameter"} = error
+    assert %{
+             "source" => %{"pointer" => "/data/id"},
+             "status" => "409",
+             "title" => "Conflict"
+           } = error
   end
 
   test "passes request through" do
@@ -55,7 +65,7 @@ defmodule JSONAPI.Plug.IdRequiredTest do
       |> conn("/example/1", Jason.encode!(%{data: %{id: "1"}}))
       |> call_plug
 
-    refute conn.halted
+    assert not conn.halted
   end
 
   defp call_plug(%{path_info: [_, id]} = conn) do

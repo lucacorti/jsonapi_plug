@@ -16,7 +16,11 @@ defmodule JSONAPI.Plug.FormatRequiredTest do
 
     %{"errors" => [error]} = Jason.decode!(conn.resp_body)
 
-    assert %{"source" => %{"pointer" => "/data"}, "title" => "Missing data parameter"} = error
+    assert %{
+             "source" => %{"pointer" => "/data"},
+             "status" => "400",
+             "title" => "Bad Request"
+           } = error
   end
 
   test "halts and returns an error for missing attributes in data param" do
@@ -32,7 +36,8 @@ defmodule JSONAPI.Plug.FormatRequiredTest do
 
     assert %{
              "source" => %{"pointer" => "/data/attributes"},
-             "title" => "Missing attributes in data parameter"
+             "status" => "400",
+             "title" => "Bad Request"
            } = error
   end
 
@@ -49,7 +54,8 @@ defmodule JSONAPI.Plug.FormatRequiredTest do
 
     assert %{
              "source" => %{"pointer" => "/data/type"},
-             "title" => "Missing type in data parameter"
+             "status" => "400",
+             "title" => "Bad Request"
            } = error
   end
 
@@ -75,7 +81,8 @@ defmodule JSONAPI.Plug.FormatRequiredTest do
 
     assert %{
              "source" => %{"pointer" => "/data/id"},
-             "title" => "Missing id in data parameter"
+             "status" => "400",
+             "title" => "Bad Request"
            } = error
   end
 
@@ -92,7 +99,8 @@ defmodule JSONAPI.Plug.FormatRequiredTest do
 
     assert %{
              "source" => %{"pointer" => "/data/type"},
-             "title" => "Missing type in data parameter"
+             "status" => "400",
+             "title" => "Bad Request"
            } = error
   end
 
@@ -153,12 +161,9 @@ defmodule JSONAPI.Plug.FormatRequiredTest do
     %{"errors" => [error]} = Jason.decode!(conn.resp_body)
 
     assert %{
-             "detail" =>
-               "Check out https://jsonapi.org/format/#crud-updating-to-many-relationships for more info.",
              "source" => %{"pointer" => "/data"},
              "status" => "400",
-             "title" =>
-               "Data parameter has multiple Resource Identifier Objects for a non-relationship endpoint"
+             "title" => "Bad Request"
            } = error
   end
 

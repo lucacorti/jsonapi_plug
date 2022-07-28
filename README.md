@@ -70,12 +70,14 @@ Then define a view module to render your resource:
 defmodule MyApp.PostView do
   use JSONAPI.View,
     type: "post"
-    attributes: [:title, :text, :excerpt],
+    attributes: [
+      title: nil,
+      text: nil,
+      excerpt: [serialize: fn %Post{} = post, _conn), do: String.slice(post.body, 0..5) end]
+    ]
 
   @impl JSONAPI.View
   def meta(%Post{} = post, _conn), do: %{slug: to_slug(post.title)}
-
-  def excerpt(%Post{} = post, _conn), do: String.slice(post.body, 0..5)
 end
 ```
 

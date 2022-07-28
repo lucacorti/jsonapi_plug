@@ -310,7 +310,7 @@ defmodule JSONAPITest do
 
       assert %{"data" => [resource]} = Jason.decode!(conn.resp_body)
 
-      assert %{} == Map.get(resource, "attributes", %{})
+      assert map_size(Map.get(resource, "attributes", %{})) == 0
     end
   end
 

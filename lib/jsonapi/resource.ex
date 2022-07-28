@@ -5,7 +5,7 @@ defmodule JSONAPI.Resource do
 
   @type t :: struct()
   @type id :: String.t()
-  @type inflection :: :camelize | :dasherize | :underscore
+  @type case :: :camelize | :dasherize | :underscore
   @type field :: atom()
   @type type :: String.t()
 
@@ -17,55 +17,55 @@ defmodule JSONAPI.Resource do
 
   ## Examples
 
-      iex> inflect("top_posts", :camelize)
+      iex> recase("top_posts", :camelize)
       "topPosts"
 
-      iex> inflect(:top_posts, :camelize)
+      iex> recase(:top_posts, :camelize)
       "topPosts"
 
-      iex> inflect("_top_posts", :camelize)
+      iex> recase("_top_posts", :camelize)
       "_topPosts"
 
-      iex> inflect("_top__posts_", :camelize)
+      iex> recase("_top__posts_", :camelize)
       "_top__posts_"
 
-      iex> inflect("", :camelize)
+      iex> recase("", :camelize)
       ""
 
-      iex> inflect("top_posts", :dasherize)
+      iex> recase("top_posts", :dasherize)
       "top-posts"
 
-      iex> inflect("_top_posts", :dasherize)
+      iex> recase("_top_posts", :dasherize)
       "_top-posts"
 
-      iex> inflect("_top__posts_", :dasherize)
+      iex> recase("_top__posts_", :dasherize)
       "_top__posts_"
 
-      iex> inflect("top-posts", :underscore)
+      iex> recase("top-posts", :underscore)
       "top_posts"
 
-      iex> inflect(:top_posts, :underscore)
+      iex> recase(:top_posts, :underscore)
       "top_posts"
 
-      iex> inflect("-top-posts", :underscore)
+      iex> recase("-top-posts", :underscore)
       "-top_posts"
 
-      iex> inflect("-top--posts-", :underscore)
+      iex> recase("-top--posts-", :underscore)
       "-top--posts-"
 
-      iex> inflect("corgiAge", :underscore)
+      iex> recase("corgiAge", :underscore)
       "corgi_age"
   """
-  @spec inflect(field(), inflection()) :: String.t()
-  def inflect(field, inflection) when is_atom(field) do
+  @spec recase(field(), case()) :: String.t()
+  def recase(field, case) when is_atom(field) do
     field
     |> to_string()
-    |> inflect(inflection)
+    |> recase(case)
   end
 
-  def inflect("", :camelize), do: ""
+  def recase("", :camelize), do: ""
 
-  def inflect(field, :camelize) do
+  def recase(field, :camelize) do
     [h | t] =
       Regex.split(~r{(?<=[a-zA-Z0-9])[-_](?=[a-zA-Z0-9])}, field)
       |> Enum.filter(&(&1 != ""))
@@ -73,11 +73,11 @@ defmodule JSONAPI.Resource do
     Enum.join([String.downcase(h) | camelize_list(t)])
   end
 
-  def inflect(field, :dasherize) do
+  def recase(field, :dasherize) do
     String.replace(field, ~r/([a-zA-Z0-9])_([a-zA-Z0-9])/, "\\1-\\2")
   end
 
-  def inflect(field, :underscore) do
+  def recase(field, :underscore) do
     field
     |> String.replace(~r/([a-zA-Z\d])-([a-zA-Z\d])/, "\\1_\\2")
     |> String.replace(~r/([a-z\d])([A-Z])/, "\\1_\\2")

@@ -6,8 +6,6 @@ defmodule JSONAPI.Plug.IdRequired do
   alias JSONAPI.{Document.ErrorObject, View}
   alias Plug.Conn
 
-  @crud_message "Check out http://jsonapi.org/format/#crud for more info."
-
   @behaviour Plug
 
   @impl Plug
@@ -24,32 +22,32 @@ defmodule JSONAPI.Plug.IdRequired do
 
   def call(%Conn{params: %{"data" => %{"id" => id}}} = conn, _)
       when not is_binary(id) or byte_size(id) < 0 do
-    View.send_error(conn, 422, [
+    View.send_error(conn, :unprocessable_entity, [
       %ErrorObject{
-        detail: @crud_message,
-        source: %{pointer: "/data/id"},
-        title: "Malformed id in data parameter"
+        detail:
+          "Malformed id in data parameter: id must be a string, Check out http://jsonapi.org/format/#crud for more info.",
+        source: %{pointer: "/data/id"}
       }
     ])
   end
 
   def call(%Conn{params: %{"data" => %{"id" => id}, "id" => _id}} = conn, _)
       when is_binary(id) and byte_size(id) > 0 do
-    View.send_error(conn, 409, [
+    View.send_error(conn, :conflict, [
       %ErrorObject{
-        detail: "The id in the url must match the id at '/data/id'. " <> @crud_message,
-        source: %{pointer: "/data/id"},
-        title: "Mismatched id parameter"
+        detail:
+          "Mismatched id parameter: the id in the url must match the id at '/data/id'.\nCheck out http://jsonapi.org/format/#crud for more info.",
+        source: %{pointer: "/data/id"}
       }
     ])
   end
 
   def call(%Conn{params: %{"id" => _id}} = conn, _) do
-    View.send_error(conn, 400, [
+    View.send_error(conn, :bad_request, [
       %ErrorObject{
-        detail: @crud_message,
-        source: %{pointer: "/data/id"},
-        title: "Missing id in data parameter"
+        detail:
+          "Missing id in data parameter.\nCheck out http://jsonapi.org/format/#crud for more info.",
+        source: %{pointer: "/data/id"}
       }
     ])
   end

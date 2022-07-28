@@ -267,7 +267,7 @@ defmodule JSONAPI.Plug.RequestTest do
                      "id" => "1",
                      "type" => "user",
                      "attributes" => %{
-                       "first_name" => "Jerome"
+                       "firstName" => "Jerome"
                      }
                    },
                    "included" => [
@@ -291,7 +291,7 @@ defmodule JSONAPI.Plug.RequestTest do
                      "id" => "1",
                      "type" => "user",
                      "attributes" => %{
-                       "first_name" => "Jerome"
+                       "firstName" => "Jerome"
                      }
                    },
                    "included" => [

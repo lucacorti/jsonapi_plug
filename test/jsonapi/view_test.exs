@@ -230,7 +230,7 @@ defmodule JSONAPI.ViewTest do
                type: "post",
                attributes: %{"body" => _body} = attributes
              }
-           } = View.render(PostView, %Post{id: 1, body: "hi"}, conn)
+           } = View.render(PostView, %Post{id: 1, body: "hi", text: "Hello"}, conn)
 
     assert map_size(attributes) == 1
   end
@@ -246,7 +246,12 @@ defmodule JSONAPI.ViewTest do
                type: "post",
                attributes: %{"body" => "Chunky"} = attributes
              }
-           } = View.render(PostView, %Post{id: 1, body: "Chunky", title: "Bacon"}, conn)
+           } =
+             View.render(
+               PostView,
+               %Post{id: 1, body: "Chunky", title: "Bacon", text: "Gello"},
+               conn
+             )
 
     assert map_size(attributes) == 1
   end

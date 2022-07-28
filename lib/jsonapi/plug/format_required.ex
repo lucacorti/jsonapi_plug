@@ -6,8 +6,6 @@ defmodule JSONAPI.Plug.FormatRequired do
   alias JSONAPI.{Document.ErrorObject, View}
   alias Plug.Conn
 
-  @crud_message "Check out http://jsonapi.org/format/#crud for more info."
-
   # Cf. https://jsonapi.org/format/#crud-updating-to-many-relationships
   @update_has_many_relationships_methods ~w[DELETE PATCH POST]
 
@@ -26,12 +24,10 @@ defmodule JSONAPI.Plug.FormatRequired do
     if String.contains?(conn.request_path, "relationships") do
       conn
     else
-      View.send_error(conn, 400, [
+      View.send_error(conn, :bad_request, [
         %ErrorObject{
           detail:
-            "Check out https://jsonapi.org/format/#crud-updating-to-many-relationships for more info.",
-          title:
-            "Data parameter has multiple Resource Identifier Objects for a non-relationship endpoint",
+            "Data parameter has multiple Resource Identifier Objects for a non-relationship endpoint.\nCheck out https://jsonapi.org/format/#crud-updating-to-many-relationships for more info.",
           source: %{pointer: "/data"}
         }
       ])
@@ -44,10 +40,10 @@ defmodule JSONAPI.Plug.FormatRequired do
         %Conn{method: "PATCH", params: %{"data" => %{"attributes" => _, "type" => _}}} = conn,
         _
       ) do
-    View.send_error(conn, 400, [
+    View.send_error(conn, :bad_request, [
       %ErrorObject{
-        detail: @crud_message,
-        title: "Missing id in data parameter",
+        detail:
+          "Missing id in data parameter.\nCheck out http://jsonapi.org/format/#crud for more info.",
         source: %{pointer: "/data/id"}
       }
     ])
@@ -57,41 +53,41 @@ defmodule JSONAPI.Plug.FormatRequired do
         %Conn{method: "PATCH", params: %{"data" => %{"attributes" => _, "id" => _}}} = conn,
         _
       ) do
-    View.send_error(conn, 400, [
+    View.send_error(conn, :bad_request, [
       %ErrorObject{
-        detail: @crud_message,
-        title: "Missing type in data parameter",
+        detail:
+          "Missing type in data parameter.\nCheck out http://jsonapi.org/format/#crud for more info.",
         source: %{pointer: "/data/type"}
       }
     ])
   end
 
   def call(%Conn{params: %{"data" => %{"attributes" => _}}} = conn, _) do
-    View.send_error(conn, 400, [
+    View.send_error(conn, :bad_request, [
       %ErrorObject{
-        detail: @crud_message,
-        title: "Missing type in data parameter",
+        detail:
+          "Missing type in data parameter.\nCheck out http://jsonapi.org/format/#crud for more info.",
         source: %{pointer: "/data/type"}
       }
     ])
   end
 
   def call(%{params: %{"data" => _}} = conn, _) do
-    View.send_error(conn, 400, [
+    View.send_error(conn, :bad_request, [
       %ErrorObject{
-        detail: @crud_message,
-        source: %{pointer: "/data/attributes"},
-        title: "Missing attributes in data parameter"
+        detail:
+          "Missing attributes in data parameter.\nCheck out http://jsonapi.org/format/#crud for more info.",
+        source: %{pointer: "/data/attributes"}
       }
     ])
   end
 
   def call(conn, _) do
-    View.send_error(conn, 400, [
+    View.send_error(conn, :bad_request, [
       %ErrorObject{
-        detail: @crud_message,
-        source: %{pointer: "/data"},
-        title: "Missing data parameter"
+        detail:
+          "Missing data parameter.\nCheck out http://jsonapi.org/format/#crud for more info.",
+        source: %{pointer: "/data"}
       }
     ])
   end

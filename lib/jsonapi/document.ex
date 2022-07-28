@@ -187,39 +187,45 @@ defmodule JSONAPI.Document do
     raise "Body unfetched when trying to deserialize request for #{view}"
   end
 
-  def deserialize(view, %Conn{body_params: payload}) do
+  def deserialize(view, %Conn{body_params: payload} = conn) do
     %__MODULE__{}
-    |> deserialize_data(view, payload)
+    |> deserialize_data(view, conn, payload)
     |> deserialize_meta(view, payload)
   end
 
-  defp deserialize_data(%__MODULE__{} = document, view, %{"data" => data, "included" => included})
+  defp deserialize_data(%__MODULE__{} = document, view, conn, %{
+         "data" => data,
+         "included" => included
+       })
        when is_list(data) and is_list(included) do
     %__MODULE__{
       document
-      | data: Enum.map(data, &ResourceObject.deserialize(view, &1, included))
+      | data: Enum.map(data, &ResourceObject.deserialize(view, conn, &1, included))
     }
   end
 
-  defp deserialize_data(%__MODULE__{} = document, view, %{"data" => data})
+  defp deserialize_data(%__MODULE__{} = document, view, conn, %{"data" => data})
        when is_list(data) do
     %__MODULE__{
       document
-      | data: Enum.map(data, &ResourceObject.deserialize(view, &1, []))
+      | data: Enum.map(data, &ResourceObject.deserialize(view, conn, &1, []))
     }
   end
 
-  defp deserialize_data(%__MODULE__{} = document, view, %{"data" => data, "included" => included})
+  defp deserialize_data(%__MODULE__{} = document, view, conn, %{
+         "data" => data,
+         "included" => included
+       })
        when is_map(data) and is_list(included) do
-    %__MODULE__{document | data: ResourceObject.deserialize(view, data, included)}
+    %__MODULE__{document | data: ResourceObject.deserialize(view, conn, data, included)}
   end
 
-  defp deserialize_data(%__MODULE__{} = document, view, %{"data" => data})
+  defp deserialize_data(%__MODULE__{} = document, view, conn, %{"data" => data})
        when is_map(data) do
-    %__MODULE__{document | data: ResourceObject.deserialize(view, data, [])}
+    %__MODULE__{document | data: ResourceObject.deserialize(view, conn, data, [])}
   end
 
-  defp deserialize_data(%__MODULE__{} = document, _view, _payload),
+  defp deserialize_data(%__MODULE__{} = document, _view, _conn, _payload),
     do: document
 
   defp deserialize_meta(%__MODULE__{} = document, _view, %{"meta" => meta})

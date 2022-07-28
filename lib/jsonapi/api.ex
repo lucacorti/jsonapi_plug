@@ -15,7 +15,7 @@ defmodule JSONAPI.API do
     ```elixir
     config :my_app, MyApp.MyAPI,
       namespace: "api",
-      inflection: :dasherize
+      case: :dasherize
     ```
 
     Available options:
@@ -53,18 +53,18 @@ defmodule JSONAPI.API do
       - Default: `none`, no namespace applied
       - E.g. if you want your resources to live under ".../api/v1", pass `namespace: "api/v1"`
 
-    - **inflection**
+    - **case**
 
-        This option describes how your API's field names will be inflected.
+        This option describes how your API's field names will be cased.
 
         The current [JSON:API Spec (v1.0)](https://jsonapi.org/format/1.0/) recommends dasherizing (e.g.
       `"favorite-color": "blue"`),
         while the upcoming [JSON:API Spec (v1.1)](https://jsonapi.org/format/1.1/) recommends camelCase (e.g.
       `"favoriteColor": "blue"`)
 
-        - Type: `t:inflection/0`
+        - Type: `t:case/0`
         - Default: `:camelize`
-        - E.g. if you want your resources field names to be dasherized, pass `inflection: :dasherize`
+        - E.g. if you want your resources field names to be dasherized, pass `case: :dasherize`
 
     - **pagination**
 
@@ -87,10 +87,10 @@ defmodule JSONAPI.API do
 
   @type t :: module()
 
-  @type config :: :host | :inflection | :namespace | :pagination | :port | :scheme | :version
+  @type config :: :case | :host | :namespace | :pagination | :port | :scheme | :version
 
+  @type case :: Resource.case()
   @type host :: String.t()
-  @type inflection :: Resource.inflection()
   @type namespace :: String.t()
   @type pagination :: Pagination.t()
   @type http_port :: pos_integer()
