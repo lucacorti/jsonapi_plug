@@ -130,39 +130,36 @@ defmodule JSONAPI.Document.ResourceObject do
     |> Enum.filter(&Loadable.loaded?(Map.get(resource, elem(&1, 0))))
     |> Enum.flat_map_reduce(
       resource_object,
-      fn
-        {relationship_field, relationship_options},
-        %__MODULE__{relationships: relationships} = resource_object ->
-          relationship = Map.get(resource, relationship_field)
-          relationship_type = recase_field(conn, relationship_field)
-          relationship_url = View.url_for_relationship(view, resource, conn, relationship_type)
-          relationship_view = Keyword.fetch!(relationship_options, :view)
+      fn relationship, %__MODULE__{relationships: relationships} = resource_object ->
+        name = View.field_name(relationship)
+        data = Map.get(resource, name)
+        type = recase_field(conn, name)
+        url = View.url_for_relationship(view, resource, conn, type)
+        view = View.field_option(relationship, :view, nil)
 
-          relationship_object =
-            RelationshipObject.serialize(
-              relationship_view,
-              relationship,
+        relationships =
+          Map.put(
+            relationships,
+            type,
+            RelationshipObject.serialize(view, data, conn, url)
+          )
+
+        resource_object = %__MODULE__{resource_object | relationships: relationships}
+
+        if Keyword.get(includes, name) do
+          {included_relationships, serialized_relationship} =
+            serialize_resource(
+              view,
+              data,
               conn,
-              relationship_url
+              get_relationship_includes(include, name),
+              options
             )
 
-          relationships = Map.put(relationships, relationship_type, relationship_object)
-          resource_object = %__MODULE__{resource_object | relationships: relationships}
-
-          if Keyword.get(includes, relationship_field) do
-            {included_relationships, serialized_relationship} =
-              serialize_resource(
-                relationship_view,
-                relationship,
-                conn,
-                get_relationship_includes(include, relationship_field),
-                options
-              )
-
-            {[serialized_relationship | included_relationships], resource_object}
-          else
-            {[], resource_object}
-          end
+          {[serialized_relationship | included_relationships], resource_object}
+        else
+          {[], resource_object}
+        end
       end
     )
   end
