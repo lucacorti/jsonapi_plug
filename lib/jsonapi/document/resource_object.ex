@@ -223,7 +223,7 @@ defmodule JSONAPI.Document.ResourceObject do
           Map.put(
             resource,
             to_string(View.field_option(attribute, :name, name)),
-            deserialize.(resource, conn)
+            deserialize.(Map.get(attributes, recase_field(conn, to_string(name))), conn)
           )
       end
     end)
