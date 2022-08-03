@@ -614,7 +614,13 @@ defmodule JSONAPI.DocumentTest do
     end
 
     test "deserialize resource with included relationship" do
-      assert %Document{data: %{"id" => "1", "author" => %{"id" => "1"}}} =
+      assert %Document{
+               data: %{
+                 "id" => "1",
+                 "author" => %{"id" => "1", "first_name" => "Luca"},
+                 "best_comments" => [%{"id" => "1", "text" => "Hello"}]
+               }
+             } =
                Document.deserialize(
                  PostView,
                  Plug.Test.conn(:post, "/posts", %{
@@ -622,14 +628,20 @@ defmodule JSONAPI.DocumentTest do
                      "type" => "post",
                      "id" => "1",
                      "relationships" => %{
-                       "author" => %{"data" => %{"id" => "1", "type" => "user"}}
+                       "author" => %{"data" => %{"id" => "1", "type" => "user"}},
+                       "bestComments" => [%{"data" => %{"id" => "1", "type" => "comment"}}]
                      }
                    },
                    "included" => [
                      %{
                        "type" => "user",
                        "id" => "1",
-                       "attributes" => %{}
+                       "attributes" => %{"firstName" => "Luca"}
+                     },
+                     %{
+                       "type" => "comment",
+                       "id" => "1",
+                       "attributes" => %{"text" => "Hello"}
                      }
                    ]
                  })

@@ -173,7 +173,7 @@ defmodule JSONAPI.Document.ResourceObject do
     |> List.flatten()
   end
 
-  defp get_relationship_includes(_include, _key), do: []
+  defp get_relationship_includes(_include, _relationship_name), do: []
 
   defp get_includes(view, query_includes) do
     relationships = view.relationships()
@@ -202,8 +202,7 @@ defmodule JSONAPI.Document.ResourceObject do
 
   defp deserialize_attributes(resource, view, conn, %{"attributes" => attributes})
        when is_map(attributes) do
-    view.attributes()
-    |> Enum.reduce(resource, fn attribute, resource ->
+    Enum.reduce(view.attributes(), resource, fn attribute, resource ->
       case View.field_option(attribute, :deserialize, true) do
         false ->
           resource
@@ -239,8 +238,7 @@ defmodule JSONAPI.Document.ResourceObject do
          included
        )
        when is_map(relationships) do
-    view.relationships()
-    |> Enum.reduce(resource, fn relationship, resource ->
+    Enum.reduce(view.relationships(), resource, fn relationship, resource ->
       many = View.field_option(relationship, :many, false)
       name = View.field_name(relationship)
 
@@ -249,14 +247,14 @@ defmodule JSONAPI.Document.ResourceObject do
           Map.put(
             resource,
             to_string(View.field_option(relationship, :name, name)),
-            Enum.map(data, &deserialize_relationship_data(view, conn, &1, included))
+            Enum.map(data, &deserialize_relationship(view, conn, &1, included))
           )
 
         {:ok, data} ->
           Map.put(
             resource,
             to_string(View.field_option(relationship, :name, name)),
-            deserialize_relationship_data(view, conn, data, included)
+            deserialize_relationship(view, conn, data, included)
           )
 
         :error ->
@@ -267,21 +265,21 @@ defmodule JSONAPI.Document.ResourceObject do
 
   defp deserialize_relationships(resource, _view, _conn, _data, _included), do: resource
 
-  defp deserialize_relationship_data(
+  defp deserialize_relationship(
          view,
          conn,
          %{"data" => %{"id" => id, "type" => type}},
          included
        ) do
-    Enum.reduce_while(included, %{"id" => id}, fn
-      %{"type" => ^type, "id" => ^id} = included_resource, result ->
+    Enum.find_value(included, %{"id" => id}, fn
+      %{"type" => ^type, "id" => ^id} = included_resource ->
         case View.for_related_type(view, type) do
-          nil -> {:halt, result}
-          related_view -> {:halt, deserialize(related_view, conn, included_resource, included)}
+          nil -> nil
+          related_view -> deserialize(related_view, conn, included_resource, included)
         end
 
-      _included_resource, result ->
-        {:cont, result}
+      _included_resource ->
+        nil
     end)
   end
 end

@@ -1,19 +1,6 @@
 defmodule JSONAPI.View do
   @moduledoc """
-  A View is simply a module that defines certain callbacks to configure proper
-  rendering of your JSONAPI documents.
-
-      defmodule MyApp.PostsView do
-        alias MyApp.{CommentsView, UsersView}
-
-        use JSONAPI.View,
-          type: "post",
-          attributes: [:id, :text, :body]
-          relationships: [
-            author: [view: UsersView],
-            comments: [many: true, view: CommentsView]
-          ]
-      end
+  A View is simply a module that defines how to render your JSON:API resource:
 
       defmodule MyApp.UsersView do
         use JSONAPI.View,
@@ -21,91 +8,186 @@ defmodule JSONAPI.View do
           attributes: [:id, :username]
       end
 
-      defmodule MyApp.CommentView do
-        alias MyApp.UsersView
-
-        use JSONAPI.View,
-          type: "comment,
-          attributes: [:id, :text]
-          relationships: [user: [view: UsersView]]
-      end
-
-      defmodule MyApp.DogView do
-        use JSONAPI.View, type: "dog"
-      end
-
-  You can now call `UsersView.render(user, conn)` or `View.render(UsersView, user, conn)`
+  You can now call `UsersView.render("show.json", %{data: user})` or `View.render(UsersView, user, conn)`
   to render a valid JSON:API document from your data. If you use phoenix, you can use:
 
-    conn
-    |> put_view(UsersView)
-    |> render("show.json", %{data: data, conn: conn, meta: meta, options: options})
+      conn
+      |> put_view(UsersView)
+      |> render("show.json", %{data: user})
 
-  in your controller code to render the document in the same way.
+  in your controller to render the document in the same way.
 
-  ## Fields
+  ## Attributes
 
-  By default, the resulting JSON document consists of attributes, defined in the `attributes/0`
-  function. You can define custom attributes or override attributes by defining a
-  2-arity function inside the view that takes `resource` and `conn` as arguments and has
-  the same name as the field it will be producing:
+  By default, the resulting JSON document consists of attributes taken from your data.
+  Only attributes defined on the view will be (de)serialized. You can customize attributes
+  by using a keyword list of options instead:
 
-      defmodule MyApp.UserView do
+      defmodule MyApp.UsersView do
         use JSONAPI.View,
           type: "user",
-          attributes: [:id, :username, :fullname]
+          attributes: [
+            username: nil,
+            fullname: [deserialize: false, serialize: &fullname/2]
+          ]
 
-        def fullname(resource, conn), do: "\#{resouce.first_name} \#{resource.last_name}"
+        defp fullname(resource, conn), do: "\#{resouce.first_name} \#{resource.last_name}"
       end
+
+  For example here we are defining a computed attribute by passing the `serialize` option a function reference.
+  Serialization functions take `resource` and `conn` as arguments and return the value to be added to the resource.
+  The `deserialize` option set to `false` makes sure the attribute is ignored when deserializing requests.
 
   ## Relationships
 
-  The relationships callback expects that a keyword list is returned
-  configuring the information you will need. If you have the following Ecto
-  Model setup
+  Relationships are defined similarly, by passing the `relationships` option to `use JSONAPI.View`.
 
-      defmodule User do
-        schema "users" do
-          field :username
-          has_many :posts
-          belongs_to :image
-        end
+      defmodule MyApp.PostsView do
+        use JSONAPI.View,
+          type: "post",
+          attributes: [:text, :body]
+          relationships: [
+            author: [view: MyApp.UsersView],
+            comments: [many: true, view: MyApp.CommentsView]
+          ]
       end
 
-  and the includes setup from above. If your Post has loaded the author and the
-  query asks for it then it will be loaded.
+      defmodule MyApp.CommentsView do
+        alias MyApp.UsersView
 
-  So for example:
-  `GET /posts?include=post.author` if the author record is loaded on the Post, and you are using
-  the `JSONAPI.Plug.Request` it will be included in the `included` section of the JSONAPI document.
+        use JSONAPI.View,
+          type: "comment",
+          attributes: [:text]
+          relationships: [post: [view: MyApp.PostsView]]
+      end
+
+  When requesting `GET /posts?include=author`, if the author key is present on the data you pass from the controller
+  and you are using the `JSONAPI.Plug.Request` it will be included in the `included` section of the JSONAPI response.
+
+  ## Links
 
   When rendering resource links, the default behaviour is to is to derive values for `host`, `port`
-  and `scheme` from the connection. You can override them via your application configuration.
+  and `scheme` from the connection. If you need to use different values for some reason, you can specify them
+  passing `JSONAPI.API` configuration options in your api configuration:
+
+      config :my_app, MyApp.MyAPI, host: "adifferenthost.com"
   """
 
   alias JSONAPI.{API, Document, Document.ErrorObject, Resource, Resource}
   alias Plug.Conn
 
+  @attribute_schema [
+    name: [
+      doc: "Maps the resource attribute name to the given key.",
+      type: :atom,
+      required: false
+    ],
+    serialize: [
+      doc:
+        "Controls attribute serialization. Can be either a boolean (do/don't serialize) or a function reference returning the attribute value to be serialized for full control.",
+      type: {:or, [:boolean, {:fun, 2}]},
+      required: false
+    ],
+    deserialize: [
+      doc:
+        "Controls attribute deserialization. Can be either a boolean (do/don't deserialize) or a function reference returning the attribute value to be deserialized for full control.",
+      type: {:or, [:boolean, {:fun, 2}]},
+      required: false
+    ]
+  ]
+
+  @relationship_schema [
+    name: [
+      doc: "Maps the resource relationship name to the given key.",
+      type: :atom,
+      required: false
+    ],
+    many: [
+      doc: "Specifies a to many relationship.",
+      type: :boolean,
+      required: false
+    ],
+    view: [
+      doc: "Specifies the view to be used to serialize the relationship",
+      type: :atom,
+      required: true
+    ]
+  ]
+
+  @schema NimbleOptions.new!(
+            attributes: [
+              doc:
+                "Resource attributes. This will be used to (de)serialize requests/responses:\n\n" <>
+                  NimbleOptions.docs(@attribute_schema, nest_level: 1),
+              type:
+                {:or,
+                 [
+                   {:list, :atom},
+                   {:keyword_list, [*: [type: [keyword_list: [keys: @attribute_schema]]]]}
+                 ]},
+              required: false
+            ],
+            id_attribute: [
+              doc:
+                "Attribute on your data to be used as the JSON:API resource id. Defaults to :id",
+              type: :atom,
+              required: false
+            ],
+            path: [
+              doc: "A custom path to be used for the resource. Defaults to the type value.",
+              type: :string,
+              required: false
+            ],
+            relationships: [
+              doc:
+                "Resource relationships. This will be used to (de)serialize requests/responses",
+              type: :keyword_list,
+              keys: [*: [type: :non_empty_keyword_list, keys: @relationship_schema]],
+              required: false
+            ],
+            type: [
+              doc: "Resource type. To be used as the JSON:API resource type value",
+              type: :string,
+              required: true
+            ]
+          )
+
   @type t :: module()
+
+  @typedoc """
+  View options\n#{NimbleOptions.docs(@schema)}
+  """
   @type options :: keyword()
+
   @type data :: Resource.t() | [Resource.t()]
+
+  @typedoc """
+  Attribute options\n#{NimbleOptions.docs(NimbleOptions.new!(@attribute_schema))}
+  """
   @type attribute_options :: [
           name: Resource.field(),
           serialize: boolean() | (Resource.t(), Conn.t() -> term()),
           deserialize: boolean() | (Resource.t(), Conn.t() -> term())
         ]
+
+  @type attributes :: [Resource.field()] | [{Resource.field(), attribute_options()}]
+
+  @typedoc """
+  Relationship options\n#{NimbleOptions.docs(NimbleOptions.new!(@relationship_schema))}
+  """
   @type relationship_options :: [many: boolean(), name: Resource.field(), view: t()]
-  @type attribute :: Resource.field() | {Resource.field(), attribute_options()}
-  @type relationship :: {Resource.field(), relationship_options()}
-  @type field :: attribute() | relationship()
+  @type relationships :: [{Resource.field(), relationship_options()}]
+
+  @type field ::
+          Resource.field() | {Resource.field(), attribute_options() | relationship_options()}
 
   @callback id(Resource.t()) :: Resource.id()
   @callback id_attribute :: Resource.field()
-  @callback attributes :: [attribute()]
+  @callback attributes :: attributes()
   @callback links(Resource.t(), Conn.t() | nil) :: Document.links()
   @callback meta(Resource.t(), Conn.t() | nil) :: Document.meta()
   @callback path :: String.t() | nil
-  @callback relationships :: [relationship()]
+  @callback relationships :: relationships()
   @callback type :: Resource.type()
 
   defmacro __using__(options \\ []) do
@@ -115,11 +197,9 @@ defmodule JSONAPI.View do
     {relationships, options} = Keyword.pop(options, :relationships, [])
     {type, _options} = Keyword.pop(options, :type)
 
-    unless type do
-      raise "You must pass the :type option to JSONAPI.View"
-    end
-
     quote do
+      NimbleOptions.validate!(unquote(options), unquote(Macro.escape(@schema)))
+
       @behaviour JSONAPI.View
 
       @impl JSONAPI.View

@@ -46,6 +46,7 @@ defmodule JSONAPI.Mixfile do
       {:dialyxir, "~> 1.0", only: :dev, runtime: false},
       {:ex_doc, "~> 0.20", only: :dev, runtime: false},
       {:jason, "~> 1.0"},
+      {:nimble_options, "~> 0.4"},
       {:plug, "~> 1.0"}
     ]
   end

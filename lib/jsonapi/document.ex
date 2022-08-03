@@ -228,9 +228,8 @@ defmodule JSONAPI.Document do
   defp deserialize_data(%__MODULE__{} = document, _view, _conn, _payload),
     do: document
 
-  defp deserialize_meta(%__MODULE__{} = document, _view, %{"meta" => meta})
-       when is_map(meta),
-       do: %__MODULE__{document | meta: meta}
+  defp deserialize_meta(%__MODULE__{} = document, _view, %{"meta" => meta}) when is_map(meta),
+    do: %__MODULE__{document | meta: meta}
 
   defp deserialize_meta(%__MODULE__{} = document, _view, _payload),
     do: document
