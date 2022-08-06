@@ -70,13 +70,13 @@ defmodule JSONAPI.API do
     ]
   ]
 
-  alias JSONAPI.{Pagination, Resource}
+  alias JSONAPI.Pagination
 
   @type t :: module()
 
   @type config :: :case | :host | :namespace | :pagination | :port | :scheme | :version
 
-  @type case :: Resource.case()
+  @type case :: JSONAPI.case()
   @type host :: String.t()
   @type namespace :: String.t()
   @type pagination :: Pagination.t()

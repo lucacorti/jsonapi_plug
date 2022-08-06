@@ -2,7 +2,8 @@ defmodule JSONAPI.Plug do
   @moduledoc """
   JSON:API Plug
   """
-  require Logger
+
+  alias Plug.Conn
 
   use Plug.Builder
 

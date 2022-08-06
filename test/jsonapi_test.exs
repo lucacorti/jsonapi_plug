@@ -2,6 +2,8 @@ defmodule JSONAPITest do
   use ExUnit.Case
   use Plug.Test
 
+  import JSONAPI, only: [recase: 2]
+
   doctest JSONAPI
 
   alias JSONAPI.View

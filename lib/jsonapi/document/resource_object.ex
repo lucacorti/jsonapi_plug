@@ -10,7 +10,6 @@ defmodule JSONAPI.Document.ResourceObject do
     Document,
     Document.RelationshipObject,
     Resource,
-    Resource.Loadable,
     View
   }
 
@@ -102,10 +101,10 @@ defmodule JSONAPI.Document.ResourceObject do
   defp requested_fields(attributes, _view, _conn), do: attributes
 
   defp recase_field(%Conn{private: %{jsonapi: %JSONAPI{} = jsonapi}}, field),
-    do: Resource.recase(field, API.get_config(jsonapi.api, :case, :camelize))
+    do: JSONAPI.recase(field, API.get_config(jsonapi.api, :case, :camelize))
 
   defp recase_field(_conn, field),
-    do: Resource.recase(field, :camelize)
+    do: JSONAPI.recase(field, :camelize)
 
   defp serialize_links(%__MODULE__{} = resource_object, view, resource, conn) do
     links =
@@ -127,7 +126,7 @@ defmodule JSONAPI.Document.ResourceObject do
     includes = get_includes(view, include)
 
     view.relationships()
-    |> Enum.filter(&Loadable.loaded?(Map.get(resource, elem(&1, 0))))
+    |> Enum.filter(&Resource.loaded?(Map.get(resource, elem(&1, 0))))
     |> Enum.flat_map_reduce(
       resource_object,
       fn relationship, %__MODULE__{relationships: relationships} = resource_object ->

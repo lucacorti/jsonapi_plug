@@ -61,7 +61,7 @@ defmodule JSONAPI.Plug.Request do
     * `:filter` - List of atoms which define which fields can be filtered on.
   """
 
-  alias JSONAPI.{Document, Exceptions.InvalidQuery, Resource, View}
+  alias JSONAPI.{Document, Exceptions.InvalidQuery, View}
   alias Plug.Conn
 
   @type options :: %{String => list() | map() | String.t()}
@@ -142,7 +142,7 @@ defmodule JSONAPI.Plug.Request do
         try do
           value
           |> String.split(",", trim: true)
-          |> Enum.map(&Resource.recase(&1, :underscore))
+          |> Enum.map(&JSONAPI.recase(&1, :underscore))
           |> Enum.into(MapSet.new(), &String.to_existing_atom/1)
         rescue
           ArgumentError ->
@@ -235,7 +235,7 @@ defmodule JSONAPI.Plug.Request do
       include
       |> String.split(",")
       |> Enum.filter(&(byte_size(&1) > 0))
-      |> Enum.map(&Resource.recase(&1, :underscore))
+      |> Enum.map(&JSONAPI.recase(&1, :underscore))
       |> Enum.flat_map(fn inc ->
         if inc =~ ~r/\w+\.\w+/ do
           handle_nested_include(inc, valid_includes, jsonapi)
@@ -389,11 +389,11 @@ defmodule JSONAPI.Plug.Request do
     do: Enum.map(params, &normalize_query_params/1)
 
   def normalize_query_params({key, value}) when is_map(value),
-    do: {Resource.recase(key, :underscore), normalize_query_params(value)}
+    do: {JSONAPI.recase(key, :underscore), normalize_query_params(value)}
 
   def normalize_query_params({key, values}) when is_list(values) do
     {
-      Resource.recase(key, :underscore),
+      JSONAPI.recase(key, :underscore),
       Enum.map(values, fn
         string when is_binary(string) -> string
         value -> normalize_query_params(value)
@@ -402,10 +402,10 @@ defmodule JSONAPI.Plug.Request do
   end
 
   def normalize_query_params({key, value}),
-    do: {Resource.recase(key, :underscore), value}
+    do: {JSONAPI.recase(key, :underscore), value}
 
   def normalize_query_params(value) when is_binary(value) or is_atom(value),
-    do: Resource.recase(value, :underscore)
+    do: JSONAPI.recase(value, :underscore)
 
   def normalize_query_params(value), do: value
 end
