@@ -1,6 +1,6 @@
 defmodule JSONAPI.Plug do
   @moduledoc """
-  JSON:API Configuration Plug
+  JSON:API Plug
   """
   require Logger
 
@@ -12,12 +12,22 @@ defmodule JSONAPI.Plug do
   plug JSONAPI.Plug.IdRequired
   plug JSONAPI.Plug.ResponseContentType
 
-  def config_api(conn, options) do
-    {api, _options} = Keyword.pop(options, :api)
+  @options_schema api: [
+                    doc: "A module use-ing `JSONAPI.API` to provide configuration",
+                    type: :atom,
+                    required: true
+                  ]
 
-    unless api do
-      raise "You must pass the :api option to JSONAPI.Plug"
-    end
+  @doc """
+  Processes configuration options. Available options are:
+
+  #{NimbleOptions.docs(@options_schema)}
+  """
+  @spec config_api(Conn.t(), Keyword.t()) :: Conn.t()
+  def config_api(conn, options) do
+    NimbleOptions.validate!(options, @options_schema)
+
+    {api, _options} = Keyword.pop(options, :api)
 
     put_private(conn, :jsonapi, %JSONAPI{api: api})
   end

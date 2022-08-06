@@ -2,7 +2,7 @@ defmodule JSONAPI.API do
   @moduledoc """
     JSON:API API Configuration
 
-    You can define an API by either calling JSONAPI.API use macro
+    You can define an API by calling `use JSONAPI.API` in your module
 
     ```elixir
     defmodule MyApp.MyAPI do
@@ -17,71 +17,58 @@ defmodule JSONAPI.API do
       namespace: "api",
       case: :dasherize
     ```
-
-    Available options:
-
-    - **host**
-
-        Hostname used for link generation
-
-      - Type: `t:host/0`
-      - Default: current `Plug.Conn` connection host
-      - E.g. if you want generated urls to point `...://myhost.com` pass `host: "myhost.com"`
-
-    - **scheme**
-
-        Scheme used for link generation
-
-        - Type: `t:scheme/0`
-        - Default: current `Plug.Conn` connection scheme
-        - E.g. if you want generated urls to point to `https://...` pass `scheme: :https`
-
-    - **port**
-
-        Port used for link generation
-
-      - Type: `t:http_port/0`
-      - Default: current `Plug.Conn` connection port
-      - E.g. if you want generated urls to point `...:42/...` pass `port: 42`
-
-
-    - **namespace**
-
-        Namespace for all resources in your API.
-
-      - Type: `t:namespace/0`
-      - Default: `none`, no namespace applied
-      - E.g. if you want your resources to live under ".../api/v1", pass `namespace: "api/v1"`
-
-    - **case**
-
-        This option describes how your API's field names will be cased.
-
-        The current [JSON:API Spec (v1.0)](https://jsonapi.org/format/1.0/) recommends dasherizing (e.g.
-      `"favorite-color": "blue"`),
-        while the upcoming [JSON:API Spec (v1.1)](https://jsonapi.org/format/1.1/) recommends camelCase (e.g.
-      `"favoriteColor": "blue"`)
-
-        - Type: `t:case/0`
-        - Default: `:camelize`
-        - E.g. if you want your resources field names to be dasherized, pass `case: :dasherize`
-
-    - **pagination**
-
-        `JSONAPI.Pagination` module for pagination.
-
-        - Type: `t:pagination/0`
-        - Default: `nil`, no pagination links are generated
-
-    - **version**
-
-        [JSON:API](https://jsonapi.org) version serialized in the top level `JSONAPI.Document.JSONAPIObject`
-
-        - Type: `t:version/0`
-        - Default: `:"1.0"`
-
-    The API module can be overriden per plug/controller, see `JSONAPI.Plug.Request` for the details.
   """
+
+  @options_schema [
+    otp_app: [
+      doc: "OTP application to use for API configuration.",
+      type: :atom,
+      required: true
+    ]
+  ]
+
+  @config_schema [
+    case: [
+      doc:
+        "This option controls how your API's field names will be cased. The current [JSON:API Spec (v1.0)](https://jsonapi.org/format/1.0/) recommends dasherizing (e.g. `\"favorite-color\": \"blue\"`), while the upcoming [JSON:API Spec (v1.1)](https://jsonapi.org/format/1.1/) recommends camelCase (e.g. `\"favoriteColor\": \"blue\"`)",
+      type: {:in, [:camelize, :dasherize, :underscore]},
+      required: false,
+      default: :camelize
+    ],
+    host: [
+      doc: "Hostname used for link generation instead of deriving it from the connection.",
+      type: :string,
+      required: false
+    ],
+    namespace: [
+      doc:
+        "Namespace for all resources in your API. if you want your resources to live under \".../api/v1\", pass `namespace: \"api/v1\"`.",
+      type: :string,
+      required: false
+    ],
+    pagination: [
+      doc: "A module adopting the `JSONAPI.Pagination` behaviour for pagination.",
+      type: :atom,
+      required: false,
+      default: nil
+    ],
+    port: [
+      doc: "Port used for link generation instead of deriving it from the connection.",
+      type: :pos_integer,
+      required: false
+    ],
+    scheme: [
+      doc: "Scheme used for link generation instead of deriving it from the connection.",
+      type: {:in, [:http, :https]},
+      required: false
+    ],
+    version: [
+      doc: "[JSON:API](https://jsonapi.org) version advertised in the document",
+      type: {:in, [:"1.0"]},
+      required: false,
+      default: :"1.0"
+    ]
+  ]
 
   alias JSONAPI.{Pagination, Resource}
 
@@ -98,15 +85,10 @@ defmodule JSONAPI.API do
   @type version :: :"1.0"
 
   defmacro __using__(options) do
-    {otp_app, _options} = Keyword.pop(options, :otp_app)
-
-    unless not is_nil(otp_app) do
-      raise "You must pass the :otp_app option to JSONAPI.API"
-    end
-
-    unless is_atom(otp_app) do
-      raise "You must pass a module name to JSONAPI.API :otp_app option"
-    end
+    {otp_app, _options} =
+      options
+      |> NimbleOptions.validate!(@options_schema)
+      |> Keyword.pop(:otp_app)
 
     quote do
       @__otp_app__ unquote(otp_app)
@@ -119,6 +101,9 @@ defmodule JSONAPI.API do
 
   Retrieves an API configuration parameter value, with fallback to a default value
   in case the configuration parameter is not present.
+
+  Available options are:
+  #{NimbleOptions.docs(@config_schema)}
   """
   @spec get_config(t() | nil, config(), any()) :: any()
   def get_config(api, config, default \\ nil)
@@ -126,8 +111,14 @@ defmodule JSONAPI.API do
   def get_config(nil = _api, _config, default), do: default
 
   def get_config(api, config, default) do
+    api
+    |> get_all_config()
+    |> NimbleOptions.validate!(@config_schema)
+    |> Keyword.get(config, default)
+  end
+
+  defp get_all_config(api) do
     api.__otp_app__()
     |> Application.get_env(api, [])
-    |> Keyword.get(config, default)
   end
 end
