@@ -1,13 +1,12 @@
 defmodule JSONAPI.Plug.FormatRequired do
   @moduledoc """
   Enforces the JSONAPI format of {"data" => {"attributes" => ...}} for request bodies
+
+  See the [spec](https://jsonapi.org/format/#crud-updating-to-many-relationships).
   """
 
   alias JSONAPI.{Document.ErrorObject, View}
   alias Plug.Conn
-
-  # Cf. https://jsonapi.org/format/#crud-updating-to-many-relationships
-  @update_has_many_relationships_methods ~w[DELETE PATCH POST]
 
   @behaviour Plug
 
@@ -20,7 +19,7 @@ defmodule JSONAPI.Plug.FormatRequired do
   def call(%{method: "POST", params: %{"data" => %{"type" => _}}} = conn, _), do: conn
 
   def call(%{method: method, params: %{"data" => [%{"type" => _} | _]}} = conn, _)
-      when method in @update_has_many_relationships_methods do
+      when method in ["DELETE", "PATCH", "POST"] do
     if String.contains?(conn.request_path, "relationships") do
       conn
     else

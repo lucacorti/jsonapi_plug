@@ -1,7 +1,6 @@
 defmodule JSONAPI.Plug.ResponseContentType do
   @moduledoc """
-  Simply add this plug to your endpoint or your router :api pipeline and it will
-  ensure you return the correct response type.
+  Sets the JSONAPI mime type on responses.
   """
 
   alias Plug.Conn

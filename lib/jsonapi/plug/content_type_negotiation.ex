@@ -1,16 +1,9 @@
 defmodule JSONAPI.Plug.ContentTypeNegotiation do
   @moduledoc """
-  Provides content type negotiation by validating the `content-type`
-  and `accept` headers.
+  Provides content type negotiation by validating the `content-type` and `accept` headers.
 
-  The proper jsonapi.org content type is
-  `application/vnd.api+json`. As per [the spec](http://jsonapi.org/format/#content-negotiation-servers)
-
-  This plug does three things:
-
-  1. Returns 415 unless the content-type header is correct.
-  2. Returns 406 unless the accept header is correct.
-  3. Registers a before send hook to set the content-type if not already set.
+  The proper jsonapi.org content type is `application/vnd.api+json` as per
+  [the spec](http://jsonapi.org/format/#content-negotiation-servers)
   """
 
   alias JSONAPI.{Document.ErrorObject, View}

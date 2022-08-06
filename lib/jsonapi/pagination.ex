@@ -32,9 +32,7 @@ defmodule JSONAPI.Pagination do
   @type t :: module()
   @type link :: :first | :last | :next | :prev
   @type links :: %{link() => String.t()}
-
   @type options :: Keyword.t()
-
   @type params :: %{String.t() => String.t()}
 
   @callback paginate(
