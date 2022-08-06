@@ -3,7 +3,7 @@ defmodule JSONAPI.Plug.ContentTypeNegotiation do
   Provides content type negotiation by validating the `content-type` and `accept` headers.
 
   The proper jsonapi.org content type is `application/vnd.api+json` as per
-  [the spec](http://jsonapi.org/format/#content-negotiation-servers)
+  [the spec](http://jsonapi.org/format/#content-negotiation-servers).
   """
 
   alias JSONAPI.{Document.ErrorObject, View}
