@@ -54,32 +54,40 @@ defmodule JSONAPI.Plug.Request do
   available fields. Note that loading data is left to you.
   The fields attribute of the `JSONAPI` struct contains requested fields for
   each resource type.
-
-  ## Options
-    * `:view` - The `JSONAPI.View` used to parse the request.
-    * `:sort` - List of atoms which define which fields can be sorted on.
-    * `:filter` - List of atoms which define which fields can be filtered on.
   """
 
   alias JSONAPI.{Document, Exceptions.InvalidQuery, View}
   alias Plug.Conn
 
+  @options_spec NimbleOptions.new!(
+                  view: [
+                    doc: "The `JSONAPI.View` used to parse the request.",
+                    type: :atom,
+                    required: true
+                  ],
+                  sort: [
+                    doc: "List fields that can be sorted on.",
+                    type: {:list, :atom},
+                    required: false,
+                    default: []
+                  ]
+                )
+
+  @typedoc """
+  Options:
+  #{NimbleOptions.docs(@options_spec)}
+  """
   @type options :: %{String => list() | map() | String.t()}
 
   @behaviour Plug
 
   @impl Plug
-  def init(options), do: options
+  def init(options), do: NimbleOptions.validate!(options, @options_spec)
 
   @impl Plug
   def call(%Conn{private: %{jsonapi: %JSONAPI{} = jsonapi}} = conn, options) do
     {api, options} = Keyword.pop(options, :api, jsonapi.api)
-
     {view, options} = Keyword.pop(options, :view)
-
-    unless view do
-      raise "You must pass the :view option to JSONAPI.Plug.Request"
-    end
 
     conn = Conn.fetch_query_params(conn)
 
@@ -120,11 +128,10 @@ defmodule JSONAPI.Plug.Request do
     do: %JSONAPI{jsonapi | filter: filter}
 
   def parse_filter(%JSONAPI{view: view}, %{"filter" => value}) do
-    raise(InvalidQuery,
+    raise InvalidQuery,
       type: view.type(),
       param: :filter,
       value: value
-    )
   end
 
   def parse_filter(jsonapi, _query), do: jsonapi
@@ -180,11 +187,10 @@ defmodule JSONAPI.Plug.Request do
   end
 
   def parse_fields(%JSONAPI{view: view}, %{"fields" => value}) do
-    raise(InvalidQuery,
+    raise InvalidQuery,
       type: view.type(),
       param: :fields,
       value: value
-    )
   end
 
   def parse_fields(jsonapi, _query), do: jsonapi
