@@ -199,32 +199,41 @@ defmodule JSONAPI.Document.ResourceObject do
 
   defp deserialize_id(resource, _view, _data), do: resource
 
-  defp deserialize_attributes(resource, view, conn, %{"attributes" => attributes})
-       when is_map(attributes) do
+  defp deserialize_attributes(resource, view, conn, %{"attributes" => data})
+       when is_map(data) do
     Enum.reduce(view.attributes(), resource, fn attribute, resource ->
-      case View.field_option(attribute, :deserialize, true) do
-        false ->
-          resource
-
-        deserialize ->
-          name = View.field_name(attribute)
-
-          case Map.fetch(attributes, recase_field(conn, to_string(name))) do
-            {:ok, value} ->
-              Map.put(
-                resource,
-                to_string(View.field_option(attribute, :name, name)),
-                if(is_function(deserialize, 2), do: deserialize.(value, conn), else: value)
-              )
-
-            :error ->
-              resource
-          end
-      end
+      deserialize_attribute(resource, conn, data, attribute)
     end)
   end
 
   defp deserialize_attributes(resource, _view, _conn, _data), do: resource
+
+  defp deserialize_attribute(resource, conn, data, attribute) do
+    case View.field_option(attribute, :deserialize, true) do
+      false ->
+        resource
+
+      deserialize ->
+        name = View.field_name(attribute)
+
+        case Map.fetch(data, recase_field(conn, to_string(name))) do
+          {:ok, value} ->
+            Map.put(
+              resource,
+              to_string(View.field_option(attribute, :name, name)),
+              deserialize_attribute_value(deserialize, conn, value)
+            )
+
+          :error ->
+            resource
+        end
+    end
+  end
+
+  defp deserialize_attribute_value(deserialize, conn, value) when is_function(deserialize, 2),
+    do: deserialize.(value, conn)
+
+  defp deserialize_attribute_value(_deserailze, _conn, value), do: value
 
   defp deserialize_relationships(
          resource,
@@ -235,23 +244,16 @@ defmodule JSONAPI.Document.ResourceObject do
        )
        when is_map(relationships) do
     Enum.reduce(view.relationships(), resource, fn relationship, resource ->
-      many = View.field_option(relationship, :many, false)
       name = View.field_name(relationship)
 
       case Map.fetch(relationships, recase_field(conn, to_string(name))) do
-        {:ok, data} when many == true ->
-          Map.put(
-            resource,
-            to_string(View.field_option(relationship, :name, name)),
-            Enum.map(data, &deserialize_relationship(view, conn, &1, included))
-          )
-
         {:ok, data} ->
-          Map.put(
-            resource,
-            to_string(View.field_option(relationship, :name, name)),
-            deserialize_relationship(view, conn, data, included)
-          )
+          key = to_string(View.field_option(relationship, :name, name))
+          many = View.field_option(relationship, :many, false)
+
+          resource
+          |> deserialize_relationship_id(key, data, many)
+          |> Map.put(key, deserialize_related_from_included(view, conn, data, included, many))
 
         :error ->
           resource
@@ -261,13 +263,19 @@ defmodule JSONAPI.Document.ResourceObject do
 
   defp deserialize_relationships(resource, _view, _conn, _data, _included), do: resource
 
-  defp deserialize_relationship(
+  defp deserialize_relationship_id(resource, key, data, false = _many),
+    do: Map.put(resource, Enum.join([key, "id"], "_"), data["data"]["id"])
+
+  defp deserialize_relationship_id(resource, _key, _data, true = _many), do: resource
+
+  defp deserialize_related_from_included(
          view,
          conn,
          %{"data" => %{"id" => id, "type" => type}},
-         included
+         included,
+         false = _many
        ) do
-    Enum.find_value(included, %{"id" => id}, fn
+    Enum.find_value(included, fn
       %{"type" => ^type, "id" => ^id} = included_resource ->
         case View.for_related_type(view, type) do
           nil -> nil
@@ -277,5 +285,22 @@ defmodule JSONAPI.Document.ResourceObject do
       _included_resource ->
         nil
     end)
+  end
+
+  defp deserialize_related_from_included(
+         view,
+         conn,
+         data,
+         included,
+         true = _many
+       )
+       when is_list(data) do
+    Enum.reduce(data, [], fn relationship_data, resources ->
+      case deserialize_related_from_included(view, conn, relationship_data, included, false) do
+        nil -> resources
+        resource -> [resource | resources]
+      end
+    end)
+    |> Enum.reverse()
   end
 end
