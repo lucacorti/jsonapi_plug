@@ -206,23 +206,20 @@ defmodule JSONAPI.Document.ResourceObject do
         false ->
           resource
 
-        true ->
+        deserialize ->
           name = View.field_name(attribute)
 
-          Map.put(
-            resource,
-            to_string(View.field_option(attribute, :name, name)),
-            Map.get(attributes, recase_field(conn, to_string(name)))
-          )
+          case Map.fetch(attributes, recase_field(conn, to_string(name))) do
+            {:ok, value} ->
+              Map.put(
+                resource,
+                to_string(View.field_option(attribute, :name, name)),
+                if(is_function(deserialize, 2), do: deserialize.(value, conn), else: value)
+              )
 
-        deserialize when is_function(deserialize, 2) ->
-          name = View.field_name(attribute)
-
-          Map.put(
-            resource,
-            to_string(View.field_option(attribute, :name, name)),
-            deserialize.(Map.get(attributes, recase_field(conn, to_string(name))), conn)
-          )
+            :error ->
+              resource
+          end
       end
     end)
   end
