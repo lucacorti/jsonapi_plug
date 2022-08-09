@@ -233,7 +233,7 @@ defmodule JSONAPI.Document.ResourceObject do
   defp deserialize_attribute_value(deserialize, conn, value) when is_function(deserialize, 2),
     do: deserialize.(value, conn)
 
-  defp deserialize_attribute_value(_deserailze, _conn, value), do: value
+  defp deserialize_attribute_value(_deserialize, _conn, value), do: value
 
   defp deserialize_relationships(
          resource,
