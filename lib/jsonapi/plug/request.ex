@@ -213,8 +213,8 @@ defmodule JSONAPI.Plug.Request do
       sort
       |> String.split(",")
       |> Enum.map(fn field ->
-        valid_sort = Map.get(options, :sort, [])
-        [_, direction, field] = Regex.run(~r/(-?)(\S*)/, field)
+        valid_sort = Map.get(options, :sort, []) |> Enum.map(&Atom.to_string/1)
+        [_, direction, field] = Regex.run(~r/(-?)(\S*)/, Atom.to_string(field))
 
         unless field in valid_sort do
           raise InvalidQuery, type: view.type(), param: :sort, value: field
