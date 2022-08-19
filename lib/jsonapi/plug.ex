@@ -3,7 +3,18 @@ defmodule JSONAPI.Plug do
   JSON:API Plug
   """
 
-  alias Plug.Conn
+  @options_schema api: [
+                    doc: "A module use-ing `JSONAPI.API` to provide configuration",
+                    type: :atom,
+                    required: true
+                  ]
+
+  @typedoc """
+  Processes configuration options. Available options are:
+
+  #{NimbleOptions.docs(@options_schema)}
+  """
+  @type options :: keyword()
 
   use Plug.Builder
 
@@ -13,18 +24,7 @@ defmodule JSONAPI.Plug do
   plug JSONAPI.Plug.IdRequired
   plug JSONAPI.Plug.ResponseContentType
 
-  @options_schema api: [
-                    doc: "A module use-ing `JSONAPI.API` to provide configuration",
-                    type: :atom,
-                    required: true
-                  ]
-
-  @doc """
-  Processes configuration options. Available options are:
-
-  #{NimbleOptions.docs(@options_schema)}
-  """
-  @spec config_api(Conn.t(), Keyword.t()) :: Conn.t()
+  @doc false
   def config_api(conn, options) do
     NimbleOptions.validate!(options, @options_schema)
 

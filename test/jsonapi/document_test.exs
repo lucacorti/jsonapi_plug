@@ -5,116 +5,177 @@ defmodule JSONAPI.DocumentTest do
     Document,
     Document.RelationshipObject,
     Document.ResourceIdentifierObject,
-    Document.ResourceObject,
-    Pagination,
-    Plug.Request,
-    View
+    Document.ResourceObject
   }
-
-  alias JSONAPI.TestSupport.APIs.{DefaultAPI, OtherNamespaceAPI}
-  alias JSONAPI.TestSupport.Resources.{Comment, Company, Industry, Post, Tag, User}
-
-  alias JSONAPI.TestSupport.Views.{
-    CommentView,
-    ExpensiveResourceView,
-    NotIncludedView,
-    PostView,
-    UserView
-  }
-
-  alias Plug.Parsers
 
   describe "Document serialization" do
-    test "serialize includes meta as top level member" do
-      assert %Document{meta: %{total_pages: 10}} =
-               Document.serialize(
-                 %Document{data: %Post{id: 1, text: "Hello"}, meta: %{total_pages: 10}},
-                 PostView
-               )
-
-      assert %Document{meta: nil} =
-               Document.serialize(%Document{data: %Comment{id: 1}}, CommentView)
+    test "serialize nil data works" do
+      assert %Document{data: nil} = Document.serialize(%Document{data: nil})
+      assert %Document{data: []} = Document.serialize(%Document{data: []})
     end
 
-    test "serialize only includes meta if provided" do
-      conn =
-        Plug.Test.conn(:get, "/")
-        |> Parsers.call(Parsers.init(parsers: [:json], pass: ["text/*"], json_decoder: Jason))
-        |> JSONAPI.Plug.call(api: DefaultAPI)
-        |> Request.call(Request.init(view: PostView))
-
-      assert %Document{data: %ResourceObject{meta: %{meta_text: "meta_Hello"}}} =
-               Document.serialize(%Document{data: %Post{id: 1, text: "Hello"}}, PostView)
+    test "serialize includes meta as top level member" do
+      assert %Document{meta: %{total_pages: 10}} =
+               Document.serialize(%Document{
+                 data: %ResourceObject{id: "1", type: "post", attributes: %{"text" => "Hello"}},
+                 meta: %{total_pages: 10}
+               })
 
       assert %Document{meta: nil} =
-               Document.serialize(%Document{data: %Comment{id: 1}}, CommentView, conn)
+               Document.serialize(%Document{data: %ResourceObject{id: "1", type: "comment"}})
+    end
+
+    test "serialize includes meta only if provided" do
+      assert %Document{data: %ResourceObject{meta: %{meta_text: "meta_Hello"}}, meta: nil} =
+               Document.serialize(%Document{
+                 data: %ResourceObject{
+                   id: "1",
+                   attributes: %{"text" => "Hello"},
+                   meta: %{meta_text: "meta_Hello"}
+                 }
+               })
+
+      assert %Document{data: %ResourceObject{id: "1", type: "comment"}, meta: %{cool: true}} =
+               Document.serialize(%Document{
+                 data: %ResourceObject{id: "1", type: "comment"},
+                 meta: %{cool: true}
+               })
     end
 
     test "serialize handles singular objects" do
-      conn =
-        Plug.Test.conn(:get, "/?include=bestComments.user")
-        |> Parsers.call(Parsers.init(parsers: [:json], pass: ["text/*"], json_decoder: Jason))
-        |> JSONAPI.Plug.call(api: DefaultAPI)
-        |> Request.call(Request.init(view: PostView))
-
-      post = %Post{
-        id: 1,
-        text: "Hello",
-        body: "Hello world",
-        author: %User{id: 2, username: "jason"},
-        best_comments: [
-          %Comment{id: 5, text: "greatest comment ever", user: %User{id: 4, username: "jack"}},
-          %Comment{id: 6, text: "not so great", user: %User{id: 2, username: "jason"}}
-        ]
+      post = %ResourceObject{
+        id: "1",
+        type: "post",
+        attributes: %{
+          "text" => "Hello",
+          "body" => "Hello world"
+        },
+        relationships: %{
+          "author" => %RelationshipObject{
+            data: %ResourceIdentifierObject{id: "2", type: "user"}
+          },
+          "bestComments" => [
+            %RelationshipObject{
+              data: %ResourceIdentifierObject{id: "5", type: "comment"}
+            },
+            %RelationshipObject{
+              data: %ResourceIdentifierObject{id: "6", type: "comment"}
+            }
+          ]
+        }
       }
+
+      included = [
+        %ResourceObject{
+          id: "2",
+          type: "user",
+          attributes: %{"username" => "jason"}
+        },
+        %ResourceObject{
+          id: "4",
+          type: "user",
+          attributes: %{"username" => "jack"}
+        },
+        %ResourceObject{
+          id: "5",
+          type: "comment",
+          attributes: %{"text" => "greatest comment ever"},
+          relationships: %{
+            "author" => %RelationshipObject{
+              data: %ResourceIdentifierObject{id: "4", type: "user"}
+            }
+          }
+        },
+        %ResourceObject{
+          id: "6",
+          type: "comment",
+          attributes: %{"text" => "not so great"},
+          relationships: %{
+            "author" => %RelationshipObject{
+              data: %ResourceIdentifierObject{id: "2", type: "user"}
+            }
+          }
+        }
+      ]
 
       assert %Document{
                data: %ResourceObject{
                  id: id,
                  type: type,
                  attributes: %{"text" => text, "body" => body},
-                 relationships: relationships,
-                 meta: %{meta_text: "meta_Hello"},
-                 links: %{self: self}
+                 relationships: relationships
                },
-               included: included,
-               links: links
-             } = Document.serialize(%Document{data: post}, PostView, conn)
+               included: included
+             } = Document.serialize(%Document{data: post, included: included})
 
-      assert links[:self] == View.url_for(PostView, post, conn)
-
-      assert ^id = PostView.id(post)
-      assert ^type = PostView.type()
-      assert ^self = View.url_for(PostView, post, conn)
-      assert ^text = post.text
-      assert ^body = post.body
-
+      assert ^id = post.id
+      assert ^type = post.type
+      assert ^text = post.attributes["text"]
+      assert ^body = post.attributes["body"]
       assert map_size(relationships) == 2
       assert Enum.count(included) == 4
     end
 
     test "serialize handles a list" do
-      post = %Post{
-        id: 1,
-        text: "Hello",
-        body: "Hello world",
-        author: %User{id: 2, username: "jason"},
-        best_comments: [
-          %Comment{id: 5, text: "greatest comment ever", user: %User{id: 4, username: "jack"}},
-          %Comment{id: 6, text: "not so great", user: %User{id: 2, username: "jason"}}
-        ]
+      post = %ResourceObject{
+        id: "1",
+        type: "post",
+        attributes: %{
+          "text" => "Hello",
+          "body" => "Hello world"
+        },
+        relationships: %{
+          "author" => %RelationshipObject{
+            data: %ResourceIdentifierObject{id: "2", type: "user"}
+          },
+          "bestComments" => [
+            %RelationshipObject{
+              data: %ResourceIdentifierObject{id: "5", type: "comment"}
+            },
+            %RelationshipObject{
+              data: %ResourceIdentifierObject{id: "6", type: "comment"}
+            }
+          ]
+        }
       }
 
-      conn =
-        Plug.Test.conn(:get, "/?include=bestComments.user")
-        |> Parsers.call(Parsers.init(parsers: [:json], pass: ["text/*"], json_decoder: Jason))
-        |> JSONAPI.Plug.call(api: DefaultAPI)
-        |> Request.call(Request.init(view: PostView))
+      included = [
+        %ResourceObject{
+          id: "2",
+          type: "user",
+          attributes: %{"username" => "jason"}
+        },
+        %ResourceObject{
+          id: "4",
+          type: "user",
+          attributes: %{"username" => "jack"}
+        },
+        %ResourceObject{
+          id: "5",
+          type: "comment",
+          attributes: %{"text" => "greatest comment ever"},
+          relationships: %{
+            "author" => %RelationshipObject{
+              data: %ResourceIdentifierObject{id: "4", type: "user"}
+            }
+          }
+        },
+        %ResourceObject{
+          id: "6",
+          type: "comment",
+          attributes: %{"text" => "not so great"},
+          relationships: %{
+            "author" => %RelationshipObject{
+              data: %ResourceIdentifierObject{id: "2", type: "user"}
+            }
+          }
+        }
+      ]
 
       assert %Document{
                data: data,
                included: included
-             } = Document.serialize(%Document{data: [post, post, post]}, PostView, conn)
+             } = Document.serialize(%Document{data: [post, post, post], included: included})
 
       assert Enum.count(data) == 3
       assert Enum.count(included) == 4
@@ -123,74 +184,84 @@ defmodule JSONAPI.DocumentTest do
                            id: id,
                            type: type,
                            attributes: attributes,
-                           links: links,
                            relationships: relationships
                          } ->
-        assert ^id = PostView.id(post)
-        assert ^type = PostView.type()
-
-        assert attributes["text"] == post.text
-        assert attributes["body"] == post.body
-
-        assert links.self == View.url_for(PostView, post, conn)
+        assert ^id = post.id
+        assert ^type = post.type
+        assert attributes["text"] == post.attributes["text"]
+        assert attributes["body"] == post.attributes["body"]
         assert map_size(relationships) == 2
       end)
     end
 
     test "serialize handles an empty relationship" do
-      conn =
-        Plug.Test.conn(:get, "/?include=author")
-        |> Parsers.call(Parsers.init(parsers: [:json], pass: ["text/*"], json_decoder: Jason))
-        |> JSONAPI.Plug.call(api: DefaultAPI)
-        |> Request.call(Request.init(view: PostView))
-
-      post = %Post{
-        id: 1,
-        text: "Hello",
-        body: "Hello world",
-        author: %User{id: 2, username: "jason"},
-        best_comments: []
+      post = %ResourceObject{
+        id: "1",
+        type: "post",
+        attributes: %{
+          "text" => "Hello",
+          "body" => "Hello world"
+        },
+        relationships: %{
+          "author" => %RelationshipObject{
+            data: %ResourceIdentifierObject{id: "2", type: "user"}
+          },
+          "bestComments" => []
+        }
       }
+
+      included = [
+        %ResourceObject{
+          id: "2",
+          type: "user",
+          attributes: %{"username" => "jason"}
+        }
+      ]
 
       assert %Document{
                data: %ResourceObject{
                  id: id,
                  type: type,
                  attributes: attributes,
-                 links: links,
                  relationships: relationships
                },
                included: included
-             } = Document.serialize(%Document{data: post}, PostView, conn)
+             } = Document.serialize(%Document{data: post, included: included})
 
-      assert ^id = PostView.id(post)
-      assert ^type = PostView.type()
-
-      assert attributes["text"] == post.text
-      assert attributes["body"] == post.body
-
-      assert links.self == View.url_for(PostView, post, conn)
+      assert ^id = post.id
+      assert ^type = post.type
+      assert attributes["text"] == post.attributes["text"]
+      assert attributes["body"] == post.attributes["body"]
       assert map_size(relationships) == 2
 
-      assert %RelationshipObject{data: []} = relationships["bestComments"]
+      assert [] = relationships["bestComments"]
 
       assert Enum.count(included) == 1
     end
 
     test "serialize handles a nil relationship" do
-      conn =
-        Plug.Test.conn(:get, "/?include=author")
-        |> Parsers.call(Parsers.init(parsers: [:json], pass: ["text/*"], json_decoder: Jason))
-        |> JSONAPI.Plug.call(api: DefaultAPI)
-        |> Request.call(Request.init(view: PostView))
-
-      post = %Post{
-        id: 1,
-        text: "Hello",
-        body: "Hello world",
-        author: %User{id: 2, username: "jason"},
-        best_comments: nil
+      post = %ResourceObject{
+        id: "1",
+        type: "post",
+        attributes: %{
+          "text" => "Hello",
+          "body" => "Hello world"
+        },
+        relationships: %{
+          "author" => %RelationshipObject{
+            data: %ResourceIdentifierObject{id: "2", type: "user"}
+          },
+          "bestComments" => nil
+        }
       }
+
+      included = [
+        %ResourceObject{
+          id: "2",
+          type: "user",
+          attributes: %{"username" => "jason"}
+        }
+      ]
 
       assert %Document{
                data: %ResourceObject{
@@ -199,506 +270,192 @@ defmodule JSONAPI.DocumentTest do
                  attributes: attributes,
                  relationships: relationships
                },
-               links: links,
                included: included
-             } = Document.serialize(%Document{data: post}, PostView, conn)
+             } = Document.serialize(%Document{data: post, included: included})
 
-      assert ^id = PostView.id(post)
-      assert ^type = PostView.type()
-
-      assert attributes["text"] == post.text
-      assert attributes["body"] == post.body
-
-      assert links.self == View.url_for(PostView, post, conn)
-      assert map_size(relationships) == 1
+      assert ^id = post.id
+      assert ^type = post.type
+      assert attributes["text"] == post.attributes["text"]
+      assert attributes["body"] == post.attributes["body"]
+      assert map_size(relationships) == 2
       assert Enum.count(included) == 1
-    end
-
-    test "serialize handles a relationship self link on a show request" do
-      post = %Post{
-        id: 1,
-        text: "Hello",
-        body: "Hello world",
-        author: %User{id: 2, username: "jason"},
-        best_comments: []
-      }
-
-      assert %Document{
-               data: %ResourceObject{
-                 relationships: %{
-                   "author" => %RelationshipObject{
-                     links: %{self: "/posts/1/relationships/author"}
-                   }
-                 }
-               }
-             } = Document.serialize(%Document{data: post}, PostView)
-    end
-
-    test "serialize handles a relationship self link on an index request" do
-      conn =
-        Plug.Test.conn(:get, "/")
-        |> Parsers.call(Parsers.init(parsers: [:json], pass: ["text/*"], json_decoder: Jason))
-        |> JSONAPI.Plug.call(api: DefaultAPI)
-        |> Request.call(Request.init(view: PostView))
-
-      assert %Document{links: %{self: "http://www.example.com/posts"}} =
-               Document.serialize(%Document{data: []}, PostView, conn)
-    end
-
-    test "serialize handles including from the query" do
-      post = %Post{
-        id: 1,
-        text: "Hello",
-        body: "Hello world",
-        author: %User{id: 2, username: "jason"},
-        best_comments: [
-          %Comment{id: 5, text: "greatest comment ever", user: %User{id: 4, username: "jack"}},
-          %Comment{id: 6, text: "not so great", user: %User{id: 2, username: "jason"}}
-        ]
-      }
-
-      conn =
-        Plug.Test.conn(:get, "/?include=bestComments.user")
-        |> Parsers.call(Parsers.init(parsers: [:json], pass: ["text/*"], json_decoder: Jason))
-        |> JSONAPI.Plug.call(api: DefaultAPI)
-        |> Request.call(Request.init(view: PostView))
-
-      assert %Document{data: %ResourceObject{relationships: relationships}, included: included} =
-               Document.serialize(%Document{data: post}, PostView, conn)
-
-      assert relationships["author"].links.self ==
-               "http://www.example.com/posts/1/relationships/author"
-
-      assert Enum.count(included) == 4
-    end
-
-    test "includes from the query" do
-      user = %User{
-        id: 1,
-        username: "jim",
-        first_name: "Jimmy",
-        last_name: "Beam",
-        company: %Company{id: 2, name: "acme"}
-      }
-
-      conn =
-        Plug.Test.conn(:get, "/?include=company")
-        |> Parsers.call(Parsers.init(parsers: [:json], pass: ["text/*"], json_decoder: Jason))
-        |> JSONAPI.Plug.call(api: DefaultAPI)
-        |> Request.call(Request.init(view: UserView))
-
-      encoded = Document.serialize(%Document{data: user}, UserView, conn)
-
-      assert encoded.data.relationships["company"].links.self ==
-               "http://www.example.com/users/1/relationships/company"
-
-      assert Enum.count(encoded.included) == 1
-    end
-
-    test "includes nested items from the query" do
-      user = %User{
-        id: 1,
-        username: "jim",
-        first_name: "Jimmy",
-        last_name: "Beam",
-        company: %Company{id: 2, name: "acme", industry: %Industry{id: 4, name: "stuff"}}
-      }
-
-      conn =
-        Plug.Test.conn(:get, "/?include=company.industry")
-        |> Parsers.call(Parsers.init(parsers: [:json], pass: ["text/*"], json_decoder: Jason))
-        |> JSONAPI.Plug.call(api: OtherNamespaceAPI)
-        |> Request.call(Request.init(view: UserView))
-
-      %Document{
-        data: %ResourceObject{
-          relationships: %{
-            "company" => %RelationshipObject{
-              links: %{self: "http://www.example.com/somespace/users/1/relationships/company"}
-            }
-          }
-        },
-        included: included
-      } = Document.serialize(%Document{data: user}, UserView, conn)
-
-      assert Enum.count(included) == 2
-    end
-
-    test "includes items nested 2 layers deep from the query when not included by default" do
-      user = %User{
-        id: 1,
-        username: "jim",
-        first_name: "Jimmy",
-        last_name: "Beam",
-        company: %Company{
-          id: 2,
-          name: "acme",
-          industry: %Industry{
-            id: 4,
-            name: "stuff",
-            tags: [
-              %Tag{id: 3, name: "a tag"},
-              %Tag{id: 4, name: "another tag"}
-            ]
-          }
-        }
-      }
-
-      conn =
-        Plug.Test.conn(:get, "/?include=company.industry.tags")
-        |> Parsers.call(Parsers.init(parsers: [:json], pass: ["text/*"], json_decoder: Jason))
-        |> JSONAPI.Plug.call(api: OtherNamespaceAPI)
-        |> Request.call(Request.init(view: UserView))
-
-      encoded = Document.serialize(%Document{data: user}, UserView, conn)
-
-      assert encoded.data.relationships["company"].links.self ==
-               "http://www.example.com/somespace/users/1/relationships/company"
-
-      assert Enum.count(encoded.included) == 4
-    end
-
-    test "serialize properly camelizes both attributes and relationships" do
-      post = %Post{
-        id: 1,
-        text: "Hello",
-        inserted_at: NaiveDateTime.utc_now(),
-        body: "Hello world",
-        full_description: "This_is_my_description",
-        author: %User{id: 2, username: "jbonds", first_name: "jerry", last_name: "bonds"},
-        best_comments: [
-          %Comment{
-            id: 5,
-            text: "greatest comment ever",
-            user: %User{id: 4, username: "jack", last_name: "bronds"}
-          }
-        ]
-      }
-
-      conn =
-        Plug.Test.conn(:get, "/")
-        |> Parsers.call(Parsers.init(parsers: [:json], pass: ["text/*"], json_decoder: Jason))
-        |> JSONAPI.Plug.call(api: DefaultAPI)
-        |> Request.call(Request.init(view: PostView))
-
-      assert %Document{
-               data: %ResourceObject{
-                 attributes: attributes,
-                 relationships: relationships
-               },
-               included: included
-             } = Document.serialize(%Document{data: post}, PostView, conn)
-
-      assert attributes["fullDescription"] == post.full_description
-      assert attributes["insertedAt"] == post.inserted_at
-
-      Enum.each(included, fn
-        %ResourceObject{type: "user", id: "2", attributes: attributes} ->
-          assert "bonds" = attributes["lastName"]
-
-        %ResourceObject{type: "user", id: "4", attributes: attributes} ->
-          assert "bronds" = attributes["lastName"]
-
-        _ ->
-          assert true
-      end)
-
-      assert %RelationshipObject{
-               data: [%{id: "5"} | _],
-               links: %{self: "http://www.example.com/posts/1/relationships/bestComments"}
-             } = relationships["bestComments"]
-    end
-
-    test "serialize properly dasherizes both attributes and relationships" do
-      post = %Post{
-        id: 1,
-        text: "Hello",
-        inserted_at: NaiveDateTime.utc_now(),
-        body: "Hello world",
-        full_description: "This_is_my_description",
-        author: %User{id: 2, username: "jbonds", first_name: "jerry", last_name: "bonds"},
-        best_comments: [
-          %Comment{
-            id: 5,
-            text: "greatest comment ever",
-            user: %User{id: 4, username: "jack", last_name: "bronds"}
-          }
-        ]
-      }
-
-      conn =
-        Plug.Test.conn(:get, "/")
-        |> Parsers.call(Parsers.init(parsers: [:json], pass: ["text/*"], json_decoder: Jason))
-        |> JSONAPI.Plug.call(api: OtherNamespaceAPI)
-        |> Request.call(Request.init(view: PostView))
-
-      assert %Document{
-               data: %ResourceObject{attributes: attributes, relationships: relationships},
-               included: included
-             } = Document.serialize(%Document{data: post}, PostView, conn)
-
-      assert attributes["fullDescription"] == post.full_description
-      assert attributes["insertedAt"] == post.inserted_at
-
-      Enum.each(included, fn
-        %ResourceObject{type: "user", id: "2", attributes: attributes} ->
-          assert "bonds" = attributes["lastName"]
-
-        %ResourceObject{type: "user", id: "4", attributes: attributes} ->
-          assert "bronds" = attributes["lastName"]
-
-        _ ->
-          assert true
-      end)
-
-      assert %RelationshipObject{
-               data: [%ResourceIdentifierObject{id: "5", type: "comment"}],
-               links: %{
-                 self: "http://www.example.com/somespace/posts/1/relationships/bestComments"
-               }
-             } = relationships["bestComments"]
-    end
-
-    test "serialize does not merge `included` if not configured" do
-      conn =
-        Plug.Test.conn(:get, "/")
-        |> Parsers.call(Parsers.init(parsers: [:json], pass: ["text/*"], json_decoder: Jason))
-        |> JSONAPI.Plug.call(api: DefaultAPI)
-        |> Request.call(Request.init(view: NotIncludedView))
-
-      post = %Post{
-        id: 1,
-        author: %User{id: 2, username: "jbonds", first_name: "jerry", last_name: "bonds"}
-      }
-
-      assert %Document{included: []} =
-               Document.serialize(%Document{data: post}, NotIncludedView, conn)
-    end
-
-    test "serialize includes pagination links if page-based pagination is requested" do
-      conn =
-        :get
-        |> Plug.Test.conn("/my-type?page[page]=2&page[size]=1")
-        |> Parsers.call(Parsers.init(parsers: [:json], pass: ["text/*"], json_decoder: Jason))
-        |> JSONAPI.Plug.call(api: DefaultAPI)
-        |> Request.call(Request.init(view: PostView))
-
-      page = conn.private.jsonapi.page
-      first = Pagination.url_for(PostView, [%Post{id: 1}], conn, %{page | "page" => 1})
-      last = Pagination.url_for(PostView, [%Post{id: 1}], conn, %{page | "page" => 3})
-      self = Pagination.url_for(PostView, [%Post{id: 1}], conn, page)
-
-      assert %Document{links: links} =
-               Document.serialize(
-                 %Document{
-                   data: [%Post{id: 1, text: ""}],
-                   meta: %{total_pages: 3, total_items: 3}
-                 },
-                 PostView,
-                 conn,
-                 total_pages: 3,
-                 total_items: 3
-               )
-
-      assert links.first == first
-      assert links.last == last
-      assert links.next == last
-      assert links.prev == first
-      assert links.self == self
-    end
-
-    test "serialize does not include pagination links if they are not defined" do
-      assert %Document{links: links} =
-               Document.serialize(%Document{data: [%User{id: 1}]}, UserView)
-
-      refute links[:first]
-      refute links[:last]
-      refute links[:next]
-      refute links[:prev]
-    end
-
-    test "serialize can include arbitrary, user-defined, links" do
-      assert %Document{
-               links: %{
-                 self: "/expensive-post/1",
-                 queue: "/expensive-post/queue/1",
-                 promotions: %{
-                   href: "/promotions?rel=1",
-                   meta: %{
-                     title: "Stuff you might be interested in"
-                   }
-                 }
-               }
-             } = Document.serialize(%Document{data: %Post{id: 1}}, ExpensiveResourceView)
-    end
-
-    test "serialize returns a null data if it receives a null data" do
-      conn =
-        Plug.Test.conn(:get, "/")
-        |> Parsers.call(Parsers.init(parsers: [:json], pass: ["text/*"], json_decoder: Jason))
-        |> JSONAPI.Plug.call(api: DefaultAPI)
-        |> Request.call(Request.init(view: ExpensiveResourceView))
-
-      assert %Document{
-               data: nil,
-               links: %{self: "http://www.example.com/expensive-post"}
-             } = Document.serialize(%Document{data: nil}, ExpensiveResourceView, conn)
-    end
-
-    test "serialize handles query parameters in self links" do
-      conn =
-        Plug.Test.conn(:get, "/my-type?page[page]=2&page[size]=1")
-        |> Parsers.call(Parsers.init(parsers: [:json], pass: ["text/*"], json_decoder: Jason))
-        |> JSONAPI.Plug.call(api: DefaultAPI)
-        |> Request.call(Request.init(view: PostView))
-
-      assert %Document{
-               data: [%ResourceObject{links: %{self: "http://www.example.com/posts/1"}}],
-               links: %{self: "http://www.example.com/posts?page%5Bpage%5D=2&page%5Bsize%5D=1"}
-             } =
-               Document.serialize(
-                 %Document{
-                   data: [%Post{id: 1, text: ""}],
-                   meta: %{total_pages: 3, total_items: 3}
-                 },
-                 PostView,
-                 conn
-               )
     end
   end
 
-  describe "Document deserialization" do
+  describe "document deserialization" do
     test "deserialize empty document" do
-      assert %Document{data: nil} =
-               Document.deserialize(PostView, Plug.Test.conn(:post, "/posts", %{}))
+      assert %Document{data: nil} = Document.deserialize(%{})
     end
 
     test "deserialize null data" do
-      assert %Document{data: nil} =
-               Document.deserialize(PostView, Plug.Test.conn(:post, "/posts", %{"data" => nil}))
+      assert %Document{data: nil} = Document.deserialize(%{"data" => nil})
     end
 
     test "deserialize empty list" do
-      assert %Document{data: []} =
-               Document.deserialize(PostView, Plug.Test.conn(:post, "/posts", %{"data" => []}))
+      assert %Document{data: []} = Document.deserialize(%{"data" => []})
     end
 
     test "deserialize single resource object" do
-      assert %Document{data: %{"id" => "1"}} =
-               Document.deserialize(
-                 PostView,
-                 Plug.Test.conn(:post, "/posts", %{"data" => %{"type" => "post", "id" => "1"}})
-               )
+      assert %Document{data: %ResourceObject{id: "1", type: "post"}} =
+               Document.deserialize(%{"data" => %{"type" => "post", "id" => "1"}})
     end
 
     test "deserialize one element resource list" do
-      assert %Document{data: [%{"id" => "1"}]} =
-               Document.deserialize(
-                 PostView,
-                 Plug.Test.conn(:post, "/posts", %{"data" => [%{"type" => "post", "id" => "1"}]})
-               )
+      assert %Document{data: [%ResourceObject{id: "1", type: "post"}]} =
+               Document.deserialize(%{"data" => [%{"type" => "post", "id" => "1"}]})
     end
 
     test "deserialize multiple element resource list" do
-      assert %Document{data: [%{"id" => "1"}, %{"id" => "2"}, %{"id" => "3"}]} =
-               Document.deserialize(
-                 PostView,
-                 Plug.Test.conn(:post, "/posts", %{
-                   "data" => [
-                     %{"type" => "post", "id" => "1"},
-                     %{"type" => "post", "id" => "2"},
-                     %{"type" => "post", "id" => "3"}
-                   ]
-                 })
-               )
+      assert %Document{
+               data: [
+                 %ResourceObject{id: "1", type: "post"},
+                 %ResourceObject{id: "2", type: "post"},
+                 %ResourceObject{id: "3", type: "post"}
+               ]
+             } =
+               Document.deserialize(%{
+                 "data" => [
+                   %{"type" => "post", "id" => "1"},
+                   %{"type" => "post", "id" => "2"},
+                   %{"type" => "post", "id" => "3"}
+                 ]
+               })
     end
 
     test "deserialize resource with included relationship" do
       assert %Document{
-               data: %{
-                 "id" => "1",
-                 "author" => %{"id" => "1", "first_name" => "Luca"},
-                 "best_comments" => [%{"id" => "1", "text" => "Hello"}]
-               }
-             } =
-               Document.deserialize(
-                 PostView,
-                 Plug.Test.conn(:post, "/posts", %{
-                   "data" => %{
-                     "type" => "post",
-                     "id" => "1",
-                     "relationships" => %{
-                       "author" => %{"data" => %{"id" => "1", "type" => "user"}},
-                       "bestComments" => [%{"data" => %{"id" => "1", "type" => "comment"}}]
+               data: %ResourceObject{
+                 id: "1",
+                 relationships: %{
+                   "author" => %JSONAPI.Document.RelationshipObject{
+                     data: %JSONAPI.Document.ResourceIdentifierObject{
+                       id: "1",
+                       type: "user"
                      }
                    },
-                   "included" => [
-                     %{
-                       "type" => "user",
-                       "id" => "1",
-                       "attributes" => %{"firstName" => "Luca"}
-                     },
-                     %{
-                       "type" => "comment",
-                       "id" => "1",
-                       "attributes" => %{"text" => "Hello"}
+                   "bestComments" => [
+                     %JSONAPI.Document.RelationshipObject{
+                       data: %JSONAPI.Document.ResourceIdentifierObject{
+                         id: "1",
+                         type: "comment"
+                       }
                      }
                    ]
-                 })
-               )
+                 }
+               },
+               included: [
+                 %ResourceObject{id: "1", type: "user", attributes: %{"firstName" => "Luca"}},
+                 %ResourceObject{id: "1", type: "comment", attributes: %{"text" => "Hello"}}
+               ]
+             } =
+               Document.deserialize(%{
+                 "data" => %{
+                   "type" => "post",
+                   "id" => "1",
+                   "relationships" => %{
+                     "author" => %{"data" => %{"id" => "1", "type" => "user"}},
+                     "bestComments" => [%{"data" => %{"id" => "1", "type" => "comment"}}]
+                   }
+                 },
+                 "included" => [
+                   %{
+                     "type" => "user",
+                     "id" => "1",
+                     "attributes" => %{"firstName" => "Luca"}
+                   },
+                   %{
+                     "type" => "comment",
+                     "id" => "1",
+                     "attributes" => %{"text" => "Hello"}
+                   }
+                 ]
+               })
     end
   end
 
   test "deserialize resource list with nested included relationship" do
     assert %Document{
              data: [
-               %{"id" => "1", "author" => %{"id" => "1", "company" => %{"id" => "1"}}},
-               %{"id" => "2", "author" => %{"id" => "1", "company" => %{"id" => "1"}}},
-               %{"id" => "3", "author" => %{"id" => "1", "company" => %{"id" => "1"}}}
+               %ResourceObject{
+                 id: "1",
+                 type: "post",
+                 relationships: %{
+                   "author" => %RelationshipObject{
+                     data: %ResourceIdentifierObject{id: "1", type: "user"}
+                   }
+                 }
+               },
+               %ResourceObject{
+                 id: "2",
+                 type: "post",
+                 relationships: %{
+                   "author" => %RelationshipObject{
+                     data: %ResourceIdentifierObject{id: "1", type: "user"}
+                   }
+                 }
+               },
+               %ResourceObject{
+                 id: "3",
+                 type: "post",
+                 relationships: %{
+                   "author" => %RelationshipObject{
+                     data: %ResourceIdentifierObject{id: "1", type: "user"}
+                   }
+                 }
+               }
+             ],
+             included: [
+               %ResourceObject{
+                 id: "1",
+                 type: "user",
+                 relationships: %{
+                   "company" => %RelationshipObject{
+                     data: %ResourceIdentifierObject{id: "1", type: "company"}
+                   }
+                 }
+               },
+               %ResourceObject{id: "1", type: "company"}
              ]
            } =
-             Document.deserialize(
-               PostView,
-               Plug.Test.conn(:post, "/posts", %{
-                 "data" => [
-                   %{
-                     "type" => "post",
-                     "id" => "1",
-                     "relationships" => %{
-                       "author" => %{"data" => %{"id" => "1", "type" => "user"}}
-                     }
-                   },
-                   %{
-                     "type" => "post",
-                     "id" => "2",
-                     "relationships" => %{
-                       "author" => %{"data" => %{"id" => "1", "type" => "user"}}
-                     }
-                   },
-                   %{
-                     "type" => "post",
-                     "id" => "3",
-                     "relationships" => %{
-                       "author" => %{"data" => %{"id" => "1", "type" => "user"}}
-                     }
+             Document.deserialize(%{
+               "data" => [
+                 %{
+                   "type" => "post",
+                   "id" => "1",
+                   "relationships" => %{
+                     "author" => %{"data" => %{"id" => "1", "type" => "user"}}
                    }
-                 ],
-                 "included" => [
-                   %{
-                     "type" => "user",
-                     "id" => "1",
-                     "attributes" => %{},
-                     "relationships" => %{
-                       "company" => %{"data" => %{"id" => "1", "type" => "company"}}
-                     }
-                   },
-                   %{
-                     "type" => "company",
-                     "id" => "1",
-                     "attributes" => %{}
+                 },
+                 %{
+                   "type" => "post",
+                   "id" => "2",
+                   "relationships" => %{
+                     "author" => %{"data" => %{"id" => "1", "type" => "user"}}
                    }
-                 ]
-               })
-             )
+                 },
+                 %{
+                   "type" => "post",
+                   "id" => "3",
+                   "relationships" => %{
+                     "author" => %{"data" => %{"id" => "1", "type" => "user"}}
+                   }
+                 }
+               ],
+               "included" => [
+                 %{
+                   "type" => "user",
+                   "id" => "1",
+                   "attributes" => %{},
+                   "relationships" => %{
+                     "company" => %{"data" => %{"id" => "1", "type" => "company"}}
+                   }
+                 },
+                 %{
+                   "type" => "company",
+                   "id" => "1",
+                   "attributes" => %{}
+                 }
+               ]
+             })
   end
 end

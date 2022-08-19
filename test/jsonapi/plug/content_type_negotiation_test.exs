@@ -184,7 +184,6 @@ defmodule JSONAPI.Plug.ContentTypeNegotiationTest do
       |> ContentTypeNegotiation.call([])
 
     assert conn.halted
-
     assert Conn.get_resp_header(conn, "content-type") == [JSONAPI.mime_type()]
   end
 end

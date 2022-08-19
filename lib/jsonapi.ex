@@ -14,9 +14,8 @@ defmodule JSONAPI do
           fields: map(),
           filter: map(),
           include: keyword(),
-          options: keyword(),
           page: map(),
-          request: Document.t() | nil,
+          document: Document.t() | nil,
           sort: keyword(),
           view: View.t()
         }
@@ -24,9 +23,8 @@ defmodule JSONAPI do
             fields: %{},
             filter: %{},
             include: [],
-            options: [],
             page: %{},
-            request: nil,
+            document: nil,
             sort: [],
             view: nil
 

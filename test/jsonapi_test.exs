@@ -22,26 +22,18 @@ defmodule JSONAPITest do
   defmodule MyPostPlug do
     use Plug.Builder
 
-    alias JSONAPI.TestSupport.APIs.DefaultAPI
-    alias Plug.Conn
-
     plug Parsers, parsers: [:json], pass: ["text/*"], json_decoder: Jason
-
-    plug JSONAPI.Plug, api: DefaultAPI
-
-    plug JSONAPI.Plug.Request,
-      view: PostView,
-      sort: [:text]
-
+    plug JSONAPI.Plug, api: JSONAPI.TestSupport.APIs.DefaultAPI
+    plug JSONAPI.Plug.Request, view: PostView
     plug :passthrough
 
     defp passthrough(conn, _) do
       resp =
         PostView
-        |> View.render(conn.assigns[:data], conn, conn.assigns[:meta])
+        |> View.render(conn, conn.assigns[:data], conn.assigns[:meta])
         |> Jason.encode!()
 
-      Conn.send_resp(conn, 200, resp)
+      send_resp(conn, 200, resp)
     end
   end
 
@@ -81,7 +73,7 @@ defmodule JSONAPITest do
                  "type" => "user"
                }
              ],
-             "links" => _links,
+             #  "links" => _links,
              "meta" => %{
                "total_pages" => 1
              }
@@ -120,8 +112,8 @@ defmodule JSONAPITest do
                    } = relationships
                }
              ],
-             "included" => [_ | _] = included,
-             "links" => _links
+             "included" => [_ | _] = included
+             #  "links" => _links
            } = Jason.decode!(conn.resp_body)
 
     assert map_size(relationships) == 3
@@ -209,29 +201,25 @@ defmodule JSONAPITest do
                %{
                  "id" => "1",
                  "type" => "post",
-                 "relationships" =>
-                   %{
-                     "author" => %{
-                       "data" => %{
-                         "id" => "2",
-                         "type" => "user"
-                       }
-                     },
-                     "otherUser" => %{
-                       "data" => %{
-                         "id" => "1",
-                         "type" => "user"
-                       }
+                 "relationships" => %{
+                   "author" => %{
+                     "data" => %{
+                       "id" => "2",
+                       "type" => "user"
                      }
-                   } = relationships
+                   },
+                   "otherUser" => %{
+                     "data" => %{
+                       "id" => "1",
+                       "type" => "user"
+                     }
+                   }
+                 }
                }
              ],
-             "included" => [_ | _] = included,
-             "links" => _links
+             "included" => [_ | _] = included
+             #  "links" => _links
            } = Jason.decode!(conn.resp_body)
-
-    assert map_size(relationships) == 3
-    assert Enum.count(included) == 5
 
     assert Enum.find(included, fn
              %{"id" => "1", "type" => "user"} -> true
@@ -287,7 +275,6 @@ defmodule JSONAPITest do
         :get
         |> conn("/posts?include=other_user.company&fields[post]=text,first-character")
         |> Conn.assign(:data, [@default_data])
-        |> JSONAPI.Plug.call(api: DefaultAPI)
         |> MyPostPlug.call([])
 
       assert %{

@@ -2,200 +2,137 @@ defmodule JSONAPI.Plug.RequestTest do
   use ExUnit.Case
   use Plug.Test
 
-  import JSONAPI.Plug.Request
+  alias JSONAPI.{
+    Document,
+    Document.RelationshipObject,
+    Document.ResourceIdentifierObject,
+    Document.ResourceObject,
+    Exceptions.InvalidQuery
+  }
 
-  doctest JSONAPI.Plug.Request
-
-  alias JSONAPI.{Document, Exceptions.InvalidQuery, Plug.Request}
   alias JSONAPI.TestSupport.APIs.DefaultAPI
   alias JSONAPI.TestSupport.Views.{CarView, MyPostView, UserView}
   alias Plug.Conn
 
-  defmodule ExampleCamelCasePlug do
+  defmodule CarViewPlug do
     use Plug.Builder
     plug Plug.Parsers, parsers: [:json], json_decoder: Jason
     plug JSONAPI.Plug, api: DefaultAPI
-    plug Request, view: CarView
-
-    plug :return
-
-    def return(conn, _options) do
-      send_resp(conn, 200, "success")
-    end
+    plug JSONAPI.Plug.Request, view: CarView
   end
 
-  defmodule ExampleUnderscorePlug do
-    use Plug.Builder
-    plug Plug.Parsers, parsers: [:json], json_decoder: Jason
-    plug JSONAPI.Plug, api: UnderscoringAPI
-    plug Request, view: CarView
-
-    plug :return
-
-    def return(conn, _options) do
-      send_resp(conn, 200, "success")
-    end
-  end
-
-  defmodule ExamplePlug do
+  defmodule UserViewPlug do
     use Plug.Builder
     plug Plug.Parsers, parsers: [:json], json_decoder: Jason
     plug JSONAPI.Plug, api: DefaultAPI
-    plug Request, view: CarView
+    plug JSONAPI.Plug.Request, view: UserView
+  end
+
+  defmodule MyPostViewPlug do
+    use Plug.Builder
+    plug Plug.Parsers, parsers: [:json], json_decoder: Jason
+    plug JSONAPI.Plug, api: DefaultAPI
+    plug JSONAPI.Plug.Request, view: MyPostView
   end
 
   describe "request body" do
     test "Ignores bodyless requests" do
-      assert %Conn{private: %{jsonapi: %JSONAPI{request: %Document{data: nil}}}} =
-               Plug.Test.conn("GET", "/")
-               |> put_req_header("content-type", JSONAPI.mime_type())
-               |> put_req_header("accept", JSONAPI.mime_type())
-               |> ExamplePlug.call([])
-    end
-
-    test "ignores non-jsonapi.org format params" do
-      req_body =
-        Jason.encode!(%{
-          "data" => %{"id" => "1", "type" => "car", "attributes" => %{}},
-          "some-nonsense" => "yup"
-        })
-
-      assert %Conn{private: %{jsonapi: %JSONAPI{request: %Document{data: %{"id" => "1"}}}}} =
-               Plug.Test.conn("POST", "/", req_body)
-               |> put_req_header("content-type", JSONAPI.mime_type())
-               |> put_req_header("accept", JSONAPI.mime_type())
-               |> ExamplePlug.call([])
-    end
-
-    test "works with basic list of data" do
-      req_body =
-        Jason.encode!(%{
-          "data" => [
-            %{"id" => "1", "type" => "car"},
-            %{"id" => "2", "type" => "car"}
-          ]
-        })
-
       assert %Conn{
                private: %{
                  jsonapi: %JSONAPI{
-                   request: %Document{
-                     data: [%{"id" => "1"}, %{"id" => "2"}]
+                   document: %Document{data: nil}
+                 }
+               }
+             } =
+               Plug.Test.conn("GET", "/")
+               |> put_req_header("content-type", JSONAPI.mime_type())
+               |> put_req_header("accept", JSONAPI.mime_type())
+               |> CarViewPlug.call([])
+    end
+
+    test "ignores non-jsonapi.org format params" do
+      assert %Conn{
+               private: %{
+                 jsonapi: %JSONAPI{
+                   document: %Document{data: %ResourceObject{id: "1", type: "car"}}
+                 }
+               }
+             } =
+               Plug.Test.conn(
+                 "POST",
+                 "/",
+                 Jason.encode!(%{
+                   "data" => %{"id" => "1", "type" => "car", "attributes" => %{}},
+                   "some-nonsense" => "yup"
+                 })
+               )
+               |> put_req_header("content-type", JSONAPI.mime_type())
+               |> put_req_header("accept", JSONAPI.mime_type())
+               |> CarViewPlug.call([])
+    end
+
+    test "works with basic list of data" do
+      assert %Conn{
+               private: %{
+                 jsonapi: %JSONAPI{
+                   document: %Document{
+                     data: [%ResourceObject{id: "1"}, %ResourceObject{id: "2"}]
                    }
                  }
                }
              } =
-               Plug.Test.conn("POST", "/relationships", req_body)
+               Plug.Test.conn("POST", "/relationships", %{
+                 "data" => [
+                   %{"id" => "1", "type" => "car"},
+                   %{"id" => "2", "type" => "car"}
+                 ]
+               })
                |> put_req_header("content-type", JSONAPI.mime_type())
                |> put_req_header("accept", JSONAPI.mime_type())
-               |> ExamplePlug.call([])
+               |> CarViewPlug.call([])
     end
 
     test "deserializes attribute key names" do
-      req_body =
-        Jason.encode!(%{
-          "data" => %{
-            "id" => "1",
-            "type" => "car",
-            "attributes" => %{
-              "some-nonsense" => true,
-              "foo-bar" => true,
-              "some-map" => %{
-                "nested-key" => true
-              }
-            },
-            "relationships" => %{
-              "baz" => %{
-                "data" => %{
-                  "id" => "2",
-                  "type" => "baz"
-                }
-              }
-            }
-          },
-          "filter" => %{
-            "dog-breed" => "Corgi"
-          }
-        })
-
-      assert %Conn{private: %{jsonapi: %JSONAPI{request: %Document{data: %{"id" => "1"}}}}} =
-               Plug.Test.conn("POST", "/", req_body)
-               |> put_req_header("content-type", JSONAPI.mime_type())
-               |> put_req_header("accept", JSONAPI.mime_type())
-               |> ExamplePlug.call([])
-    end
-
-    test "deserializes dasherized attribute key names and underscores them" do
-      req_body =
-        Jason.encode!(%{
-          "data" => %{
-            "id" => "1",
-            "type" => "car",
-            "attributes" => %{
-              "some-nonsense" => true,
-              "foo-bar" => true,
-              "some-map" => %{
-                "nested-key" => true
-              }
-            },
-            "relationships" => %{
-              "baz" => %{
-                "data" => %{
-                  "id" => "2",
-                  "type" => "baz"
-                }
-              }
-            }
-          }
-        })
-
-      assert %Conn{private: %{jsonapi: %JSONAPI{request: %Document{data: %{"id" => "1"}}}}} =
-               Plug.Test.conn("POST", "/", req_body)
-               |> put_req_header("content-type", JSONAPI.mime_type())
-               |> put_req_header("accept", JSONAPI.mime_type())
-               |> ExampleUnderscorePlug.call([])
-    end
-
-    test "deserializes camelcased attribute key names and underscores them" do
-      req_body =
-        Jason.encode!(%{
-          "data" => %{
-            "id" => "1",
-            "type" => "car",
-            "attributes" => %{
-              "someNonsense" => true,
-              "fooBar" => true,
-              "someMap" => %{
-                "nested_key" => true
-              }
-            },
-            "relationships" => %{
-              "baz" => %{
-                "data" => %{
-                  "id" => "2",
-                  "type" => "baz"
-                }
-              }
-            }
-          }
-        })
-
-      assert %Conn{private: %{jsonapi: %JSONAPI{request: %Document{data: %{"id" => "1"}}}}} =
-               Plug.Test.conn("POST", "/", req_body)
-               |> put_req_header("content-type", JSONAPI.mime_type())
-               |> put_req_header("accept", JSONAPI.mime_type())
-               |> ExampleCamelCasePlug.call([])
-    end
-
-    test "converts attributes and relationships to flattened data structure" do
-      assert %Document{data: %{"id" => "1"}} =
-               Document.deserialize(UserView, %Conn{
-                 body_params: %{
+      assert %Conn{
+               private: %{
+                 jsonapi: %JSONAPI{
+                   document: %Document{
+                     data: %ResourceObject{
+                       id: "1",
+                       type: "car",
+                       attributes: %{
+                         "some-nonsense" => true,
+                         "foo-bar" => true,
+                         "some-map" => %{
+                           "nested-key" => true
+                         }
+                       },
+                       relationships: %{
+                         "baz" => %RelationshipObject{
+                           data: %ResourceIdentifierObject{
+                             id: "2",
+                             type: "baz"
+                           }
+                         }
+                       }
+                     }
+                   }
+                 }
+               }
+             } =
+               Plug.Test.conn(
+                 "POST",
+                 "/",
+                 Jason.encode!(%{
                    "data" => %{
                      "id" => "1",
-                     "type" => "user",
+                     "type" => "car",
                      "attributes" => %{
-                       "foo-bar" => "true"
+                       "some-nonsense" => true,
+                       "foo-bar" => true,
+                       "some-map" => %{
+                         "nested-key" => true
+                       }
                      },
                      "relationships" => %{
                        "baz" => %{
@@ -203,20 +140,45 @@ defmodule JSONAPI.Plug.RequestTest do
                            "id" => "2",
                            "type" => "baz"
                          }
-                       },
-                       "boo" => %{
-                         "data" => nil
+                       }
+                     }
+                   },
+                   "filter" => %{
+                     "dog-breed" => "Corgi"
+                   }
+                 })
+               )
+               |> put_req_header("content-type", JSONAPI.mime_type())
+               |> put_req_header("accept", JSONAPI.mime_type())
+               |> CarViewPlug.call([])
+    end
+
+    test "converts to many relationship" do
+      assert %Conn{
+               private: %{
+                 jsonapi: %JSONAPI{
+                   document: %Document{
+                     data: %ResourceObject{
+                       id: "1",
+                       type: "user",
+                       attributes: %{"foo-bar" => true},
+                       relationships: %{
+                         "baz" => %RelationshipObject{
+                           data: [
+                             %ResourceIdentifierObject{id: "2", type: "baz"},
+                             %ResourceIdentifierObject{id: "3", type: "baz"}
+                           ]
+                         }
                        }
                      }
                    }
                  }
-               })
-    end
-
-    test "converts to many relationship" do
-      assert %Document{data: %{"id" => "1"}} =
-               Document.deserialize(UserView, %Conn{
-                 body_params: %{
+               }
+             } =
+               Plug.Test.conn(
+                 "POST",
+                 "/",
+                 Jason.encode!(%{
                    "data" => %{
                      "id" => "1",
                      "type" => "user",
@@ -232,14 +194,39 @@ defmodule JSONAPI.Plug.RequestTest do
                        }
                      }
                    }
-                 }
-               })
+                 })
+               )
+               |> put_req_header("content-type", JSONAPI.mime_type())
+               |> put_req_header("accept", JSONAPI.mime_type())
+               |> UserViewPlug.call([])
     end
 
     test "converts polymorphic" do
-      assert %Document{data: %{"id" => "1"}} =
-               Document.deserialize(UserView, %Conn{
-                 body_params: %{
+      assert %Conn{
+               private: %{
+                 jsonapi: %JSONAPI{
+                   document: %Document{
+                     data: %ResourceObject{
+                       id: "1",
+                       type: "user",
+                       attributes: %{"foo-bar" => true},
+                       relationships: %{
+                         "baz" => %RelationshipObject{
+                           data: [
+                             %ResourceIdentifierObject{id: "2", type: "baz"},
+                             %ResourceIdentifierObject{id: "3", type: "yooper"}
+                           ]
+                         }
+                       }
+                     }
+                   }
+                 }
+               }
+             } =
+               Plug.Test.conn(
+                 "POST",
+                 "/",
+                 Jason.encode!(%{
                    "data" => %{
                      "id" => "1",
                      "type" => "user",
@@ -255,14 +242,34 @@ defmodule JSONAPI.Plug.RequestTest do
                        }
                      }
                    }
-                 }
-               })
+                 })
+               )
+               |> put_req_header("content-type", JSONAPI.mime_type())
+               |> put_req_header("accept", JSONAPI.mime_type())
+               |> UserViewPlug.call([])
     end
 
     test "processes single includes" do
-      assert %Document{data: %{"id" => "1", "first_name" => "Jerome"}} =
-               Document.deserialize(UserView, %Conn{
-                 body_params: %{
+      assert %Conn{
+               private: %{
+                 jsonapi: %JSONAPI{
+                   document: %Document{
+                     data: %ResourceObject{
+                       id: "1",
+                       type: "user",
+                       attributes: %{"firstName" => "Jerome"}
+                     },
+                     included: [
+                       %ResourceObject{id: "234", type: "friend", attributes: %{"name" => "Tara"}}
+                     ]
+                   }
+                 }
+               }
+             } =
+               Plug.Test.conn(
+                 "POST",
+                 "/",
+                 Jason.encode!(%{
                    "data" => %{
                      "id" => "1",
                      "type" => "user",
@@ -279,14 +286,32 @@ defmodule JSONAPI.Plug.RequestTest do
                        "type" => "friend"
                      }
                    ]
-                 }
-               })
+                 })
+               )
+               |> put_req_header("content-type", JSONAPI.mime_type())
+               |> put_req_header("accept", JSONAPI.mime_type())
+               |> UserViewPlug.call([])
     end
 
     test "processes has many includes" do
-      assert %Document{data: %{"id" => "1", "first_name" => "Jerome"}} =
-               Document.deserialize(UserView, %Conn{
-                 body_params: %{
+      assert %Conn{
+               private: %{
+                 jsonapi: %JSONAPI{
+                   document: %Document{
+                     data: %ResourceObject{
+                       id: "1",
+                       type: "user",
+                       attributes: %{"firstName" => "Jerome"}
+                     },
+                     included: included
+                   }
+                 }
+               }
+             } =
+               Plug.Test.conn(
+                 "POST",
+                 "/",
+                 Jason.encode!(%{
                    "data" => %{
                      "id" => "1",
                      "type" => "user",
@@ -328,26 +353,89 @@ defmodule JSONAPI.Plug.RequestTest do
                        "type" => "organization"
                      }
                    ]
+                 })
+               )
+               |> put_req_header("content-type", JSONAPI.mime_type())
+               |> put_req_header("accept", JSONAPI.mime_type())
+               |> UserViewPlug.call([])
+
+      assert Enum.find(included, fn
+               %ResourceObject{
+                 id: "234",
+                 type: "friend",
+                 attributes: %{"name" => "Tara"},
+                 relationships: %{
+                   "baz" => %RelationshipObject{
+                     data: %ResourceIdentifierObject{id: "2", type: "baz"}
+                   },
+                   "boo" => %RelationshipObject{data: nil}
                  }
-               })
+               } ->
+                 true
+
+               _ ->
+                 false
+             end)
+
+      assert Enum.find(included, fn
+               %ResourceObject{id: "0012", type: "friend", attributes: %{"name" => "Wild Bill"}} ->
+                 true
+
+               _ ->
+                 false
+             end)
+
+      assert Enum.find(included, fn
+               %ResourceObject{id: "456", type: "organization", attributes: %{"title" => "Sr"}} ->
+                 true
+
+               _ ->
+                 false
+             end)
     end
 
     test "processes simple array of data" do
-      assert %Document{data: [%{"id" => "1"}, %{"id" => "2"}]} =
-               Document.deserialize(UserView, %Conn{
-                 body_params: %{
+      assert %Conn{
+               private: %{
+                 jsonapi: %JSONAPI{
+                   document: %Document{
+                     data: [
+                       %ResourceObject{id: "1", type: "user"},
+                       %ResourceObject{id: "2", type: "user"}
+                     ]
+                   }
+                 }
+               }
+             } =
+               Plug.Test.conn(
+                 "POST",
+                 "/relationships",
+                 Jason.encode!(%{
                    "data" => [
                      %{"id" => "1", "type" => "user"},
                      %{"id" => "2", "type" => "user"}
                    ]
-                 }
-               })
+                 })
+               )
+               |> put_req_header("content-type", JSONAPI.mime_type())
+               |> put_req_header("accept", JSONAPI.mime_type())
+               |> UserViewPlug.call([])
     end
 
     test "processes empty keys" do
-      assert %Document{data: %{"id" => "1"}} =
-               Document.deserialize(UserView, %Conn{
-                 body_params: %{
+      assert %Conn{
+               private: %{
+                 jsonapi: %JSONAPI{
+                   document: %Document{
+                     data: %ResourceObject{id: "1", type: "user"}
+                   }
+                 }
+               }
+             } =
+               Plug.Test.conn(
+                 "POST",
+                 "/",
+                 Jason.encode!(%{
                    "data" => %{
                      "id" => "1",
                      "type" => "user",
@@ -355,152 +443,187 @@ defmodule JSONAPI.Plug.RequestTest do
                    },
                    "relationships" => nil,
                    "included" => nil
-                 }
-               })
+                 })
+               )
+               |> put_req_header("content-type", JSONAPI.mime_type())
+               |> put_req_header("accept", JSONAPI.mime_type())
+               |> UserViewPlug.call([])
     end
 
-    test "processes empty data" do
-      assert %Document{data: %{"id" => "1"}} =
-               Document.deserialize(UserView, %Conn{
-                 body_params: %{
+    test "processes empty attributes" do
+      assert %Conn{
+               private: %{
+                 jsonapi: %JSONAPI{
+                   document: %Document{
+                     data: %ResourceObject{id: "1", type: "user"}
+                   }
+                 }
+               }
+             } =
+               Plug.Test.conn(
+                 "POST",
+                 "/",
+                 Jason.encode!(%{
                    "data" => %{
                      "id" => "1",
                      "type" => "user"
                    }
-                 }
-               })
-    end
-
-    test "processes nil data" do
-      assert %Document{data: nil} =
-               Document.deserialize(UserView, %Conn{
-                 body_params: %{"data" => nil}
-               })
+                 })
+               )
+               |> put_req_header("content-type", JSONAPI.mime_type())
+               |> put_req_header("accept", JSONAPI.mime_type())
+               |> UserViewPlug.call([])
     end
   end
 
   describe "query parameters" do
     test "parse_sort/2 turns sorts into valid ecto sorts" do
-      config = struct(JSONAPI, options: %{sort: [:name, :title]}, view: MyPostView)
+      assert %Conn{private: %{jsonapi: %JSONAPI{sort: [asc: :body, asc: :title]}}} =
+               Plug.Test.conn("GET", "/?sort=body,title")
+               |> MyPostViewPlug.call([])
 
-      assert %JSONAPI{sort: [asc: :name, asc: :title]} =
-               parse_sort(config, %{"sort" => "name,title"})
+      assert %Conn{private: %{jsonapi: %JSONAPI{sort: [asc: :body]}}} =
+               Plug.Test.conn("GET", "/?sort=body")
+               |> MyPostViewPlug.call([])
 
-      assert %JSONAPI{sort: [asc: :name]} = parse_sort(config, %{"sort" => "name"})
-      assert %JSONAPI{sort: [desc: :name]} = parse_sort(config, %{"sort" => "-name"})
+      assert %Conn{private: %{jsonapi: %JSONAPI{sort: [desc: :body]}}} =
+               Plug.Test.conn("GET", "/?sort=-body")
+               |> MyPostViewPlug.call([])
 
-      assert %JSONAPI{sort: [asc: :name, desc: :title]} =
-               parse_sort(config, %{"sort" => "name,-title"})
+      assert %Conn{private: %{jsonapi: %JSONAPI{sort: [asc: :body, desc: :title]}}} =
+               Plug.Test.conn("GET", "/?sort=body,-title")
+               |> MyPostViewPlug.call([])
     end
 
     test "parse_sort/2 raises on invalid sorts" do
-      config = struct(JSONAPI, options: %{}, view: MyPostView)
-
       assert_raise InvalidQuery, "invalid parameter sort=name for type my-type", fn ->
-        parse_sort(config, %{"sort" => "name"})
+        Plug.Test.conn("GET", "/?sort=name")
+        |> MyPostViewPlug.call([])
       end
     end
 
     test "parse_filter/2 stores filters" do
-      config = struct(JSONAPI, view: MyPostView)
-
-      assert %JSONAPI{filter: %{"name" => "jason"}} =
-               parse_filter(config, %{"filter" => %{"name" => "jason"}})
+      assert %Conn{private: %{jsonapi: %JSONAPI{filter: %{"name" => "jason"}}}} =
+               Plug.Test.conn("GET", "/?filter[name]=jason")
+               |> MyPostViewPlug.call([])
     end
 
     test "parse_filter/2 raises on invalid filters" do
-      config = struct(JSONAPI, view: MyPostView)
-
       assert_raise InvalidQuery, "invalid parameter filter=invalid for type my-type", fn ->
-        parse_filter(config, %{"filter" => "invalid"})
+        Plug.Test.conn("GET", "/?filter=invalid")
+        |> MyPostViewPlug.call([])
       end
     end
 
     test "parse_include/2 turns an include string into a keyword list" do
-      config = struct(JSONAPI, view: MyPostView)
+      assert %Conn{private: %{jsonapi: %JSONAPI{include: include}}} =
+               Plug.Test.conn("GET", "/?include=author,comments.user")
+               |> MyPostViewPlug.call([])
 
-      assert %JSONAPI{include: [:author, comments: :user]} =
-               parse_include(config, %{"include" => "author,comments.user"})
+      assert [] = get_in(include, [:author])
+      assert [] = get_in(include, [:comments, :user])
 
-      assert %JSONAPI{include: [:author]} = parse_include(config, %{"include" => "author"})
+      assert %Conn{private: %{jsonapi: %JSONAPI{include: include}}} =
+               Plug.Test.conn("GET", "/?include=author")
+               |> MyPostViewPlug.call([])
 
-      assert %JSONAPI{include: [:comments, :author]} =
-               parse_include(config, %{"include" => "comments,author"})
+      assert [] = get_in(include, [:author])
 
-      assert %JSONAPI{include: [comments: :user]} =
-               parse_include(config, %{"include" => "comments.user"})
+      assert %Conn{private: %{jsonapi: %JSONAPI{include: include}}} =
+               Plug.Test.conn("GET", "/?include=comments,author")
+               |> MyPostViewPlug.call([])
 
-      assert %JSONAPI{include: [:best_friends]} =
-               parse_include(config, %{"include" => "best_friends"})
+      assert [] = get_in(include, [:comments])
+      assert [] = get_in(include, [:author])
 
-      assert %JSONAPI{include: [author: :top_posts]} =
-               parse_include(config, %{"include" => "author.top-posts"})
+      assert %Conn{private: %{jsonapi: %JSONAPI{include: include}}} =
+               Plug.Test.conn("GET", "/?include=comments.user")
+               |> MyPostViewPlug.call([])
+
+      assert [] = get_in(include, [:comments, :user])
+
+      assert %Conn{private: %{jsonapi: %JSONAPI{include: include}}} =
+               Plug.Test.conn("GET", "/?include=best_friends")
+               |> MyPostViewPlug.call([])
+
+      assert [] = get_in(include, [:best_friends])
+
+      assert %Conn{private: %{jsonapi: %JSONAPI{include: include}}} =
+               Plug.Test.conn("GET", "/?include=author.top-posts,author.company")
+               |> MyPostViewPlug.call([])
+
+      assert [] = get_in(include, [:author, :top_posts])
+      assert [] = get_in(include, [:author, :company])
     end
 
     test "parse_include/2 errors with invalid includes" do
-      config = struct(JSONAPI, view: MyPostView)
-
       assert_raise InvalidQuery, "invalid parameter include=user for type my-type", fn ->
-        parse_include(config, %{"include" => "user,comments.author"})
+        Plug.Test.conn("GET", "/?include=user,comments.author")
+        |> MyPostViewPlug.call([])
       end
 
       assert_raise InvalidQuery,
-                   "invalid parameter include=comments.author for type my-type",
+                   "invalid parameter include=author for type comment",
                    fn ->
-                     parse_include(config, %{"include" => "comments.author"})
+                     Plug.Test.conn("GET", "/?include=comments.author")
+                     |> MyPostViewPlug.call([])
                    end
 
       assert_raise InvalidQuery,
-                   "invalid parameter include=comments.author.user for type my-type",
+                   "invalid parameter include=author.user for type comment",
                    fn ->
-                     parse_include(config, %{"include" => "comments.author.user"})
+                     Plug.Test.conn("GET", "/?include=comments.author.user")
+                     |> MyPostViewPlug.call([])
                    end
 
       assert_raise InvalidQuery, "invalid parameter include=fake_rel for type my-type", fn ->
-        assert parse_include(config, %{"include" => "fake-rel"})
+        Plug.Test.conn("GET", "/?include=fake-rel")
+        |> MyPostViewPlug.call([])
       end
     end
 
     test "parse_fields/2 turns a fields map into a map of validated fields" do
-      config = struct(JSONAPI, view: MyPostView)
-
-      assert %JSONAPI{fields: %{"my-type" => [:text]}} =
-               parse_fields(config, %{"fields" => %{"my-type" => "text"}})
+      assert %Conn{private: %{jsonapi: %JSONAPI{fields: %{"my-type" => [:text]}}}} =
+               Plug.Test.conn("GET", "/?fields[my-type]=text")
+               |> MyPostViewPlug.call([])
     end
 
     test "parse_fields/2 raises on invalid parsing" do
-      config = struct(JSONAPI, view: MyPostView)
-
       assert_raise InvalidQuery, "invalid parameter fields=blag for type my-type", fn ->
-        parse_fields(config, %{"fields" => %{"my-type" => "blag"}})
+        Plug.Test.conn("GET", "/?fields[my-type]=blag")
+        |> MyPostViewPlug.call([])
       end
 
       assert_raise InvalidQuery, "invalid parameter fields=username for type my-type", fn ->
-        parse_fields(config, %{"fields" => %{"my-type" => "username"}})
+        Plug.Test.conn("GET", "/?fields[my-type]=username")
+        |> MyPostViewPlug.call([])
       end
     end
 
     test "parse_page/2 turns a fields map into a map of pagination values" do
-      config = struct(JSONAPI, view: MyPostView)
-      assert %JSONAPI{page: %{}} = parse_page(config, config)
+      assert %Conn{private: %{jsonapi: %JSONAPI{page: %{}}}} =
+               Plug.Test.conn("GET", "/")
+               |> MyPostViewPlug.call([])
 
-      assert %JSONAPI{page: %{"cursor" => "cursor"}} =
-               parse_page(config, %{"page" => %{"cursor" => "cursor"}})
+      assert %Conn{private: %{jsonapi: %JSONAPI{page: %{"cursor" => "cursor"}}}} =
+               Plug.Test.conn("GET", "/?page[cursor]=cursor")
+               |> MyPostViewPlug.call([])
 
-      assert %JSONAPI{page: %{"limit" => "1"}} =
-               parse_page(config, %{"page" => %{"limit" => "1"}})
+      assert %Conn{private: %{jsonapi: %JSONAPI{page: %{"limit" => "1"}}}} =
+               Plug.Test.conn("GET", "/?page[limit]=1")
+               |> MyPostViewPlug.call([])
 
-      assert %JSONAPI{page: %{"offset" => "1"}} =
-               parse_page(config, %{"page" => %{"offset" => "1"}})
+      assert %Conn{private: %{jsonapi: %JSONAPI{page: %{"offset" => "1"}}}} =
+               Plug.Test.conn("GET", "/?page[offset]=1")
+               |> MyPostViewPlug.call([])
 
-      assert %JSONAPI{page: %{"page" => "1"}} = parse_page(config, %{"page" => %{"page" => "1"}})
+      assert %Conn{private: %{jsonapi: %JSONAPI{page: %{"page" => "1"}}}} =
+               Plug.Test.conn("GET", "/?page[page]=1")
+               |> MyPostViewPlug.call([])
 
-      assert %JSONAPI{page: %{"size" => "1"}} = parse_page(config, %{"page" => %{"size" => "1"}})
-    end
-
-    test "put_as_tree/3 builds the path" do
-      items = [:test, :the, :path]
-      assert put_as_tree([], items, :boo) == [test: [the: [path: :boo]]]
+      assert %Conn{private: %{jsonapi: %JSONAPI{page: %{"size" => "1"}}}} =
+               Plug.Test.conn("GET", "/?page[size]=1")
+               |> MyPostViewPlug.call([])
     end
   end
 end

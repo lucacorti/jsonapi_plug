@@ -5,8 +5,12 @@ defmodule JSONAPI.Document.RelationshipObject do
   https://jsonapi.org/format/#document-resource-object-relationships
   """
 
-  alias JSONAPI.{Document, Document.LinksObject, Document.ResourceIdentifierObject, View}
-  alias Plug.Conn
+  alias JSONAPI.{
+    Document,
+    Document.LinksObject,
+    Document.ResourceIdentifierObject,
+    Exceptions.InvalidDocument
+  }
 
   @type t :: %__MODULE__{
           data: ResourceIdentifierObject.t() | [ResourceIdentifierObject.t()] | nil,
@@ -16,23 +20,43 @@ defmodule JSONAPI.Document.RelationshipObject do
 
   defstruct [:data, :links, :meta]
 
-  @spec serialize(View.t(), View.data() | nil, Conn.t() | nil, LinksObject.link()) :: t()
-  def serialize(view, resources, conn, url) do
+  @spec deserialize(Document.payload()) :: t() | no_return()
+  def deserialize(data) do
     %__MODULE__{}
-    |> serialize_data(view, resources)
-    |> serialize_links(view, resources, conn, url)
+    |> deserialize_data(data)
+    |> deserialize_links(data)
+    |> deserialize_meta(data)
   end
 
-  defp serialize_data(%__MODULE__{} = relationship, view, resources) when is_list(resources),
-    do: %__MODULE__{relationship | data: Enum.map(resources, &relationship_data(view, &1))}
+  defp deserialize_data(relationship_object, %{"data" => resource_identifier})
+       when is_map(resource_identifier),
+       do: %__MODULE__{
+         relationship_object
+         | data: ResourceIdentifierObject.deserialize(resource_identifier)
+       }
 
-  defp serialize_data(%__MODULE__{} = relationship, view, resource),
-    do: %__MODULE__{relationship | data: relationship_data(view, resource)}
+  defp deserialize_data(relationship_object, %{"data" => resource_identifiers})
+       when is_list(resource_identifiers),
+       do: %__MODULE__{
+         relationship_object
+         | data: Enum.map(resource_identifiers, &ResourceIdentifierObject.deserialize/1)
+       }
 
-  defp relationship_data(view, resource),
-    do: %ResourceIdentifierObject{id: view.id(resource), type: view.type()}
+  defp deserialize_data(relationship_object, _data), do: relationship_object
 
-  defp serialize_links(%__MODULE__{} = relationship, view, resources, conn, url) do
-    %__MODULE__{relationship | links: %{self: url, related: View.url_for(view, resources, conn)}}
+  defp deserialize_links(relationship_object, %{"links" => links}),
+    do: %__MODULE__{relationship_object | links: LinksObject.deserialize(links)}
+
+  defp deserialize_links(relationship_object, _data), do: relationship_object
+
+  defp deserialize_meta(relationship_object, %{"meta" => meta}) when is_map(meta),
+    do: %__MODULE__{relationship_object | meta: meta}
+
+  defp deserialize_meta(_relationship_object, %{"meta" => _meta}) do
+    raise InvalidDocument,
+      message: "Relationship object 'meta' must be an object",
+      reference: "https://jsonapi.org/format/#document-resource-object-relationships"
   end
+
+  defp deserialize_meta(relationship_object, _data), do: relationship_object
 end

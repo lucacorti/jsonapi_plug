@@ -8,7 +8,7 @@ defmodule JSONAPI.View do
           attributes: [:id, :username]
       end
 
-  You can now call `UsersView.render("show.json", %{data: user})` or `View.render(UsersView, user, conn)`
+  You can now call `UsersView.render("show.json", %{data: user})` or `View.render(UsersView, conn, user)`
   to render a valid JSON:API document from your data. If you use phoenix, you can use:
 
       conn
@@ -73,7 +73,7 @@ defmodule JSONAPI.View do
       config :my_app, MyApp.MyAPI, host: "adifferenthost.com"
   """
 
-  alias JSONAPI.{API, Document, Document.ErrorObject, Resource, Resource}
+  alias JSONAPI.{API, Document, Document.ErrorObject, Normalizer, Resource, Resource}
   alias Plug.Conn
 
   @attribute_schema [
@@ -86,13 +86,15 @@ defmodule JSONAPI.View do
       doc:
         "Controls attribute serialization. Can be either a boolean (do/don't serialize) or a function reference returning the attribute value to be serialized for full control.",
       type: {:or, [:boolean, {:fun, 2}]},
-      required: false
+      required: false,
+      default: true
     ],
     deserialize: [
       doc:
         "Controls attribute deserialization. Can be either a boolean (do/don't deserialize) or a function reference returning the attribute value to be deserialized for full control.",
       type: {:or, [:boolean, {:fun, 2}]},
-      required: false
+      required: false,
+      default: true
     ]
   ]
 
@@ -105,7 +107,8 @@ defmodule JSONAPI.View do
     many: [
       doc: "Specifies a to many relationship.",
       type: :boolean,
-      required: false
+      required: false,
+      default: false
     ],
     view: [
       doc: "Specifies the view to be used to serialize the relationship",
@@ -197,6 +200,15 @@ defmodule JSONAPI.View do
     {relationships, options} = Keyword.pop(options, :relationships, [])
     {type, _options} = Keyword.pop(options, :type)
 
+    if field =
+         Enum.concat(attributes, relationships)
+         |> Enum.find(&(JSONAPI.View.field_name(&1) in [:type, :id])) do
+      name = JSONAPI.View.field_name(field)
+      view = Module.split(__CALLER__.module) |> List.last()
+
+      raise "Illegal field name '#{name}' for view #{view}. Check out https://jsonapi.org/format/#document-resource-object-fields for more information."
+    end
+
     quote do
       NimbleOptions.validate!(unquote(options), unquote(Macro.escape(@schema)))
 
@@ -237,8 +249,8 @@ defmodule JSONAPI.View do
           when action in ["create.json", "index.json", "show.json", "update.json"] do
         JSONAPI.View.render(
           __MODULE__,
-          Map.get(assigns, :data),
           Map.get(assigns, :conn),
+          Map.get(assigns, :data),
           Map.get(assigns, :meta),
           Map.get(assigns, :options)
         )
@@ -255,19 +267,20 @@ defmodule JSONAPI.View do
   def field_name({name, nil}), do: name
   def field_name({name, options}) when is_list(options), do: name
 
-  def field_name(field),
-    do: raise("invalid field definition: #{inspect(field)}")
+  def field_name(field) do
+    raise "invalid field definition: #{inspect(field)}"
+  end
 
-  @spec field_option(field(), atom(), term()) :: term()
-  def field_option(name, _option, default) when is_atom(name), do: default
+  @spec field_option(field(), atom()) :: term()
+  def field_option(name, _option) when is_atom(name), do: nil
+  def field_option({_name, nil}, _option), do: nil
 
-  def field_option({_name, nil}, _option, default), do: default
+  def field_option({_name, options}, option) when is_list(options),
+    do: Keyword.get(options, option)
 
-  def field_option({_name, options}, option, default) when is_list(options),
-    do: Keyword.get(options, option, default)
-
-  def field_option(field, _option, _default),
-    do: raise("invalid field definition: #{inspect(field)}")
+  def field_option(field, _option, _default) do
+    raise "invalid field definition: #{inspect(field)}"
+  end
 
   @spec for_related_type(t(), Resource.type()) :: t() | nil
   def for_related_type(view, type) do
@@ -282,10 +295,13 @@ defmodule JSONAPI.View do
     end)
   end
 
-  @spec render(t(), data() | nil, Conn.t() | nil, Document.meta() | nil, options()) ::
-          Document.t()
-  def render(view, data \\ nil, conn \\ nil, meta \\ nil, options \\ []),
-    do: Document.serialize(%Document{data: data, meta: meta}, view, conn, options)
+  @spec render(t(), Conn.t(), data() | nil, Document.meta() | nil, options()) ::
+          Document.t() | no_return()
+  def render(view, conn, data \\ nil, meta \\ nil, options \\ []) do
+    view
+    |> Normalizer.normalize(conn, data, meta, options)
+    |> Document.serialize()
+  end
 
   @spec send_error(Conn.t(), Conn.status(), [ErrorObject.t()]) :: Conn.t()
   def send_error(conn, status, errors) do
