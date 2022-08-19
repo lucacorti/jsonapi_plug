@@ -1,6 +1,6 @@
 defmodule JSONAPI.View do
   @moduledoc """
-  A View is simply a module that defines how to render your JSON:API resource:
+  A View is simply a module that describes how to render your data as JSON:API resources:
 
       defmodule MyApp.UsersView do
         use JSONAPI.View,
@@ -15,13 +15,13 @@ defmodule JSONAPI.View do
       |> put_view(UsersView)
       |> render("show.json", %{data: user})
 
-  in your controller to render the document in the same way.
+  in your controller functions to render the document in the same way.
 
   ## Attributes
 
-  By default, the resulting JSON document consists of attributes taken from your data.
-  Only attributes defined on the view will be (de)serialized. You can customize attributes
-  by using a keyword list of options instead:
+  By default, the resulting JSON document consists of resourcess taken from your data.
+  Only resource  attributes defined on the view will be (de)serialized. You can customize
+  how attributes are handled by using a keyword list of options instead:
 
       defmodule MyApp.UsersView do
         use JSONAPI.View,
@@ -35,12 +35,12 @@ defmodule JSONAPI.View do
       end
 
   For example here we are defining a computed attribute by passing the `serialize` option a function reference.
-  Serialization functions take `resource` and `conn` as arguments and return the value to be added to the resource.
-  The `deserialize` option set to `false` makes sure the attribute is ignored when deserializing requests.
+  Serialization functions take `resource` and `conn` as arguments and return the attribute value to be serialized.
+  The `deserialize` option set to `false` makes sure the attribute is ignored when deserializing data from requests.
 
   ## Relationships
 
-  Relationships are defined similarly, by passing the `relationships` option to `use JSONAPI.View`.
+  Relationships are defined by passing the `relationships` option to `use JSONAPI.View`.
 
       defmodule MyApp.PostsView do
         use JSONAPI.View,
@@ -62,13 +62,13 @@ defmodule JSONAPI.View do
       end
 
   When requesting `GET /posts?include=author`, if the author key is present on the data you pass from the controller
-  and you are using the `JSONAPI.Plug.Request` it will be included in the `included` section of the JSONAPI response.
+  and you are using the `JSONAPI.Plug.Request` it will appear in the `included` section of the JSONAPI response.
 
   ## Links
 
   When rendering resource links, the default behaviour is to is to derive values for `host`, `port`
   and `scheme` from the connection. If you need to use different values for some reason, you can specify them
-  passing `JSONAPI.API` configuration options in your api configuration:
+  using `JSONAPI.API` configuration options in your api configuration:
 
       config :my_app, MyApp.MyAPI, host: "adifferenthost.com"
   """

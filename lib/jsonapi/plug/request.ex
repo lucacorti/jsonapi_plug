@@ -76,6 +76,7 @@ defmodule JSONAPI.Plug.Request do
   plug JSONAPI.Plug.Request.Include
   plug JSONAPI.Plug.Request.Page
   plug JSONAPI.Plug.Request.Sort
+  plug JSONAPI.Plug.Request.Params
 
   @doc false
   def config_request(%Conn{private: %{jsonapi: %JSONAPI{} = jsonapi}} = conn, options) do

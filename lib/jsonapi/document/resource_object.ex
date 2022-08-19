@@ -26,7 +26,7 @@ defmodule JSONAPI.Document.ResourceObject do
   defstruct id: nil,
             lid: nil,
             type: nil,
-            attributes: nil,
+            attributes: %{},
             relationships: %{},
             links: nil,
             meta: nil

@@ -39,7 +39,7 @@ defmodule JSONAPI.Normalizer do
   end
 
   defp denormalize_resource_id(params, resource_object, view, _conn),
-    do: Map.put(params, view.id_attribute(), resource_object.id || resource_object.lid)
+    do: Map.put(params, to_string(view.id_attribute()), resource_object.id || resource_object.lid)
 
   defp denormalize_resource_attributes(params, %ResourceObject{} = resource_object, view, conn) do
     Enum.reduce(view.attributes(), params, fn attribute, params ->
@@ -47,15 +47,18 @@ defmodule JSONAPI.Normalizer do
       deserialize = View.field_option(attribute, :deserialize)
       key = to_string(View.field_option(attribute, :name) || name)
 
-      case Map.fetch(resource_object.attributes, to_string(name)) do
+      case Map.fetch(resource_object.attributes, recase_field(conn, name)) do
         {:ok, _value} when deserialize == false ->
           params
 
-        {:ok, value} when deserialize == true ->
-          Map.put(params, key, value)
-
         {:ok, value} when is_function(deserialize, 2) ->
           Map.put(params, key, deserialize.(value, conn))
+
+        {:ok, value} ->
+          Map.put(params, key, value)
+
+        :error ->
+          params
       end
     end)
   end
@@ -87,35 +90,39 @@ defmodule JSONAPI.Normalizer do
 
           Map.put(params, key, value)
 
-        {false, related_relationships} when is_list(related_relationships) ->
+        {_many, related_relationships} when is_list(related_relationships) ->
           raise InvalidDocument,
             message: "List of resources for one-to-one relationship during normalization",
             reference: nil
-
-        {false, related_relationships} ->
-          value =
-            find_related_relationship(
-              document,
-              related_relationships,
-              related_view,
-              conn
-            )
-
-          Map.put(params, key, value)
 
         {true, _related_data} ->
           raise InvalidDocument,
             message: "Single resource for many relationship during normalization",
             reference: nil
+
+        {_many, related_relationship} ->
+          value =
+            find_related_relationship(
+              document,
+              related_relationship,
+              related_view,
+              conn
+            )
+
+          params
+          |> Map.put(key, value)
+          |> Map.put(key <> "_id", value["id"])
       end
     end)
   end
 
   defp find_related_relationship(
          %Document{} = document,
-         %ResourceIdentifierObject{
-           id: id,
-           type: type
+         %RelationshipObject{
+           data: %ResourceIdentifierObject{
+             id: id,
+             type: type
+           }
          },
          view,
          conn

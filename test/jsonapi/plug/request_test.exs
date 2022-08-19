@@ -257,10 +257,19 @@ defmodule JSONAPI.Plug.RequestTest do
                      data: %ResourceObject{
                        id: "1",
                        type: "user",
-                       attributes: %{"firstName" => "Jerome"}
+                       attributes: %{"firstName" => "Jerome"},
+                       relationships: %{
+                         "company" => %RelationshipObject{
+                           data: %ResourceIdentifierObject{id: "234", type: "company"}
+                         }
+                       }
                      },
                      included: [
-                       %ResourceObject{id: "234", type: "friend", attributes: %{"name" => "Tara"}}
+                       %ResourceObject{
+                         id: "234",
+                         type: "company",
+                         attributes: %{"name" => "Tara"}
+                       }
                      ]
                    }
                  }
@@ -275,6 +284,11 @@ defmodule JSONAPI.Plug.RequestTest do
                      "type" => "user",
                      "attributes" => %{
                        "firstName" => "Jerome"
+                     },
+                     "relationships" => %{
+                       "company" => %{
+                         "data" => %{"id" => "234", "type" => "company"}
+                       }
                      }
                    },
                    "included" => [
@@ -283,7 +297,7 @@ defmodule JSONAPI.Plug.RequestTest do
                          "name" => "Tara"
                        },
                        "id" => "234",
-                       "type" => "friend"
+                       "type" => "company"
                      }
                    ]
                  })
