@@ -202,7 +202,7 @@ defmodule JSONAPI.View do
 
     if field =
          Enum.concat(attributes, relationships)
-         |> Enum.find(&(JSONAPI.View.field_name(&1) in [:type, :id])) do
+         |> Enum.find(&(JSONAPI.View.field_name(&1) in [:id, :type])) do
       name = JSONAPI.View.field_name(field)
       view = Module.split(__CALLER__.module) |> List.last()
 
