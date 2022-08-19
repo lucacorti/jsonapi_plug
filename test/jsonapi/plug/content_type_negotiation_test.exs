@@ -7,8 +7,7 @@ defmodule JSONAPI.Plug.ContentTypeNegotiationTest do
 
   test "passes request through" do
     conn =
-      :post
-      |> conn("/example", "")
+      conn(:post, "/example", "")
       |> Conn.put_req_header("content-type", JSONAPI.mime_type())
       |> Conn.put_req_header("accept", JSONAPI.mime_type())
       |> ContentTypeNegotiation.call([])
@@ -18,8 +17,7 @@ defmodule JSONAPI.Plug.ContentTypeNegotiationTest do
 
   test "halts and returns an error if no content-type or accept header" do
     conn =
-      :post
-      |> conn("/example", "")
+      conn(:post, "/example", "")
       |> ContentTypeNegotiation.call([])
 
     refute conn.halted
@@ -27,8 +25,7 @@ defmodule JSONAPI.Plug.ContentTypeNegotiationTest do
 
   test "passes request through if only content-type header" do
     conn =
-      :post
-      |> conn("/example", "")
+      conn(:post, "/example", "")
       |> Conn.put_req_header("content-type", JSONAPI.mime_type())
       |> ContentTypeNegotiation.call([])
 
@@ -37,8 +34,7 @@ defmodule JSONAPI.Plug.ContentTypeNegotiationTest do
 
   test "passes request through if only accept header" do
     conn =
-      :post
-      |> conn("/example", "")
+      conn(:post, "/example", "")
       |> Conn.put_req_header("accept", JSONAPI.mime_type())
       |> ContentTypeNegotiation.call([])
 
@@ -47,8 +43,7 @@ defmodule JSONAPI.Plug.ContentTypeNegotiationTest do
 
   test "passes request through if multiple accept header" do
     conn =
-      :post
-      |> conn("/example", "")
+      conn(:post, "/example", "")
       |> Conn.put_req_header(
         "accept",
         "#{JSONAPI.mime_type()}, #{JSONAPI.mime_type()}; version=1.0"
@@ -60,8 +55,7 @@ defmodule JSONAPI.Plug.ContentTypeNegotiationTest do
 
   test "passes request through if correct content-type header is last" do
     conn =
-      :post
-      |> conn("/example", "")
+      conn(:post, "/example", "")
       |> Conn.put_req_header(
         "content-type",
         "#{JSONAPI.mime_type()}, #{JSONAPI.mime_type()}; version=1.0"
@@ -73,8 +67,7 @@ defmodule JSONAPI.Plug.ContentTypeNegotiationTest do
 
   test "passes request through if correct accept header is last" do
     conn =
-      :post
-      |> conn("/example", "")
+      conn(:post, "/example", "")
       |> Conn.put_req_header(
         "accept",
         "#{JSONAPI.mime_type()}, #{JSONAPI.mime_type()}; version=1.0"
@@ -86,8 +79,7 @@ defmodule JSONAPI.Plug.ContentTypeNegotiationTest do
 
   test "halts and returns an error if content-type header contains other media type" do
     conn =
-      :post
-      |> conn("/example", "")
+      conn(:post, "/example", "")
       |> Conn.put_req_header("content-type", "text/html")
       |> ContentTypeNegotiation.call([])
 
@@ -97,8 +89,7 @@ defmodule JSONAPI.Plug.ContentTypeNegotiationTest do
 
   test "halts and returns an error if content-type header contains other media type params" do
     conn =
-      :post
-      |> conn("/example", "")
+      conn(:post, "/example", "")
       |> Conn.put_req_header("content-type", "#{JSONAPI.mime_type()}; version=1.0")
       |> ContentTypeNegotiation.call([])
 
@@ -108,8 +99,7 @@ defmodule JSONAPI.Plug.ContentTypeNegotiationTest do
 
   test "halts and returns an error if content-type header contains other media type params (multiple)" do
     conn =
-      :post
-      |> conn("/example", "")
+      conn(:post, "/example", "")
       |> Conn.put_req_header(
         "content-type",
         "#{JSONAPI.mime_type()}; version=1.0, #{JSONAPI.mime_type()}; version=1.0"
@@ -122,8 +112,7 @@ defmodule JSONAPI.Plug.ContentTypeNegotiationTest do
 
   test "halts and returns an error if content-type header contains other media type params with correct accept header" do
     conn =
-      :post
-      |> conn("/example", "")
+      conn(:post, "/example", "")
       |> Conn.put_req_header("content-type", "#{JSONAPI.mime_type()}; version=1.0")
       |> Conn.put_req_header("accept", "#{JSONAPI.mime_type()}")
       |> ContentTypeNegotiation.call([])
@@ -134,8 +123,7 @@ defmodule JSONAPI.Plug.ContentTypeNegotiationTest do
 
   test "halts and returns an error if accept header contains other media type params" do
     conn =
-      :post
-      |> conn("/example", "")
+      conn(:post, "/example", "")
       |> Conn.put_req_header("content-type", JSONAPI.mime_type())
       |> Conn.put_req_header("accept", "#{JSONAPI.mime_type()}; charset=utf-8")
       |> ContentTypeNegotiation.call([])
@@ -146,8 +134,7 @@ defmodule JSONAPI.Plug.ContentTypeNegotiationTest do
 
   test "halts and returns an error if all accept header media types contain media type params with no content-type" do
     conn =
-      :post
-      |> conn("/example", "")
+      conn(:post, "/example", "")
       |> Conn.put_req_header(
         "accept",
         "#{JSONAPI.mime_type()}; version=1.0, #{JSONAPI.mime_type()}; version=1.0"
@@ -160,8 +147,7 @@ defmodule JSONAPI.Plug.ContentTypeNegotiationTest do
 
   test "halts and returns an error if all accept header media types contain media type params" do
     conn =
-      :post
-      |> conn("/example", "")
+      conn(:post, "/example", "")
       |> Conn.put_req_header("content-type", JSONAPI.mime_type())
       |> Conn.put_req_header(
         "accept",
@@ -175,8 +161,7 @@ defmodule JSONAPI.Plug.ContentTypeNegotiationTest do
 
   test "returned error has correct content type" do
     conn =
-      :post
-      |> conn("/example", "")
+      conn(:post, "/example", "")
       |> Conn.put_req_header(
         "accept",
         "#{JSONAPI.mime_type()}; version=1.0, #{JSONAPI.mime_type()}; version=1.0"

@@ -12,13 +12,13 @@ defmodule JSONAPI.Plug.ContentTypeNegotiation do
   @behaviour Plug
 
   @impl Plug
-  def init(options), do: options
+  def init(opts), do: opts
 
   @impl Plug
-  def call(%Conn{method: method} = conn, _options) when method in ["DELETE", "GET", "HEAD"],
+  def call(%Conn{method: method} = conn, _opts) when method in ["DELETE", "GET", "HEAD"],
     do: conn
 
-  def call(conn, _options) do
+  def call(conn, _opts) do
     case {validate_header(conn, "content-type"), validate_header(conn, "accept")} do
       {true, true} ->
         conn

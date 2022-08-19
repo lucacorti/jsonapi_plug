@@ -1,5 +1,6 @@
 defmodule JSONAPI.ViewTest do
   use ExUnit.Case
+  use Plug.Test
 
   alias JSONAPI.TestSupport.APIs.{
     DasherizingAPI,
@@ -17,7 +18,7 @@ defmodule JSONAPI.ViewTest do
   alias Plug.Conn
 
   setup do
-    {:ok, conn: Plug.Test.conn(:get, "") |> JSONAPI.Plug.call(api: DasherizingAPI)}
+    {:ok, conn: conn(:get, "") |> JSONAPI.Plug.call(api: DasherizingAPI)}
   end
 
   test "type/0 when specified via using macro" do
@@ -26,7 +27,7 @@ defmodule JSONAPI.ViewTest do
 
   describe "url_for/3 when host and scheme not configured" do
     setup do
-      {:ok, conn: Plug.Test.conn(:get, "/") |> JSONAPI.Plug.call(api: OtherNamespaceAPI)}
+      {:ok, conn: conn(:get, "/") |> JSONAPI.Plug.call(api: OtherNamespaceAPI)}
     end
 
     test "url_for/3", %{conn: conn} do
@@ -63,7 +64,7 @@ defmodule JSONAPI.ViewTest do
 
   describe "url_for/3 when host configured" do
     setup do
-      {:ok, conn: Plug.Test.conn(:get, "/") |> JSONAPI.Plug.call(api: OtherHostAPI)}
+      {:ok, conn: conn(:get, "/") |> JSONAPI.Plug.call(api: OtherHostAPI)}
     end
 
     test "uses API host instead of that on Conn", %{conn: conn} do
@@ -84,7 +85,7 @@ defmodule JSONAPI.ViewTest do
     setup do
       {:ok,
        conn:
-         Plug.Test.conn(:get, "https://www.example.com/")
+         conn(:get, "https://www.example.com/")
          |> JSONAPI.Plug.call(api: OtherSchemeAPI)}
     end
 
@@ -106,7 +107,7 @@ defmodule JSONAPI.ViewTest do
     setup do
       {:ok,
        conn:
-         Plug.Test.conn(:get, "http://www.example.com:42/")
+         conn(:get, "http://www.example.com:42/")
          |> JSONAPI.Plug.call(api: OtherPortAPI)}
     end
 
@@ -129,7 +130,7 @@ defmodule JSONAPI.ViewTest do
       {
         :ok,
         conn:
-          Plug.Test.conn(:get, "https://www.example.com/")
+          conn(:get, "https://www.example.com/")
           |> JSONAPI.Plug.call(api: OtherSchemeAPI)
           |> Conn.fetch_query_params()
       }
@@ -193,7 +194,7 @@ defmodule JSONAPI.ViewTest do
 
   test "view returns all field names by default" do
     conn =
-      Plug.Test.conn(:get, "/")
+      conn(:get, "/")
       |> Plug.Parsers.call(
         Plug.Parsers.init(parsers: [:json], pass: ["text/*"], json_decoder: Jason)
       )
@@ -221,7 +222,7 @@ defmodule JSONAPI.ViewTest do
 
   test "view trims returned field names to only those requested" do
     conn =
-      Plug.Test.conn(:get, "/?fields[#{PostView.type()}]=body")
+      conn(:get, "/?fields[#{PostView.type()}]=body")
       |> Plug.Parsers.call(
         Plug.Parsers.init(parsers: [:json], pass: ["text/*"], json_decoder: Jason)
       )

@@ -9,12 +9,12 @@ defmodule JSONAPI.Plug.Request.Body do
   @behaviour Plug
 
   @impl Plug
-  def init(options), do: options
+  def init(opts), do: opts
 
   @impl Plug
   def call(
         %Conn{body_params: body_params, private: %{jsonapi: %JSONAPI{} = jsonapi}} = conn,
-        _options
+        _opts
       ) do
     Conn.put_private(
       conn,

@@ -9,18 +9,18 @@ defmodule JSONAPI.Plug.IdRequired do
   @behaviour Plug
 
   @impl Plug
-  def init(options), do: options
+  def init(opts), do: opts
 
   @impl Plug
-  def call(%Conn{method: method} = conn, _options)
+  def call(%Conn{method: method} = conn, _opts)
       when method in ["DELETE", "GET", "HEAD", "POST"],
       do: conn
 
-  def call(%Conn{params: %{"data" => %{"id" => id}, "id" => id}} = conn, _)
+  def call(%Conn{params: %{"data" => %{"id" => id}, "id" => id}} = conn, _opts)
       when is_binary(id) and byte_size(id) > 0,
       do: conn
 
-  def call(%Conn{params: %{"data" => %{"id" => id}}} = conn, _)
+  def call(%Conn{params: %{"data" => %{"id" => id}}} = conn, _opts)
       when not is_binary(id) or byte_size(id) < 0 do
     View.send_error(conn, :unprocessable_entity, [
       %ErrorObject{
@@ -31,7 +31,7 @@ defmodule JSONAPI.Plug.IdRequired do
     ])
   end
 
-  def call(%Conn{params: %{"data" => %{"id" => id}, "id" => _id}} = conn, _)
+  def call(%Conn{params: %{"data" => %{"id" => id}, "id" => _id}} = conn, _opts)
       when is_binary(id) and byte_size(id) > 0 do
     View.send_error(conn, :conflict, [
       %ErrorObject{
@@ -42,7 +42,7 @@ defmodule JSONAPI.Plug.IdRequired do
     ])
   end
 
-  def call(%Conn{params: %{"id" => _id}} = conn, _) do
+  def call(%Conn{params: %{"id" => _id}} = conn, _opts) do
     View.send_error(conn, :bad_request, [
       %ErrorObject{
         detail:
@@ -52,5 +52,5 @@ defmodule JSONAPI.Plug.IdRequired do
     ])
   end
 
-  def call(conn, _), do: conn
+  def call(conn, _opts), do: conn
 end
