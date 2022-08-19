@@ -7,21 +7,21 @@ defmodule JSONAPI.Document.ResourceObject do
 
   alias JSONAPI.{
     Document,
-    Document.LinksObject,
+    Document.LinkObject,
     Document.RelationshipObject,
     Exceptions.InvalidDocument,
     Resource
   }
 
-  @type value :: String.t() | integer() | float() | [value()] | %{String.t() => value()}
+  @type links :: %{atom() => LinkObject.t()}
 
   @type t :: %__MODULE__{
           id: Resource.id(),
           lid: Resource.id(),
           type: Resource.type(),
-          attributes: %{String.t() => value()} | nil,
+          attributes: Document.value() | nil,
           relationships: %{String.t() => [RelationshipObject.t()]} | nil,
-          links: Document.links() | nil
+          links: links() | nil
         }
   defstruct id: nil,
             lid: nil,
@@ -84,7 +84,13 @@ defmodule JSONAPI.Document.ResourceObject do
   defp deserialize_attributes(resource_object, _data), do: resource_object
 
   defp deserialize_links(resource_object, %{"links" => links}),
-    do: %__MODULE__{resource_object | links: LinksObject.deserialize(links)}
+    do: %__MODULE__{
+      resource_object
+      | links:
+          Enum.into(links, %{}, fn {name, link} ->
+            {name, LinkObject.deserialize(link)}
+          end)
+    }
 
   defp deserialize_links(resource_object, _data), do: resource_object
 

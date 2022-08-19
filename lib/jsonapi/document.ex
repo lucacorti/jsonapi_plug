@@ -10,7 +10,7 @@ defmodule JSONAPI.Document do
   alias JSONAPI.{
     Document.ErrorObject,
     Document.JSONAPIObject,
-    Document.LinksObject,
+    Document.LinkObject,
     Document.RelationshipObject,
     Document.ResourceIdentifierObject,
     Document.ResourceObject,
@@ -18,8 +18,9 @@ defmodule JSONAPI.Document do
     View
   }
 
-  @type payload :: %{String.t() => value()}
   @type value :: String.t() | integer() | float() | [value()] | %{String.t() => value()} | nil
+
+  @type payload :: %{String.t() => value()}
 
   @typedoc """
   Primary Data
@@ -61,7 +62,7 @@ defmodule JSONAPI.Document do
 
   https://jsonapi.org/format/#document-links
   """
-  @type links :: %{atom() => LinksObject.link()}
+  @type links :: %{atom() => LinkObject.t()}
 
   @type t :: %__MODULE__{
           data: data() | View.data() | nil,
@@ -136,7 +137,13 @@ defmodule JSONAPI.Document do
   defp deserialize_jsonapi(document, _data), do: document
 
   defp deserialize_links(document, %{"links" => links}) when is_map(links),
-    do: %__MODULE__{document | links: LinksObject.deserialize(links)}
+    do: %__MODULE__{
+      document
+      | links:
+          Enum.into(links, %{}, fn {name, link} ->
+            {name, LinkObject.deserialize(link)}
+          end)
+    }
 
   defp deserialize_links(document, _data), do: document
 
@@ -211,7 +218,7 @@ defmodule JSONAPI.Document do
     for: [
       __MODULE__,
       ErrorObject,
-      LinksObject,
+      LinkObject,
       ResourceIdentifierObject,
       ResourceObject,
       RelationshipObject

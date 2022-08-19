@@ -7,14 +7,16 @@ defmodule JSONAPI.Document.RelationshipObject do
 
   alias JSONAPI.{
     Document,
-    Document.LinksObject,
+    Document.LinkObject,
     Document.ResourceIdentifierObject,
     Exceptions.InvalidDocument
   }
 
+  @type links :: %{atom() => LinkObject.t()}
+
   @type t :: %__MODULE__{
           data: ResourceIdentifierObject.t() | [ResourceIdentifierObject.t()] | nil,
-          links: Document.links() | nil,
+          links: links() | nil,
           meta: Document.meta() | nil
         }
 
@@ -45,7 +47,13 @@ defmodule JSONAPI.Document.RelationshipObject do
   defp deserialize_data(relationship_object, _data), do: relationship_object
 
   defp deserialize_links(relationship_object, %{"links" => links}),
-    do: %__MODULE__{relationship_object | links: LinksObject.deserialize(links)}
+    do: %__MODULE__{
+      relationship_object
+      | links:
+          Enum.into(links, %{}, fn {name, link} ->
+            {name, LinkObject.deserialize(link)}
+          end)
+    }
 
   defp deserialize_links(relationship_object, _data), do: relationship_object
 

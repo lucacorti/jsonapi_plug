@@ -25,7 +25,7 @@ defmodule JSONAPI.Pagination do
   See the tests for an example implementation of page based pagination strategy.
   """
 
-  alias JSONAPI.{Document.LinksObject, Resource, View}
+  alias JSONAPI.{Document.LinkObject, Resource, View}
   alias Plug.Conn
 
   @type t :: module()
@@ -48,7 +48,7 @@ defmodule JSONAPI.Pagination do
           Conn.t() | nil,
           params() | nil
         ) ::
-          LinksObject.link()
+          LinkObject.t()
   def url_for(
         view,
         resources,

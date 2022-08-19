@@ -10,6 +10,7 @@ defmodule JSONAPI.Normalizer do
     Document.ResourceIdentifierObject,
     Document.ResourceObject,
     Exceptions.InvalidDocument,
+    Pagination,
     Resource,
     View
   }
@@ -129,11 +130,12 @@ defmodule JSONAPI.Normalizer do
   end
 
   @doc "Transforms user data into a JSON:API Document"
-  @spec normalize(View.t(), Conn.t() | nil, data | nil, meta | nil, View.options()) ::
+  @spec normalize(View.t(), Conn.t() | nil, data() | nil, meta() | nil, View.options()) ::
           Document.t() | no_return()
   def normalize(view, conn, data, meta, options) do
     %Document{meta: meta}
     |> normalize_data(view, conn, data, options)
+    |> normalize_links(view, conn, data, options)
     |> normalize_included(view, conn, data, options)
     |> included_to_list()
   end
@@ -240,6 +242,48 @@ defmodule JSONAPI.Normalizer do
       meta: view.meta(data, conn)
     }
   end
+
+  defp normalize_links(
+         %Document{data: resources} = document,
+         view,
+         %Conn{private: %{jsonapi: %JSONAPI{} = jsonapi}} = conn,
+         _data,
+         options
+       )
+       when is_list(resources) do
+    links =
+      resources
+      |> view.links(conn)
+      |> Map.merge(pagination_links(view, conn, resources, jsonapi.page, options))
+      |> Map.merge(%{self: Pagination.url_for(view, resources, conn, jsonapi.page)})
+
+    %Document{document | links: links}
+  end
+
+  defp normalize_links(%Document{data: resource} = document, view, conn, _data, _options) do
+    links =
+      resource
+      |> view.links(conn)
+      |> Map.merge(%{self: View.url_for(view, resource, conn)})
+
+    %Document{document | links: links}
+  end
+
+  defp pagination_links(
+         view,
+         %Conn{private: %{jsonapi: %JSONAPI{} = jsonapi}} = conn,
+         resources,
+         page,
+         options
+       ) do
+    if pagination = API.get_config(jsonapi.api, :pagination) do
+      pagination.paginate(view, resources, conn, page, options)
+    else
+      %{}
+    end
+  end
+
+  defp pagination_links(_view, _resources, _conn, _page, _options), do: %{}
 
   defp normalize_included(%Document{data: nil} = document, _view, _conn, _data, _options),
     do: document

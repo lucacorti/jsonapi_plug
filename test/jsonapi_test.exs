@@ -73,7 +73,7 @@ defmodule JSONAPITest do
                  "type" => "user"
                }
              ],
-             #  "links" => _links,
+             "links" => _links,
              "meta" => %{
                "total_pages" => 1
              }
@@ -112,8 +112,8 @@ defmodule JSONAPITest do
                    } = relationships
                }
              ],
-             "included" => [_ | _] = included
-             #  "links" => _links
+             "included" => [_ | _] = included,
+             "links" => _links
            } = Jason.decode!(conn.resp_body)
 
     assert map_size(relationships) == 3
@@ -217,8 +217,8 @@ defmodule JSONAPITest do
                  }
                }
              ],
-             "included" => [_ | _] = included
-             #  "links" => _links
+             "included" => [_ | _] = included,
+             "links" => _links
            } = Jason.decode!(conn.resp_body)
 
     assert Enum.find(included, fn
