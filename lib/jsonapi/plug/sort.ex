@@ -1,4 +1,4 @@
-defmodule JSONAPI.Plug.Request.Sort do
+defmodule JSONAPI.Plug.Sort do
   @moduledoc """
   Plug for parsing the 'sort' JSON:API query parameter
   """

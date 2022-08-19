@@ -33,24 +33,41 @@ defp deps do [
 
 This library can be used with any plug based application and doesn't make use of global configuration.
 
-You can declare an API endpoints by adding the `JSONAPI.Plug` to your plug pipeline or Phoenix Router:
+You start by declaring one or more APIs. APIs are collections of endpoints that
+share a common configuration:
 
 ```elixir
-plug JSONAPI.Plug, api: MyApp.MyAPI
-```
-
-This will take care of ensuring `JSON:API` spec compliance and will return errors for malformed requests.
-The `:api` option expects an API module for configuration. You can generate one like this:
-
-```elixir
-defmodule MyApp.MyAPI do
+defmodule MyApp.API do
   use JSONAPI.API, otp_app: :my_app
 end
 ```
 
-See the `JSONAPI.API` module documentation to learn how to configure your APIs via application configuration.
+See the `JSONAPI.API` module documentation to learn how to customize your APIs
+via application configuration of your app.
 
-### Sending responses
+### Receiving requests
+
+In order to parse `JSON:API` requests from clients you need to add the `JSONAPI.Plug` plug to each of your plug pipelines or phoenix controllers handling requests for a specific resource:
+
+```elixir
+defmodule MyApp.PostsController do
+  ...
+  plug JSONAPI.Plug, api: MyApp.API, view: MyApp.PostsView
+  ...
+end
+```
+
+This will take care of ensuring `JSON:API` spec compliance and will return errors for malformed requests.
+
+The `:api` option expects an API module for configuration.
+
+You also need to provide the `:view` option specifying which `JSONAPI.View` to use for rendering data provided by your controller.
+
+When requests are processed, the `:jsonapi` connection private field is populated with the parsed request.
+
+See the `JSONAPI.Plug` module documentation for usage and options.
+
+### Serving responses
 
 To start serving responses, you need to have some data to return to clients:
 
@@ -84,7 +101,10 @@ To use the view module in Phoenix, just call render and pass the data from your 
 
 ```elixir
   defmodule MyAppWeb.PostsController do
-    
+    ...
+    plug JSONAPI.Plug, api: MyApp.API, view: MyApp.PostsView
+    ...
+
     def show(_conn, _params) do
       user = %MyApp.Post{id: 1, title: "A thrilling post", body: "Some interesting content..."}
       conn
@@ -96,25 +116,6 @@ To use the view module in Phoenix, just call render and pass the data from your 
 ```
 
 See the `JSONAPI.View` module documentation for usage and options.
-
-### Receiving requests
-
-In order to parse `JSON:API` requests from clients you need to add the `JSONAPI.Plug.Request` plug
-to each of your plug pipelines or phoenix controllers handling requests for a specific resource:
-
-```elixir
-defmodule MyApp.PostsController do
-  ...
-  plug JSONAPI.Plug.Request, view: MyApp.PostsView
-  ...
-end
-```
-
-You need to provide at least the `:view` option specifying which `JSONAPI.View`to use for your controller.
-
-When requests are processed, the `:jsonapi` connection private field is populated with the parsed request.
-
-See the `JSONAPI.Plug.Request` module documentation for usage and options.
 
 ## Contributing
 

@@ -4,7 +4,6 @@ defmodule JSONAPI.ViewTest do
 
   alias JSONAPI.TestSupport.APIs.{
     DasherizingAPI,
-    DefaultAPI,
     OtherHostAPI,
     OtherNamespaceAPI,
     OtherPortAPI,
@@ -14,11 +13,53 @@ defmodule JSONAPI.ViewTest do
 
   alias JSONAPI.TestSupport.Resources.{Comment, Post, User}
   alias JSONAPI.TestSupport.Views.{CommentView, MyPostView, PostView, UserView}
-  alias JSONAPI.{Document, Document.ResourceObject, Pagination, Plug.Request, View}
+  alias JSONAPI.{Document, Document.ResourceObject, Pagination, View}
   alias Plug.Conn
 
+  defmodule MyPostPlug do
+    use Plug.Builder
+
+    plug Plug.Parsers, parsers: [:json], pass: ["text/*"], json_decoder: Jason
+    plug JSONAPI.Plug, api: DasherizingAPI, view: PostView
+  end
+
+  defmodule OtherNamespacePostPlug do
+    use Plug.Builder
+
+    plug Plug.Parsers, parsers: [:json], pass: ["text/*"], json_decoder: Jason
+    plug JSONAPI.Plug, api: OtherNamespaceAPI, view: PostView
+  end
+
+  defmodule OtherHostPostPlug do
+    use Plug.Builder
+
+    plug Plug.Parsers, parsers: [:json], pass: ["text/*"], json_decoder: Jason
+    plug JSONAPI.Plug, api: OtherHostAPI, view: PostView
+  end
+
+  defmodule OtherPortPostPlug do
+    use Plug.Builder
+
+    plug Plug.Parsers, parsers: [:json], pass: ["text/*"], json_decoder: Jason
+    plug JSONAPI.Plug, api: OtherPortAPI, view: PostView
+  end
+
+  defmodule OtherSchemePostPlug do
+    use Plug.Builder
+
+    plug Plug.Parsers, parsers: [:json], pass: ["text/*"], json_decoder: Jason
+    plug JSONAPI.Plug, api: OtherSchemeAPI, view: PostView
+  end
+
+  defmodule UnderscoringPostPlug do
+    use Plug.Builder
+
+    plug Plug.Parsers, parsers: [:json], pass: ["text/*"], json_decoder: Jason
+    plug JSONAPI.Plug, api: UnderscoringAPI, view: PostView
+  end
+
   setup do
-    {:ok, conn: conn(:get, "") |> JSONAPI.Plug.call(api: DasherizingAPI)}
+    {:ok, conn: conn(:get, "") |> MyPostPlug.call([])}
   end
 
   test "type/0 when specified via using macro" do
@@ -27,7 +68,7 @@ defmodule JSONAPI.ViewTest do
 
   describe "url_for/3 when host and scheme not configured" do
     setup do
-      {:ok, conn: conn(:get, "/") |> JSONAPI.Plug.call(api: OtherNamespaceAPI)}
+      {:ok, conn: conn(:get, "/") |> OtherNamespacePostPlug.call([])}
     end
 
     test "url_for/3", %{conn: conn} do
@@ -64,7 +105,7 @@ defmodule JSONAPI.ViewTest do
 
   describe "url_for/3 when host configured" do
     setup do
-      {:ok, conn: conn(:get, "/") |> JSONAPI.Plug.call(api: OtherHostAPI)}
+      {:ok, conn: conn(:get, "/") |> OtherHostPostPlug.call([])}
     end
 
     test "uses API host instead of that on Conn", %{conn: conn} do
@@ -86,7 +127,7 @@ defmodule JSONAPI.ViewTest do
       {:ok,
        conn:
          conn(:get, "https://www.example.com/")
-         |> JSONAPI.Plug.call(api: OtherSchemeAPI)}
+         |> OtherSchemePostPlug.call([])}
     end
 
     test "uses API scheme instead of that on Conn", %{conn: conn} do
@@ -105,10 +146,7 @@ defmodule JSONAPI.ViewTest do
 
   describe "url_for/3 when port configured" do
     setup do
-      {:ok,
-       conn:
-         conn(:get, "http://www.example.com:42/")
-         |> JSONAPI.Plug.call(api: OtherPortAPI)}
+      {:ok, conn: conn(:get, "http://www.example.com:42/") |> OtherPortPostPlug.call([])}
     end
 
     test "uses configured port instead of that on Conn", %{conn: conn} do
@@ -127,13 +165,7 @@ defmodule JSONAPI.ViewTest do
 
   describe "url_for_pagination/3" do
     setup do
-      {
-        :ok,
-        conn:
-          conn(:get, "https://www.example.com/")
-          |> JSONAPI.Plug.call(api: OtherSchemeAPI)
-          |> Conn.fetch_query_params()
-      }
+      {:ok, conn: conn(:get, "https://www.example.com/") |> OtherSchemePostPlug.call([])}
     end
 
     test "with pagination information", %{conn: conn} do
@@ -193,13 +225,7 @@ defmodule JSONAPI.ViewTest do
   end
 
   test "view returns all field names by default" do
-    conn =
-      conn(:get, "/")
-      |> Plug.Parsers.call(
-        Plug.Parsers.init(parsers: [:json], pass: ["text/*"], json_decoder: Jason)
-      )
-      |> JSONAPI.Plug.call(api: UnderscoringAPI)
-      |> Request.call(view: UserView)
+    conn = conn(:get, "/") |> UnderscoringPostPlug.call([])
 
     assert %Document{
              data: %ResourceObject{
@@ -221,13 +247,7 @@ defmodule JSONAPI.ViewTest do
   end
 
   test "view trims returned field names to only those requested" do
-    conn =
-      conn(:get, "/?fields[#{PostView.type()}]=body")
-      |> Plug.Parsers.call(
-        Plug.Parsers.init(parsers: [:json], pass: ["text/*"], json_decoder: Jason)
-      )
-      |> JSONAPI.Plug.call(api: DefaultAPI)
-      |> Request.call(view: PostView)
+    conn = conn(:get, "/?fields[#{PostView.type()}]=body") |> MyPostPlug.call([])
 
     assert %Document{
              data: %ResourceObject{

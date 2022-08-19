@@ -62,7 +62,7 @@ defmodule JSONAPI.View do
       end
 
   When requesting `GET /posts?include=author`, if the author key is present on the data you pass from the controller
-  and you are using the `JSONAPI.Plug.Request` it will appear in the `included` section of the JSONAPI response.
+  and you are using the `JSONAPI.Plug` it will appear in the `included` section of the JSONAPI response.
 
   ## Links
 
@@ -70,7 +70,7 @@ defmodule JSONAPI.View do
   and `scheme` from the connection. If you need to use different values for some reason, you can specify them
   using `JSONAPI.API` configuration options in your api configuration:
 
-      config :my_app, MyApp.MyAPI, host: "adifferenthost.com"
+      config :my_app, MyApp.API, host: "adifferenthost.com"
   """
 
   alias JSONAPI.{API, Document, Document.ErrorObject, Normalizer, Resource, Resource}

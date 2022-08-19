@@ -5,7 +5,7 @@ defmodule JSONAPI.API do
     You can define an API by calling `use JSONAPI.API` in your module
 
     ```elixir
-    defmodule MyApp.MyAPI do
+    defmodule MyApp.API do
       use JSONAPI.API, otp_app: :my_app
     end
     ```
@@ -13,7 +13,7 @@ defmodule JSONAPI.API do
     API module behavior can be customized via your application configuration:
 
     ```elixir
-    config :my_app, MyApp.MyAPI,
+    config :my_app, MyApp.API,
       namespace: "api",
       case: :dasherize
     ```

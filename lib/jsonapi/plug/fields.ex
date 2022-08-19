@@ -1,4 +1,4 @@
-defmodule JSONAPI.Plug.Request.Fields do
+defmodule JSONAPI.Plug.Fields do
   @moduledoc """
   Plug for parsing the 'fields' JSON:API query parameter
   """

@@ -1,4 +1,4 @@
-defmodule JSONAPI.Plug.Request.Filter do
+defmodule JSONAPI.Plug.Filter do
   @moduledoc """
   Plug for parsing the 'filter' JSON:API query parameter
   """

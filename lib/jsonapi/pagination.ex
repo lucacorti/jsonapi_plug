@@ -9,12 +9,12 @@ defmodule JSONAPI.Pagination do
 
   ```elixir
   defmodule MyApp.MyController do
-    plug JSONAPI.Plug.Request, view: MyApp.MyView, api: MyApp.MyApi
+    plug JSONAPI.Plug, api: MyApp.MyApi, view: MyApp.MyView
   end
   ```
 
   ```elixir
-  config :my_app, MyApp.MyAPI, pagination: MyApp.MyPagination
+  config :my_app, MyApp.API, pagination: MyApp.MyPagination
   ```
 
   Actual pagination needs to be handled by your application and is outside the scope of this library.

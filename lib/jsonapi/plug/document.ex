@@ -1,4 +1,4 @@
-defmodule JSONAPI.Plug.Request.Body do
+defmodule JSONAPI.Plug.Document do
   @moduledoc """
   Plug for parsing the JSON:API Document body
   """

@@ -1,4 +1,4 @@
-defmodule JSONAPI.Plug.Request.Params do
+defmodule JSONAPI.Plug.Params do
   @moduledoc """
   Transforms conn body params to denormalized form
   """

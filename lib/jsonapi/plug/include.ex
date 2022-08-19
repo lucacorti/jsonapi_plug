@@ -1,4 +1,4 @@
-defmodule JSONAPI.Plug.Request.Include do
+defmodule JSONAPI.Plug.Include do
   @moduledoc """
   Plug for parsing the 'include' JSON:API query parameter
   """

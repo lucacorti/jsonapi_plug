@@ -23,8 +23,7 @@ defmodule JSONAPITest do
     use Plug.Builder
 
     plug Parsers, parsers: [:json], pass: ["text/*"], json_decoder: Jason
-    plug JSONAPI.Plug, api: JSONAPI.TestSupport.APIs.DefaultAPI
-    plug JSONAPI.Plug.Request, view: PostView
+    plug JSONAPI.Plug, api: JSONAPI.TestSupport.APIs.DefaultAPI, view: PostView
     plug :passthrough
 
     defp passthrough(conn, _) do

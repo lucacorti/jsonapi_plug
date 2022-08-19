@@ -1,7 +1,7 @@
 defmodule JSONAPI.Exceptions do
   defmodule InvalidQuery do
     @moduledoc """
-    Defines a generic exception for when an invalid query is recieved and is unable to be parsed nor handled.
+    Defines a generic exception for when an invalid query parameter is received.
     """
     defexception plug_status: 400,
                  message: "invalid query",
@@ -26,7 +26,7 @@ defmodule JSONAPI.Exceptions do
 
   defmodule InvalidDocument do
     @moduledoc """
-    Defines a generic exception for when an invalid document is recieved and is unable to be parsed nor handled.
+    Defines a generic exception for when an invalid document is received.
     """
     defexception plug_status: 400, message: nil, reference: nil
 

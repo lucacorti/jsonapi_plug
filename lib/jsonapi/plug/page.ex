@@ -1,4 +1,4 @@
-defmodule JSONAPI.Plug.Request.Page do
+defmodule JSONAPI.Plug.Page do
   @moduledoc """
   Plug for parsing the 'page' JSON:API query parameter
   """

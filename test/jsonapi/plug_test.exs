@@ -1,4 +1,4 @@
-defmodule JSONAPI.Plug.RequestTest do
+defmodule JSONAPI.PlugTest do
   use ExUnit.Case
   use Plug.Test
 
@@ -17,22 +17,19 @@ defmodule JSONAPI.Plug.RequestTest do
   defmodule CarViewPlug do
     use Plug.Builder
     plug Plug.Parsers, parsers: [:json], json_decoder: Jason
-    plug JSONAPI.Plug, api: DefaultAPI
-    plug JSONAPI.Plug.Request, view: CarView
+    plug JSONAPI.Plug, api: DefaultAPI, view: CarView
   end
 
   defmodule UserViewPlug do
     use Plug.Builder
     plug Plug.Parsers, parsers: [:json], json_decoder: Jason
-    plug JSONAPI.Plug, api: DefaultAPI
-    plug JSONAPI.Plug.Request, view: UserView
+    plug JSONAPI.Plug, api: DefaultAPI, view: UserView
   end
 
   defmodule MyPostViewPlug do
     use Plug.Builder
     plug Plug.Parsers, parsers: [:json], json_decoder: Jason
-    plug JSONAPI.Plug, api: DefaultAPI
-    plug JSONAPI.Plug.Request, view: MyPostView
+    plug JSONAPI.Plug, api: DefaultAPI, view: MyPostView
   end
 
   describe "request body" do
