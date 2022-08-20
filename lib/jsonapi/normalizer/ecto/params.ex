@@ -268,27 +268,27 @@ defmodule JSONAPI.Normalizer.Ecto.Params do
   end
 
   defp normalize_links(
-         %Document{data: resources} = document,
+         %Document{} = document,
          view,
          %Conn{private: %{jsonapi: %JSONAPI{} = jsonapi}} = conn,
-         _data,
+         data,
          options
        )
-       when is_list(resources) do
+       when is_list(data) do
     links =
-      resources
+      data
       |> view.links(conn)
-      |> Map.merge(pagination_links(view, conn, resources, jsonapi.page, options))
-      |> Map.merge(%{self: Pagination.url_for(view, resources, conn, jsonapi.page)})
+      |> Map.merge(pagination_links(view, conn, data, jsonapi.page, options))
+      |> Map.merge(%{self: Pagination.url_for(view, data, conn, jsonapi.page)})
 
     %Document{document | links: links}
   end
 
-  defp normalize_links(%Document{data: resource} = document, view, conn, _data, _options) do
+  defp normalize_links(%Document{} = document, view, conn, data, _options) do
     links =
-      resource
+      data
       |> view.links(conn)
-      |> Map.merge(%{self: View.url_for(view, resource, conn)})
+      |> Map.merge(%{self: View.url_for(view, data, conn)})
 
     %Document{document | links: links}
   end
