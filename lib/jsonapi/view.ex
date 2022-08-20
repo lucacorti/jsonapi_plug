@@ -73,27 +73,32 @@ defmodule JSONAPI.View do
       config :my_app, MyApp.API, host: "adifferenthost.com"
   """
 
-  alias JSONAPI.{API, Document, Document.ErrorObject, Normalizer, Resource, Resource}
+  alias JSONAPI.{
+    API,
+    Document,
+    Document.ErrorObject,
+    Normalizer.Ecto.Params,
+    Resource,
+    Resource
+  }
+
   alias Plug.Conn
 
   @attribute_schema [
     name: [
       doc: "Maps the resource attribute name to the given key.",
-      type: :atom,
-      required: false
+      type: :atom
     ],
     serialize: [
       doc:
         "Controls attribute serialization. Can be either a boolean (do/don't serialize) or a function reference returning the attribute value to be serialized for full control.",
       type: {:or, [:boolean, {:fun, 2}]},
-      required: false,
       default: true
     ],
     deserialize: [
       doc:
         "Controls attribute deserialization. Can be either a boolean (do/don't deserialize) or a function reference returning the attribute value to be deserialized for full control.",
       type: {:or, [:boolean, {:fun, 2}]},
-      required: false,
       default: true
     ]
   ]
@@ -101,13 +106,11 @@ defmodule JSONAPI.View do
   @relationship_schema [
     name: [
       doc: "Maps the resource relationship name to the given key.",
-      type: :atom,
-      required: false
+      type: :atom
     ],
     many: [
       doc: "Specifies a to many relationship.",
       type: :boolean,
-      required: false,
       default: false
     ],
     view: [
@@ -127,26 +130,22 @@ defmodule JSONAPI.View do
                  [
                    {:list, :atom},
                    {:keyword_list, [*: [type: [keyword_list: [keys: @attribute_schema]]]]}
-                 ]},
-              required: false
+                 ]}
             ],
             id_attribute: [
               doc:
                 "Attribute on your data to be used as the JSON:API resource id. Defaults to :id",
-              type: :atom,
-              required: false
+              type: :atom
             ],
             path: [
               doc: "A custom path to be used for the resource. Defaults to the type value.",
-              type: :string,
-              required: false
+              type: :string
             ],
             relationships: [
               doc:
                 "Resource relationships. This will be used to (de)serialize requests/responses",
               type: :keyword_list,
-              keys: [*: [type: :non_empty_keyword_list, keys: @relationship_schema]],
-              required: false
+              keys: [*: [type: :non_empty_keyword_list, keys: @relationship_schema]]
             ],
             type: [
               doc: "Resource type. To be used as the JSON:API resource type value",
@@ -299,7 +298,7 @@ defmodule JSONAPI.View do
           Document.t() | no_return()
   def render(view, conn, data \\ nil, meta \\ nil, options \\ []) do
     view
-    |> Normalizer.normalize(conn, data, meta, options)
+    |> Params.normalize(conn, data, meta, options)
     |> Document.serialize()
   end
 
@@ -350,17 +349,17 @@ defmodule JSONAPI.View do
   defp render_uri(_conn, path), do: %URI{path: "/" <> Enum.join(path, "/")}
 
   defp scheme(%Conn{private: %{jsonapi: %JSONAPI{} = jsonapi}, scheme: scheme}),
-    do: to_string(API.get_config(jsonapi.api, :scheme, scheme))
+    do: to_string(API.get_config(jsonapi.api, [:scheme], scheme))
 
   defp scheme(_conn), do: nil
 
   defp host(%Conn{private: %{jsonapi: %JSONAPI{} = jsonapi}, host: host}),
-    do: API.get_config(jsonapi.api, :host, host)
+    do: API.get_config(jsonapi.api, [:host], host)
 
   defp host(_conn), do: nil
 
   defp namespace(%Conn{private: %{jsonapi: %JSONAPI{} = jsonapi}}) do
-    case API.get_config(jsonapi.api, :namespace) do
+    case API.get_config(jsonapi.api, [:namespace]) do
       nil -> ""
       namespace -> "/" <> namespace
     end
@@ -369,7 +368,7 @@ defmodule JSONAPI.View do
   defp namespace(_conn), do: ""
 
   defp port(%Conn{private: %{jsonapi: %JSONAPI{} = jsonapi}, port: port} = conn) do
-    case API.get_config(jsonapi.api, :port, port) do
+    case API.get_config(jsonapi.api, [:port], port) do
       nil -> nil
       port -> if port == URI.default_port(scheme(conn)), do: nil, else: port
     end

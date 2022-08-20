@@ -1,6 +1,11 @@
-defmodule JSONAPI.Normalizer do
+defmodule JSONAPI.Normalizer.Ecto.Params do
   @moduledoc """
-  Normalize user data to and from a JSON:API Document
+  JSON:API parameters normalizer implementation for Ecto
+
+  Normalizer implementation translating JSON:API documents to and from an Ecto friendly
+  format in conn params. Deserialization produces attributes and relationships in a way
+  that directly translates to attributes that can be passed to an `Ecto.Changeset` for
+  validation and later to `Ecto.Repo` for database operations.
   """
 
   alias JSONAPI.{
@@ -10,6 +15,7 @@ defmodule JSONAPI.Normalizer do
     Document.ResourceIdentifierObject,
     Document.ResourceObject,
     Exceptions.InvalidDocument,
+    Normalizer,
     Pagination,
     Resource,
     View
@@ -17,11 +23,9 @@ defmodule JSONAPI.Normalizer do
 
   alias Plug.Conn
 
-  @type data :: Document.payload()
-  @type meta :: Document.payload()
+  @behaviour Normalizer.Params
 
-  @doc "Transforms a JSON:API Document into params"
-  @spec denormalize(Document.t(), View.t(), Conn.t()) :: Conn.params() | no_return()
+  @impl Normalizer.Params
   def denormalize(%Document{data: nil}, _view, _conn), do: %{}
 
   def denormalize(%Document{data: resource_objects} = document, view, conn)
@@ -136,9 +140,7 @@ defmodule JSONAPI.Normalizer do
     end)
   end
 
-  @doc "Transforms user data into a JSON:API Document"
-  @spec normalize(View.t(), Conn.t() | nil, data() | nil, meta() | nil, View.options()) ::
-          Document.t() | no_return()
+  @impl Normalizer.Params
   def normalize(view, conn, data, meta, options) do
     %Document{meta: meta}
     |> normalize_data(view, conn, data, options)
@@ -283,7 +285,7 @@ defmodule JSONAPI.Normalizer do
          page,
          options
        ) do
-    if pagination = API.get_config(jsonapi.api, :pagination) do
+    if pagination = API.get_config(jsonapi.api, [:pagination]) do
       pagination.paginate(view, resources, conn, page, options)
     else
       %{}
@@ -387,7 +389,7 @@ defmodule JSONAPI.Normalizer do
   end
 
   defp recase_field(%Conn{private: %{jsonapi: %JSONAPI{} = jsonapi}}, field),
-    do: JSONAPI.recase(field, API.get_config(jsonapi.api, :case, :camelize))
+    do: JSONAPI.recase(field, API.get_config(jsonapi.api, [:case], :camelize))
 
   defp recase_field(_conn, field),
     do: JSONAPI.recase(field, :camelize)

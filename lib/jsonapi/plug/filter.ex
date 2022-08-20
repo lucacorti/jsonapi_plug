@@ -3,7 +3,7 @@ defmodule JSONAPI.Plug.Filter do
   Plug for parsing the 'filter' JSON:API query parameter
   """
 
-  alias JSONAPI.Exceptions.InvalidQuery
+  alias JSONAPI.API
   alias Plug.Conn
 
   @behaviour Plug
@@ -16,18 +16,12 @@ defmodule JSONAPI.Plug.Filter do
         %Conn{private: %{jsonapi: %JSONAPI{} = jsonapi}, query_params: query_params} = conn,
         _opts
       ) do
+    normalizer = API.get_config(jsonapi.api, [:normalizer, :filter])
+
     Conn.put_private(
       conn,
       :jsonapi,
-      %JSONAPI{jsonapi | filter: parse_filter(jsonapi, query_params["filter"])}
+      %JSONAPI{jsonapi | filter: normalizer.parse_filter(jsonapi, query_params["filter"])}
     )
-  end
-
-  defp parse_filter(%JSONAPI{filter: filter}, nil), do: filter
-
-  defp parse_filter(_jsonapi, filter) when is_map(filter), do: filter
-
-  defp parse_filter(%JSONAPI{view: view}, filter) do
-    raise InvalidQuery, type: view.type(), param: :filter, value: filter
   end
 end

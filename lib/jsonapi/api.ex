@@ -19,6 +19,8 @@ defmodule JSONAPI.API do
     ```
   """
 
+  alias JSONAPI.Pagination
+
   @options_schema [
     otp_app: [
       doc: "OTP application to use for API configuration.",
@@ -32,49 +34,54 @@ defmodule JSONAPI.API do
       doc:
         "This option controls how your API's field names will be cased. The current [JSON:API Spec (v1.0)](https://jsonapi.org/format/1.0/) recommends dasherizing (e.g. `\"favorite-color\": \"blue\"`), while the upcoming [JSON:API Spec (v1.1)](https://jsonapi.org/format/1.1/) recommends camelCase (e.g. `\"favoriteColor\": \"blue\"`)",
       type: {:in, [:camelize, :dasherize, :underscore]},
-      required: false,
       default: :camelize
     ],
     host: [
       doc: "Hostname used for link generation instead of deriving it from the connection.",
-      type: :string,
-      required: false
+      type: :string
     ],
     namespace: [
       doc:
         "Namespace for all resources in your API. if you want your resources to live under \".../api/v1\", pass `namespace: \"api/v1\"`.",
-      type: :string,
-      required: false
+      type: :string
+    ],
+    normalizer: [
+      doc: "Normalizers to be used for transformation of JSON:API to user data",
+      type: :keyword_list,
+      keys: [
+        filter: [doc: "Filter normalizer", type: :atom, default: JSONAPI.Normalizer.Ecto.Filter],
+        page: [doc: "Page normalizer", type: :atom, default: JSONAPI.Normalizer.Ecto.Page],
+        params: [doc: "Params normalizer", type: :atom, default: JSONAPI.Normalizer.Ecto.Params],
+        sort: [doc: "Sort normalizer", type: :atom, default: JSONAPI.Normalizer.Ecto.Sort]
+      ],
+      default: [
+        filter: JSONAPI.Normalizer.Ecto.Filter,
+        page: JSONAPI.Normalizer.Ecto.Page,
+        params: JSONAPI.Normalizer.Ecto.Params,
+        sort: JSONAPI.Normalizer.Ecto.Sort
+      ]
     ],
     pagination: [
       doc: "A module adopting the `JSONAPI.Pagination` behaviour for pagination.",
       type: :atom,
-      required: false,
       default: nil
     ],
     port: [
       doc: "Port used for link generation instead of deriving it from the connection.",
-      type: :pos_integer,
-      required: false
+      type: :pos_integer
     ],
     scheme: [
       doc: "Scheme used for link generation instead of deriving it from the connection.",
-      type: {:in, [:http, :https]},
-      required: false
+      type: {:in, [:http, :https]}
     ],
     version: [
       doc: "[JSON:API](https://jsonapi.org) version advertised in the document",
       type: {:in, [:"1.0"]},
-      required: false,
       default: :"1.0"
     ]
   ]
 
-  alias JSONAPI.Pagination
-
   @type t :: module()
-
-  @type config :: :case | :host | :namespace | :pagination | :port | :scheme | :version
 
   @type case :: JSONAPI.case()
   @type host :: String.t()
@@ -105,16 +112,16 @@ defmodule JSONAPI.API do
   Available options are:
   #{NimbleOptions.docs(@config_schema)}
   """
-  @spec get_config(t() | nil, config(), any()) :: any()
-  def get_config(api, config, default \\ nil)
+  @spec get_config(t() | nil, [atom()], any()) :: any()
+  def get_config(api, path, default \\ nil)
 
-  def get_config(nil = _api, _config, default), do: default
+  def get_config(nil = _api, _path, default), do: default
 
-  def get_config(api, config, default) do
+  def get_config(api, path, default) do
     api
     |> get_all_config()
     |> NimbleOptions.validate!(@config_schema)
-    |> Keyword.get(config, default)
+    |> get_in(path) || default
   end
 
   defp get_all_config(api) do

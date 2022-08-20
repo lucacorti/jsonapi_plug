@@ -12,6 +12,10 @@ defmodule JSONAPI.Plug.Document do
   def init(opts), do: opts
 
   @impl Plug
+  def call(%Conn{body_params: %Conn.Unfetched{aspect: :body_params}}, _opts) do
+    raise "Body unfetched when trying to parse JSON:API Document"
+  end
+
   def call(
         %Conn{body_params: body_params, private: %{jsonapi: %JSONAPI{} = jsonapi}} = conn,
         _opts
@@ -19,14 +23,7 @@ defmodule JSONAPI.Plug.Document do
     Conn.put_private(
       conn,
       :jsonapi,
-      %JSONAPI{jsonapi | document: parse_body(jsonapi, body_params)}
+      %JSONAPI{jsonapi | document: Document.deserialize(body_params)}
     )
   end
-
-  defp parse_body(_jsonapi, %Conn.Unfetched{aspect: :body_params}) do
-    raise "Body unfetched when trying to parse JSON:API Document"
-  end
-
-  defp parse_body(_jsonapi, body_params),
-    do: Document.deserialize(body_params)
 end
