@@ -104,7 +104,9 @@ defmodule JSONAPI.Normalizer.Ecto.Params do
             message: "Single resource for many relationship during normalization",
             reference: nil
 
-        {_many, related_relationship} ->
+        {_many,
+         %RelationshipObject{data: %ResourceIdentifierObject{} = resource_identifier} =
+             related_relationship} ->
           value =
             find_related_relationship(
               document,
@@ -115,7 +117,7 @@ defmodule JSONAPI.Normalizer.Ecto.Params do
 
           params
           |> Map.put(key, value)
-          |> Map.put(key <> "_id", value["id"])
+          |> Map.put(key <> "_id", resource_identifier.id)
       end
     end)
   end
@@ -131,7 +133,7 @@ defmodule JSONAPI.Normalizer.Ecto.Params do
          view,
          conn
        ) do
-    Enum.find_value(document.included, fn
+    Enum.find_value(document.included || [], fn
       %ResourceObject{id: ^id, type: ^type} = resource_object ->
         denormalize_resource(document, resource_object, view, conn)
 
@@ -220,15 +222,12 @@ defmodule JSONAPI.Normalizer.Ecto.Params do
             related_many = View.field_option(relationship, :many)
 
             case {related_many, related_data} do
-              {true, related_data} when is_list(related_data) ->
-                {type, Enum.map(related_data, &normalize_relationship(related_view, conn, &1))}
-
-              {_related_many, related_data} when is_list(related_data) ->
+              {false, related_data} when is_list(related_data) ->
                 raise InvalidDocument,
                   message: "List of resources given to render for one-to-one relationship",
                   reference: nil
 
-              {true, _related_data} ->
+              {true, _related_data} when not is_list(related_data) ->
                 raise InvalidDocument,
                   message: "Single resource given to render for many relationship",
                   reference: nil
@@ -237,6 +236,22 @@ defmodule JSONAPI.Normalizer.Ecto.Params do
                 {type, normalize_relationship(related_view, conn, related_data)}
             end
           end)
+    }
+  end
+
+  def normalize_relationship(view, conn, data) when is_list(data) do
+    %RelationshipObject{
+      data:
+        Enum.map(
+          data,
+          &%ResourceIdentifierObject{
+            id: view.id(&1),
+            type: view.type(),
+            meta: view.meta(&1, conn)
+          }
+        ),
+      links: %{self: View.url_for_relationship(view, data, conn, view.type())},
+      meta: view.meta(data, conn)
     }
   end
 
