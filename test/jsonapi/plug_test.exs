@@ -519,13 +519,6 @@ defmodule JSONAPI.PlugTest do
                |> MyPostViewPlug.call([])
     end
 
-    test "parse_filter/2 raises on invalid filters" do
-      assert_raise InvalidQuery, "invalid parameter filter=invalid for type my-type", fn ->
-        conn(:get, "/?filter=invalid")
-        |> MyPostViewPlug.call([])
-      end
-    end
-
     test "parse_include/2 turns an include string into a keyword list" do
       assert %Conn{private: %{jsonapi: %JSONAPI{include: include}}} =
                conn(:get, "/?include=author,comments.user")
