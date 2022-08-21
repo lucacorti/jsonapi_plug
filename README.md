@@ -31,8 +31,6 @@ defp deps do [
 
 ### Configuration
 
-This library can be used with any plug based application and doesn't make use of global configuration.
-
 You start by declaring one or more APIs. APIs are collections of endpoints that
 share a common configuration:
 
