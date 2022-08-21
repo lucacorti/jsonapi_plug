@@ -89,7 +89,7 @@ defmodule MyApp.PostsView do
     attributes: [
       title: nil,
       text: nil,
-      excerpt: [serialize: fn %Post{} = post, _conn), do: String.slice(post.body, 0..5) end]
+      excerpt: [serialize: fn %Post{} = post, _conn -> String.slice(post.body, 0..5) end]
     ]
 
   @impl JSONAPI.View
