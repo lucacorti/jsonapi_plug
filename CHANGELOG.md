@@ -2,7 +2,7 @@
 
 ## 1.0.0 (2022-09-01)
 
-    First release of `jsonapi_plug`. This started as a fork of the `jsonapi` library but has been completely rewritten in order to have more flexibility.
+First release of `jsonapi_plug`. This started as a fork of the `jsonapi` library but has been completely rewritten in order to have more flexibility.
 
 - Changed:
   - An extensible system based on behaviours to convert JSON:API payloads and query parameters from/to whatever format best suits the library user.
