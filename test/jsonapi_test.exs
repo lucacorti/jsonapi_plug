@@ -22,33 +22,23 @@ defmodule JSONAPITest do
   defmodule MyPostPlug do
     use Plug.Builder
 
-    alias JSONAPI.TestSupport.APIs.DefaultAPI
-    alias Plug.Conn
-
     plug Parsers, parsers: [:json], pass: ["text/*"], json_decoder: Jason
-
-    plug JSONAPI.Plug, api: DefaultAPI
-
-    plug JSONAPI.Plug.Request,
-      view: PostView,
-      sort: [:text]
-
+    plug JSONAPI.Plug, api: JSONAPI.TestSupport.APIs.DefaultAPI, view: PostView
     plug :passthrough
 
     defp passthrough(conn, _) do
       resp =
         PostView
-        |> View.render(conn.assigns[:data], conn, conn.assigns[:meta])
+        |> View.render(conn, conn.assigns[:data], conn.assigns[:meta])
         |> Jason.encode!()
 
-      Conn.send_resp(conn, 200, resp)
+      send_resp(conn, 200, resp)
     end
   end
 
   test "handles simple requests" do
     conn =
-      :get
-      |> conn("/posts?include=author")
+      conn(:get, "/posts?include=author")
       |> Conn.assign(:data, [@default_data])
       |> Conn.assign(:meta, %{total_pages: 1})
       |> MyPostPlug.call([])
@@ -92,8 +82,7 @@ defmodule JSONAPITest do
 
   test "handles includes properly" do
     conn =
-      :get
-      |> conn("/posts?include=author,other_user")
+      conn(:get, "/posts?include=author,other_user")
       |> Conn.assign(:data, [@default_data])
       |> MyPostPlug.call([])
 
@@ -139,8 +128,7 @@ defmodule JSONAPITest do
 
   test "handles empty includes properly" do
     conn =
-      :get
-      |> conn("/posts?include=")
+      conn(:get, "/posts?include=")
       |> Plug.Conn.assign(:data, [@default_data])
       |> Plug.Conn.fetch_query_params()
       |> MyPostPlug.call([])
@@ -199,8 +187,7 @@ defmodule JSONAPITest do
     ]
 
     conn =
-      :get
-      |> conn("/posts?include=other_user.company.industry.tags")
+      conn(:get, "/posts?include=other_user.company.industry.tags")
       |> Conn.assign(:data, posts)
       |> MyPostPlug.call([])
 
@@ -209,29 +196,25 @@ defmodule JSONAPITest do
                %{
                  "id" => "1",
                  "type" => "post",
-                 "relationships" =>
-                   %{
-                     "author" => %{
-                       "data" => %{
-                         "id" => "2",
-                         "type" => "user"
-                       }
-                     },
-                     "otherUser" => %{
-                       "data" => %{
-                         "id" => "1",
-                         "type" => "user"
-                       }
+                 "relationships" => %{
+                   "author" => %{
+                     "data" => %{
+                       "id" => "2",
+                       "type" => "user"
                      }
-                   } = relationships
+                   },
+                   "otherUser" => %{
+                     "data" => %{
+                       "id" => "1",
+                       "type" => "user"
+                     }
+                   }
+                 }
                }
              ],
              "included" => [_ | _] = included,
              "links" => _links
            } = Jason.decode!(conn.resp_body)
-
-    assert map_size(relationships) == 3
-    assert Enum.count(included) == 5
 
     assert Enum.find(included, fn
              %{"id" => "1", "type" => "user"} -> true
@@ -262,8 +245,7 @@ defmodule JSONAPITest do
   describe "with an underscored API" do
     test "handles sparse fields properly" do
       conn =
-        :get
-        |> conn("/posts?include=other_user.company&fields[post]=text,excerpt,first_character")
+        conn(:get, "/posts?include=other_user.company&fields[post]=text,excerpt,first_character")
         |> Conn.assign(:data, [@default_data])
         |> MyPostPlug.call([])
 
@@ -284,10 +266,8 @@ defmodule JSONAPITest do
   describe "with a dasherized API" do
     test "handles sparse fields properly" do
       conn =
-        :get
-        |> conn("/posts?include=other_user.company&fields[post]=text,first-character")
+        conn(:get, "/posts?include=other_user.company&fields[post]=text,first-character")
         |> Conn.assign(:data, [@default_data])
-        |> JSONAPI.Plug.call(api: DefaultAPI)
         |> MyPostPlug.call([])
 
       assert %{
@@ -304,8 +284,7 @@ defmodule JSONAPITest do
 
     test "handles empty sparse fields properly" do
       conn =
-        :get
-        |> conn("/posts?include=other_user.company&fields[post]=")
+        conn(:get, "/posts?include=other_user.company&fields[post]=")
         |> Plug.Conn.assign(:data, [@default_data])
         |> Plug.Conn.fetch_query_params()
         |> MyPostPlug.call([])
@@ -318,8 +297,7 @@ defmodule JSONAPITest do
 
   test "omits explicit nil meta values as per http://jsonapi.org/format/#document-meta" do
     conn =
-      :get
-      |> conn("/posts")
+      conn(:get, "/posts")
       |> Conn.assign(:data, [@default_data])
       |> Conn.assign(:meta, nil)
       |> MyPostPlug.call([])
@@ -331,8 +309,7 @@ defmodule JSONAPITest do
 
   test "omits implicit nil meta values as per http://jsonapi.org/format/#document-meta" do
     conn =
-      :get
-      |> conn("/posts")
+      conn(:get, "/posts")
       |> Conn.assign(:data, [@default_data])
       |> MyPostPlug.call([])
 

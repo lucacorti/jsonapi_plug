@@ -6,8 +6,7 @@ defmodule JSONAPI.Plug.ResponseContentTypeTest do
 
   test "sets response content type" do
     conn =
-      :get
-      |> conn("/example", "")
+      conn(:get, "/example", "")
       |> ResponseContentType.call([])
       |> send_resp(200, "done")
 

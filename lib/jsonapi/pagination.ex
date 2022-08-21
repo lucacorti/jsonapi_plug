@@ -9,12 +9,12 @@ defmodule JSONAPI.Pagination do
 
   ```elixir
   defmodule MyApp.MyController do
-    plug JSONAPI.Plug.Request, view: MyApp.MyView, api: MyApp.MyApi
+    plug JSONAPI.Plug, api: MyApp.MyApi, view: MyApp.MyView
   end
   ```
 
   ```elixir
-  config :my_app, MyApp.MyAPI, pagination: MyApp.MyPagination
+  config :my_app, MyApp.API, pagination: MyApp.MyPagination
   ```
 
   Actual pagination needs to be handled by your application and is outside the scope of this library.
@@ -25,8 +25,7 @@ defmodule JSONAPI.Pagination do
   See the tests for an example implementation of page based pagination strategy.
   """
 
-  alias JSONAPI.Document.LinksObject
-  alias JSONAPI.{Resource, View}
+  alias JSONAPI.{Document.LinkObject, Resource, View}
   alias Plug.Conn
 
   @type t :: module()
@@ -49,7 +48,7 @@ defmodule JSONAPI.Pagination do
           Conn.t() | nil,
           params() | nil
         ) ::
-          LinksObject.link()
+          LinkObject.t()
   def url_for(
         view,
         resources,

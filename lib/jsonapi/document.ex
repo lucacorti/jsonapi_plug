@@ -8,21 +8,19 @@ defmodule JSONAPI.Document do
   """
 
   alias JSONAPI.{
-    API,
     Document.ErrorObject,
     Document.JSONAPIObject,
-    Document.LinksObject,
+    Document.LinkObject,
     Document.RelationshipObject,
     Document.ResourceIdentifierObject,
     Document.ResourceObject,
-    Pagination,
+    Exceptions.InvalidDocument,
     View
   }
 
-  alias Plug.Conn
+  @type value :: String.t() | integer() | float() | [value()] | %{String.t() => value()} | nil
 
   @type payload :: %{String.t() => value()}
-  @type value :: String.t() | integer() | float() | [value()] | %{String.t() => value()} | nil
 
   @typedoc """
   Primary Data
@@ -64,7 +62,7 @@ defmodule JSONAPI.Document do
 
   https://jsonapi.org/format/#document-links
   """
-  @type links :: %{atom() => LinksObject.link()}
+  @type links :: %{atom() => LinkObject.t()}
 
   @type t :: %__MODULE__{
           data: data() | View.data() | nil,
@@ -76,170 +74,151 @@ defmodule JSONAPI.Document do
         }
   defstruct [:data, :errors, :included, :jsonapi, :links, :meta]
 
-  @doc """
-  Takes a view, resource and a optional plug connection and returns a JSON:API document.
-  This assumes you are using `JSONAPI.View` and pass structs implementing `JSONAPI.Resource`.
-
-  Please refer to `JSONAPI.View` for more information. If you are in interested in relationships
-  and includes you may also want to reference the `JSONAPI.Plug.Request`.
-  """
-  @spec serialize(
-          t(),
-          View.t(),
-          Conn.t() | nil,
-          View.options()
-        ) :: t()
-  def serialize(document, view, conn \\ nil, options \\ []) do
-    document
-    |> serialize_jsonapi(view, conn, options)
-    |> serialize_links(view, conn, options)
-    |> serialize_data(view, conn, options)
-  end
-
-  defp serialize_data(%__MODULE__{data: nil} = document, _view, _conn, _options),
-    do: document
-
-  defp serialize_data(%__MODULE__{data: resources} = document, view, conn, options)
-       when is_list(resources) do
-    {included, data} =
-      Enum.flat_map_reduce(resources, [], fn resource, resource_objects ->
-        {included, resource_object} = ResourceObject.serialize(view, resource, conn, options)
-        {included, [resource_object | resource_objects]}
-      end)
-
-    %__MODULE__{
-      document
-      | data: Enum.reverse(data),
-        included: included |> List.flatten() |> Enum.uniq()
-    }
-  end
-
-  defp serialize_data(%__MODULE__{data: resource} = document, view, conn, options) do
-    {included, data} = ResourceObject.serialize(view, resource, conn, options)
-
-    %__MODULE__{document | data: data, included: included |> List.flatten() |> Enum.uniq()}
-  end
-
-  defp serialize_jsonapi(
-         %__MODULE__{} = document,
-         _view,
-         %Conn{private: %{jsonapi: %JSONAPI{} = jsonapi}},
-         _options
-       ),
-       do: %__MODULE__{
-         document
-         | jsonapi: %JSONAPIObject{version: API.get_config(jsonapi.api, :version, :"1.0")}
-       }
-
-  defp serialize_jsonapi(
-         %__MODULE__{} = document,
-         _view,
-         _conn,
-         _options
-       ),
-       do: %__MODULE__{document | jsonapi: %JSONAPIObject{version: :"1.0"}}
-
-  defp serialize_links(
-         %__MODULE__{data: resources} = document,
-         view,
-         %Conn{private: %{jsonapi: %JSONAPI{} = jsonapi}} = conn,
-         options
-       )
-       when is_list(resources) do
-    links =
-      resources
-      |> view.links(conn)
-      |> Map.merge(pagination_links(view, resources, conn, jsonapi.page, options))
-      |> Map.merge(%{self: Pagination.url_for(view, resources, conn, jsonapi.page)})
-
-    %__MODULE__{document | links: links}
-  end
-
-  defp serialize_links(%__MODULE__{data: resource} = document, view, conn, _options) do
-    links =
-      resource
-      |> view.links(conn)
-      |> Map.merge(%{self: View.url_for(view, resource, conn)})
-
-    %__MODULE__{document | links: links}
-  end
-
-  defp pagination_links(
-         view,
-         resources,
-         %Conn{private: %{jsonapi: %JSONAPI{} = jsonapi}} = conn,
-         page,
-         options
-       ) do
-    pagination = API.get_config(jsonapi.api, :pagination)
-
-    if pagination do
-      pagination.paginate(view, resources, conn, page, options)
-    else
-      %{}
-    end
-  end
-
-  defp pagination_links(_view, _resources, _conn, _page, _options), do: %{}
-
-  @spec deserialize(View.t(), Conn.t()) :: t()
-  def deserialize(view, %Conn{body_params: %Conn.Unfetched{aspect: :body_params}}) do
-    raise "Body unfetched when trying to deserialize request for #{view}"
-  end
-
-  def deserialize(view, %Conn{body_params: payload} = conn) do
+  @spec deserialize(payload()) :: t() | no_return()
+  def deserialize(data) do
     %__MODULE__{}
-    |> deserialize_data(view, conn, payload)
-    |> deserialize_meta(view, payload)
+    |> deserialize_data(data)
+    |> deserialize_errors(data)
+    |> deserialize_included(data)
+    |> deserialize_jsonapi(data)
+    |> deserialize_links(data)
+    |> deserialize_meta(data)
   end
 
-  defp deserialize_data(%__MODULE__{} = document, view, conn, %{
-         "data" => data,
-         "included" => included
-       })
-       when is_list(data) and is_list(included) do
+  defp deserialize_data(_document, %{"data" => _data, "errors" => _errors}) do
+    raise InvalidDocument,
+      message: "Document cannot contain both 'data' and 'errors' members",
+      reference: "https://jsonapi.org/format/#document-top-level"
+  end
+
+  defp deserialize_data(document, %{"data" => resources}) when is_list(resources),
+    do: %__MODULE__{
+      document
+      | data: Enum.map(resources, &ResourceObject.deserialize/1)
+    }
+
+  defp deserialize_data(document, %{"data" => resource_object}) when is_map(resource_object),
+    do: %__MODULE__{document | data: ResourceObject.deserialize(resource_object)}
+
+  defp deserialize_data(document, _data), do: document
+
+  defp deserialize_errors(document, %{"errors" => errors}) when is_list(errors),
+    do: %__MODULE__{document | errors: Enum.map(errors, &ErrorObject.deserialize/1)}
+
+  defp deserialize_errors(document, _data), do: document
+
+  defp deserialize_included(document, %{"data" => _data, "included" => included})
+       when is_list(included) do
     %__MODULE__{
       document
-      | data: Enum.map(data, &ResourceObject.deserialize(view, conn, &1, included))
+      | included: Enum.map(included, &ResourceObject.deserialize/1)
     }
   end
 
-  defp deserialize_data(%__MODULE__{} = document, view, conn, %{"data" => data})
-       when is_list(data) do
-    %__MODULE__{
+  defp deserialize_included(_document, %{"included" => included})
+       when is_list(included) do
+    raise InvalidDocument,
+      message: "Document 'included' cannot be present if 'data' isn't also present",
+      reference: "https://jsonapi.org/format/#document-top-level"
+  end
+
+  defp deserialize_included(_document, %{"included" => included})
+       when is_list(included) do
+    raise InvalidDocument,
+      message: "Document 'included' must be a list",
+      reference: "https://jsonapi.org/format/#document-top-level"
+  end
+
+  defp deserialize_included(document, _data), do: document
+
+  defp deserialize_jsonapi(document, %{"jsonapi" => jsonapi}) when is_map(jsonapi),
+    do: %__MODULE__{document | jsonapi: JSONAPIObject.deserialize(jsonapi)}
+
+  defp deserialize_jsonapi(document, _data), do: document
+
+  defp deserialize_links(document, %{"links" => links}) when is_map(links),
+    do: %__MODULE__{
       document
-      | data: Enum.map(data, &ResourceObject.deserialize(view, conn, &1, []))
+      | links:
+          Enum.into(links, %{}, fn {name, link} ->
+            {name, LinkObject.deserialize(link)}
+          end)
     }
-  end
 
-  defp deserialize_data(%__MODULE__{} = document, view, conn, %{
-         "data" => data,
-         "included" => included
-       })
-       when is_map(data) and is_list(included) do
-    %__MODULE__{document | data: ResourceObject.deserialize(view, conn, data, included)}
-  end
+  defp deserialize_links(document, _data), do: document
 
-  defp deserialize_data(%__MODULE__{} = document, view, conn, %{"data" => data})
-       when is_map(data) do
-    %__MODULE__{document | data: ResourceObject.deserialize(view, conn, data, [])}
-  end
-
-  defp deserialize_data(%__MODULE__{} = document, _view, _conn, _payload),
-    do: document
-
-  defp deserialize_meta(%__MODULE__{} = document, _view, %{"meta" => meta}) when is_map(meta),
+  defp deserialize_meta(document, %{"meta" => meta}) when is_map(meta),
     do: %__MODULE__{document | meta: meta}
 
-  defp deserialize_meta(%__MODULE__{} = document, _view, _payload),
-    do: document
+  defp deserialize_meta(_document, %{"meta" => _meta}) do
+    raise InvalidDocument,
+      message: "Document 'meta' must be an object",
+      reference: "https://jsonapi.org/format/#document-meta"
+  end
+
+  defp deserialize_meta(document, _data), do: document
+
+  @spec serialize(t()) :: t() | no_return()
+  def serialize(document) do
+    document
+    |> serialize_data()
+    |> serialize_errors()
+    |> serialize_meta()
+    |> serialize_included()
+  end
+
+  defp serialize_data(%__MODULE__{data: %ResourceObject{} = resource} = document),
+    do: %__MODULE__{document | data: ResourceObject.serialize(resource)}
+
+  defp serialize_data(%__MODULE__{data: resources} = document) when is_list(resources),
+    do: %__MODULE__{document | data: Enum.map(resources, &ResourceObject.serialize/1)}
+
+  defp serialize_data(%__MODULE__{data: nil} = document), do: document
+
+  defp serialize_errors(%__MODULE__{data: data, errors: errors})
+       when not is_nil(data) and not is_nil(errors) do
+    raise InvalidDocument,
+      message: "Document cannot contain both 'data' and 'errors' members",
+      reference: "https://jsonapi.org/format/#document-top-level"
+  end
+
+  defp serialize_errors(%__MODULE__{errors: errors})
+       when not is_nil(errors) and not is_list(errors) do
+    raise InvalidDocument,
+      message: "Document 'errors' must be a list",
+      reference: "https://jsonapi.org/format/#document-top-level"
+  end
+
+  defp serialize_errors(%__MODULE__{errors: errors} = document) when is_list(errors),
+    do: %__MODULE__{document | errors: Enum.map(errors, &ErrorObject.serialize/1)}
+
+  defp serialize_errors(document), do: document
+
+  defp serialize_included(%__MODULE__{included: included})
+       when not is_nil(included) and not is_list(included) do
+    raise InvalidDocument,
+      message: "Document 'included' must be a list resource objects",
+      reference: "https://jsonapi.org/format/#document-top-level"
+  end
+
+  defp serialize_included(%__MODULE__{included: included} = document) when is_list(included),
+    do: %__MODULE__{document | included: Enum.map(included, &ResourceObject.serialize/1)}
+
+  defp serialize_included(document), do: document
+
+  defp serialize_meta(%__MODULE__{meta: meta}) when not is_nil(meta) and not is_map(meta) do
+    raise InvalidDocument,
+      message: "Document 'meta' must be a map",
+      reference: "https://jsonapi.org/format/#document-top-level"
+  end
+
+  defp serialize_meta(document), do: document
 
   defimpl Jason.Encoder,
     for: [
       __MODULE__,
       ErrorObject,
-      JSONAPIObject,
-      LinksObject,
+      LinkObject,
       ResourceIdentifierObject,
       ResourceObject,
       RelationshipObject

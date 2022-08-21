@@ -7,8 +7,7 @@ defmodule JSONAPI.Plug.FormatRequiredTest do
 
   test "halts and returns an error for missing data param" do
     conn =
-      :post
-      |> conn("/example", Jason.encode!(%{}))
+      conn(:post, "/example", Jason.encode!(%{}))
       |> call_plug
 
     assert conn.halted
@@ -25,8 +24,7 @@ defmodule JSONAPI.Plug.FormatRequiredTest do
 
   test "halts and returns an error for missing attributes in data param" do
     conn =
-      :post
-      |> conn("/example", Jason.encode!(%{data: %{}}))
+      conn(:post, "/example", Jason.encode!(%{data: %{}}))
       |> call_plug
 
     assert conn.halted
@@ -43,8 +41,7 @@ defmodule JSONAPI.Plug.FormatRequiredTest do
 
   test "halts and returns an error for missing type in data param" do
     conn =
-      :post
-      |> conn("/example", Jason.encode!(%{data: %{attributes: %{}}}))
+      conn(:post, "/example", Jason.encode!(%{data: %{attributes: %{}}}))
       |> call_plug
 
     assert conn.halted
@@ -61,8 +58,7 @@ defmodule JSONAPI.Plug.FormatRequiredTest do
 
   test "does not halt if only type member is present on a post" do
     conn =
-      :post
-      |> conn("/example", Jason.encode!(%{data: %{type: "something"}}))
+      conn(:post, "/example", Jason.encode!(%{data: %{type: "something"}}))
       |> call_plug
 
     refute conn.halted
@@ -70,8 +66,7 @@ defmodule JSONAPI.Plug.FormatRequiredTest do
 
   test "halts and returns an error for missing id in data param on a patch" do
     conn =
-      :patch
-      |> conn("/example", Jason.encode!(%{data: %{attributes: %{}, type: "something"}}))
+      conn(:patch, "/example", Jason.encode!(%{data: %{attributes: %{}, type: "something"}}))
       |> call_plug
 
     assert conn.halted
@@ -88,8 +83,7 @@ defmodule JSONAPI.Plug.FormatRequiredTest do
 
   test "halts and returns an error for missing type in data param on a patch" do
     conn =
-      :patch
-      |> conn("/example", Jason.encode!(%{data: %{attributes: %{}, id: "something"}}))
+      conn(:patch, "/example", Jason.encode!(%{data: %{attributes: %{}, id: "something"}}))
       |> call_plug
 
     assert conn.halted
@@ -106,31 +100,35 @@ defmodule JSONAPI.Plug.FormatRequiredTest do
 
   test "does not halt if type and id members are present on a patch" do
     conn =
-      :patch
-      |> conn("/example", Jason.encode!(%{data: %{type: "something", id: "some-identifier"}}))
+      conn(
+        :patch,
+        "/example",
+        Jason.encode!(%{data: %{type: "something", id: "some-identifier"}})
+      )
       |> call_plug
 
     refute conn.halted
   end
 
   test "halts with a multi-RIO payload to a non-relationship PATCH endpoint" do
-    :patch
-    |> conn("/example", Jason.encode!(%{data: [%{type: "something"}]}))
+    conn(:patch, "/example", Jason.encode!(%{data: [%{type: "something"}]}))
     |> call_plug
     |> assert_improper_use_of_multi_rio()
   end
 
   test "halts with a multi-RIO payload to a non-relationship POST endpoint" do
-    :post
-    |> conn("/example", Jason.encode!(%{data: [%{type: "something"}]}))
+    conn(:post, "/example", Jason.encode!(%{data: [%{type: "something"}]}))
     |> call_plug
     |> assert_improper_use_of_multi_rio()
   end
 
   test "accepts a multi-RIO payload for relationship PATCH endpoints" do
     conn =
-      :patch
-      |> conn("/example/relationships/things", Jason.encode!(%{data: [%{type: "something"}]}))
+      conn(
+        :patch,
+        "/example/relationships/things",
+        Jason.encode!(%{data: [%{type: "something"}]})
+      )
       |> call_plug
 
     refute conn.halted
@@ -138,8 +136,7 @@ defmodule JSONAPI.Plug.FormatRequiredTest do
 
   test "accepts a multi-RIO payload for relationship POST endpoints" do
     conn =
-      :post
-      |> conn("/example/relationships/things", Jason.encode!(%{data: [%{type: "something"}]}))
+      conn(:post, "/example/relationships/things", Jason.encode!(%{data: [%{type: "something"}]}))
       |> call_plug
 
     refute conn.halted
@@ -147,8 +144,7 @@ defmodule JSONAPI.Plug.FormatRequiredTest do
 
   test "passes request through" do
     conn =
-      :post
-      |> conn("/example", Jason.encode!(%{data: %{type: "something"}}))
+      conn(:post, "/example", Jason.encode!(%{data: %{type: "something"}}))
       |> call_plug
 
     refute conn.halted

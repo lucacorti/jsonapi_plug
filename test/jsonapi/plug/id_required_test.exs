@@ -7,8 +7,7 @@ defmodule JSONAPI.Plug.IdRequiredTest do
 
   test "halts and returns an error if id attribute is missing" do
     conn =
-      :patch
-      |> conn("/example/1", Jason.encode!(%{data: %{}}))
+      conn(:patch, "/example/1", Jason.encode!(%{data: %{}}))
       |> call_plug
 
     assert conn.halted
@@ -25,8 +24,7 @@ defmodule JSONAPI.Plug.IdRequiredTest do
 
   test "halts and returns an error if id attribute is not a string" do
     conn =
-      :patch
-      |> conn("/example/1", Jason.encode!(%{data: %{id: 1}}))
+      conn(:patch, "/example/1", Jason.encode!(%{data: %{id: 1}}))
       |> call_plug
 
     assert conn.halted
@@ -43,8 +41,7 @@ defmodule JSONAPI.Plug.IdRequiredTest do
 
   test "halts and returns an error if id attribute and url id are mismatched" do
     conn =
-      :patch
-      |> conn("/example/1", Jason.encode!(%{data: %{id: "2"}}))
+      conn(:patch, "/example/1", Jason.encode!(%{data: %{id: "2"}}))
       |> call_plug
 
     assert conn.halted
@@ -61,8 +58,7 @@ defmodule JSONAPI.Plug.IdRequiredTest do
 
   test "passes request through" do
     conn =
-      :patch
-      |> conn("/example/1", Jason.encode!(%{data: %{id: "1"}}))
+      conn(:patch, "/example/1", Jason.encode!(%{data: %{id: "1"}}))
       |> call_plug
 
     assert not conn.halted

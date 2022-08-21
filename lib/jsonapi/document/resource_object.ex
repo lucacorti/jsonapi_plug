@@ -6,307 +6,145 @@ defmodule JSONAPI.Document.ResourceObject do
   """
 
   alias JSONAPI.{
-    API,
     Document,
+    Document.LinkObject,
     Document.RelationshipObject,
-    Resource,
-    View
+    Exceptions.InvalidDocument,
+    Resource
   }
 
-  alias Plug.Conn
-
-  @type value :: String.t() | integer() | float() | [value()] | %{String.t() => value()}
+  @type links :: %{atom() => LinkObject.t()}
 
   @type t :: %__MODULE__{
           id: Resource.id(),
+          lid: Resource.id(),
           type: Resource.type(),
-          attributes: %{String.t() => value()} | nil,
+          attributes: Document.value() | nil,
           relationships: %{String.t() => [RelationshipObject.t()]} | nil,
-          links: Document.links() | nil
+          links: links() | nil
         }
+  defstruct id: nil,
+            lid: nil,
+            type: nil,
+            attributes: %{},
+            relationships: %{},
+            links: nil,
+            meta: nil
 
-  defstruct id: nil, type: nil, attributes: nil, relationships: %{}, links: nil, meta: nil
-
-  @spec serialize(
-          View.t(),
-          View.data() | nil,
-          Conn.t() | nil,
-          View.options()
-        ) :: {[t()], t() | [t()]}
-  def serialize(
-        view,
-        resources,
-        %Conn{private: %{jsonapi: %JSONAPI{} = jsonapi}} = conn,
-        options
-      ),
-      do: serialize_resource(view, resources, conn, jsonapi.include, options)
-
-  def serialize(view, resources, conn, options),
-    do: serialize_resource(view, resources, conn, [], options)
-
-  defp serialize_resource(view, resources, conn, include, options) when is_list(resources) do
-    Enum.map_reduce(resources, [], fn resource, resource_objects ->
-      {to_include, resource_object} = serialize_resource(view, resource, conn, include, options)
-      {to_include, [resource_object | resource_objects]}
-    end)
+  @spec deserialize(Document.payload()) :: t() | no_return()
+  def deserialize(data) do
+    %__MODULE__{}
+    |> deserialize_id(data)
+    |> deserialize_lid(data)
+    |> deserialize_type(data)
+    |> deserialize_attributes(data)
+    |> deserialize_links(data)
+    |> deserialize_relationships(data)
+    |> deserialize_meta(data)
   end
 
-  defp serialize_resource(view, resource, conn, include, options) do
-    %__MODULE__{id: view.id(resource), type: view.type()}
-    |> serialize_attributes(view, resource, conn)
-    |> serialize_links(view, resource, conn)
-    |> serialize_meta(view, resource, conn)
-    |> serialize_relationships(view, resource, conn, include, options)
+  defp deserialize_id(resource_object, %{"id" => id})
+       when is_binary(id) and byte_size(id) > 0,
+       do: %__MODULE__{resource_object | id: id}
+
+  defp deserialize_id(resource_object, _data), do: resource_object
+
+  defp deserialize_lid(resource_object, %{"lid" => lid})
+       when is_binary(lid) and byte_size(lid) > 0,
+       do: %__MODULE__{resource_object | lid: lid}
+
+  defp deserialize_lid(resource_object, _data), do: resource_object
+
+  defp deserialize_type(resource_object, %{"type" => type})
+       when is_binary(type) and byte_size(type) > 0,
+       do: %__MODULE__{resource_object | type: type}
+
+  defp deserialize_type(_resource_object, %{"type" => type}) do
+    raise InvalidDocument,
+      message: "Resource object type (#{type}) is invalid",
+      reference: "https://jsonapi.org/format/#document-resource-objects"
   end
 
-  defp serialize_attributes(%__MODULE__{} = resource_object, view, resource, conn) do
-    attributes =
-      view.attributes()
-      |> requested_fields(view, conn)
-      |> Enum.reduce(%{}, &serialize_attribute(resource, conn, &1, &2))
-
-    %__MODULE__{resource_object | attributes: attributes}
+  defp deserialize_attributes(_resource_object, %{"attributes" => %{"id" => _id}}) do
+    raise InvalidDocument,
+      message: "Resource object cannot have an attribute named 'id'",
+      reference: "https://jsonapi.org/format/#document-resource-objects"
   end
 
-  defp serialize_attribute(resource, conn, attribute, data) do
-    name = View.field_name(attribute)
-
-    case View.field_option(attribute, :serialize, true) do
-      false ->
-        data
-
-      true ->
-        value = Map.get(resource, name)
-
-        Map.put(data, recase_field(conn, name), value)
-
-      serialize when is_function(serialize, 2) ->
-        value = serialize.(resource, conn)
-
-        Map.put(data, recase_field(conn, name), value)
-    end
+  defp deserialize_attributes(_resource_object, %{"attributes" => %{"type" => _type}}) do
+    raise InvalidDocument,
+      message: "Resource object cannot have an attribute named 'type'",
+      reference: "https://jsonapi.org/format/#document-resource-objects"
   end
 
-  defp requested_fields(attributes, view, %Conn{
-         private: %{jsonapi: %JSONAPI{fields: fields}}
-       })
-       when is_map(fields) do
-    case fields[view.type()] do
-      nil ->
-        attributes
+  defp deserialize_attributes(resource_object, %{"attributes" => attributes})
+       when is_map(attributes),
+       do: %__MODULE__{resource_object | attributes: attributes}
 
-      fields when is_list(fields) ->
-        Enum.filter(attributes, fn attribute -> View.field_name(attribute) in fields end)
-    end
+  defp deserialize_attributes(resource_object, _data), do: resource_object
+
+  defp deserialize_links(resource_object, %{"links" => links}),
+    do: %__MODULE__{
+      resource_object
+      | links:
+          Enum.into(links, %{}, fn {name, link} ->
+            {name, LinkObject.deserialize(link)}
+          end)
+    }
+
+  defp deserialize_links(resource_object, _data), do: resource_object
+
+  defp deserialize_relationships(_resource_object, %{"relationships" => %{"id" => _id}}) do
+    raise InvalidDocument,
+      message: "Resource object cannot have a relationship named 'id'",
+      reference: "https://jsonapi.org/format/#document-resource-objects"
   end
 
-  defp requested_fields(attributes, _view, _conn), do: attributes
-
-  defp recase_field(%Conn{private: %{jsonapi: %JSONAPI{} = jsonapi}}, field),
-    do: JSONAPI.recase(field, API.get_config(jsonapi.api, :case, :camelize))
-
-  defp recase_field(_conn, field),
-    do: JSONAPI.recase(field, :camelize)
-
-  defp serialize_links(%__MODULE__{} = resource_object, view, resource, conn) do
-    links =
-      resource
-      |> view.links(conn)
-      |> Map.merge(%{self: View.url_for(view, resource, conn)})
-
-    %__MODULE__{resource_object | links: links}
+  defp deserialize_relationships(_resource_object, %{"relationships" => %{"type" => _type}}) do
+    raise InvalidDocument,
+      message: "Resource object cannot have a relationship named 'type'",
+      reference: "https://jsonapi.org/format/#document-resource-objects"
   end
-
-  defp serialize_meta(%__MODULE__{} = resource_object, view, resource, conn) do
-    case view.meta(resource, conn) do
-      %{} = meta -> %__MODULE__{resource_object | meta: meta}
-      _ -> resource_object
-    end
-  end
-
-  defp serialize_relationships(resource_object, view, resource, conn, include, options) do
-    includes = get_includes(view, include)
-
-    view.relationships()
-    |> Enum.filter(&Resource.loaded?(Map.get(resource, elem(&1, 0))))
-    |> Enum.flat_map_reduce(
-      resource_object,
-      fn relationship, %__MODULE__{relationships: relationships} = resource_object ->
-        name = View.field_name(relationship)
-        data = Map.get(resource, name)
-        type = recase_field(conn, name)
-        url = View.url_for_relationship(view, resource, conn, type)
-        view = View.field_option(relationship, :view, nil)
-
-        relationships =
-          Map.put(
-            relationships,
-            type,
-            RelationshipObject.serialize(view, data, conn, url)
-          )
-
-        resource_object = %__MODULE__{resource_object | relationships: relationships}
-
-        if Keyword.get(includes, name) do
-          {included_relationships, serialized_relationship} =
-            serialize_resource(
-              view,
-              data,
-              conn,
-              get_relationship_includes(include, name),
-              options
-            )
-
-          {[serialized_relationship | included_relationships], resource_object}
-        else
-          {[], resource_object}
-        end
-      end
-    )
-  end
-
-  defp get_relationship_includes(include, relationship_name) when is_list(include) do
-    include
-    |> Enum.flat_map(fn
-      {^relationship_name, value} -> [value]
-      _ -> []
-    end)
-    |> List.flatten()
-  end
-
-  defp get_relationship_includes(_include, _relationship_name), do: []
-
-  defp get_includes(view, query_includes) do
-    relationships = view.relationships()
-
-    query_includes
-    |> Enum.flat_map(fn
-      {include, _} -> Keyword.take(relationships, [include])
-      include -> Keyword.take(relationships, [include])
-    end)
-    |> Enum.uniq()
-  end
-
-  @spec deserialize(View.t(), Conn.t(), Document.payload(), Document.included()) ::
-          %{String.t() => term()}
-  def deserialize(view, conn, data, included) do
-    %{}
-    |> deserialize_attributes(view, conn, data)
-    |> deserialize_relationships(view, conn, data, included)
-    |> deserialize_id(view, data)
-  end
-
-  defp deserialize_id(resource, view, %{"id" => id}),
-    do: Map.put(resource, to_string(view.id_attribute()), id)
-
-  defp deserialize_id(resource, _view, _data), do: resource
-
-  defp deserialize_attributes(resource, view, conn, %{"attributes" => data})
-       when is_map(data) do
-    Enum.reduce(view.attributes(), resource, &deserialize_attribute(&2, conn, data, &1))
-  end
-
-  defp deserialize_attributes(resource, _view, _conn, _data), do: resource
-
-  defp deserialize_attribute(resource, conn, data, attribute) do
-    case View.field_option(attribute, :deserialize, true) do
-      false ->
-        resource
-
-      deserialize ->
-        name = View.field_name(attribute)
-
-        case Map.fetch(data, recase_field(conn, to_string(name))) do
-          {:ok, value} ->
-            Map.put(
-              resource,
-              to_string(View.field_option(attribute, :name, name)),
-              deserialize_attribute_value(deserialize, conn, value)
-            )
-
-          :error ->
-            resource
-        end
-    end
-  end
-
-  defp deserialize_attribute_value(deserialize, conn, value) when is_function(deserialize, 2),
-    do: deserialize.(value, conn)
-
-  defp deserialize_attribute_value(_deserialize, _conn, value), do: value
 
   defp deserialize_relationships(
-         resource,
-         view,
-         conn,
-         %{"relationships" => data},
-         included
+         resource_object,
+         %{"relationships" => relationships}
        )
-       when is_map(data) do
-    Enum.reduce(
-      view.relationships(),
-      resource,
-      &deserialize_relationship(&2, view, conn, data, included, &1)
-    )
+       when is_map(relationships) do
+    %__MODULE__{
+      resource_object
+      | relationships:
+          Enum.into(relationships, %{}, fn
+            {name, data} when is_list(data) ->
+              {name, Enum.map(data, &RelationshipObject.deserialize/1)}
+
+            {name, data} ->
+              {name, RelationshipObject.deserialize(data)}
+          end)
+    }
   end
 
-  defp deserialize_relationships(resource, _view, _conn, _data, _included), do: resource
-
-  defp deserialize_relationship(resource, view, conn, data, included, relationship) do
-    name = View.field_name(relationship)
-
-    case Map.fetch(data, recase_field(conn, to_string(name))) do
-      {:ok, data} ->
-        key = to_string(View.field_option(relationship, :name, name))
-        many = View.field_option(relationship, :many, false)
-
-        resource
-        |> deserialize_relationship_id(key, data, many)
-        |> Map.put(key, deserialize_related_from_included(view, conn, data, included, many))
-
-      :error ->
-        resource
-    end
+  defp deserialize_relationships(_resource_object, %{
+         "relationships" => _relationships
+       }) do
+    raise InvalidDocument,
+      message: "Resource object 'relationships' attribute must be an object",
+      reference: "https://jsonapi.org/format/#document-resource-object-relationships"
   end
 
-  defp deserialize_relationship_id(resource, key, data, false = _many),
-    do: Map.put(resource, Enum.join([key, "id"], "_"), data["data"]["id"])
+  defp deserialize_relationships(relationships, _data), do: relationships
 
-  defp deserialize_relationship_id(resource, _key, _data, true = _many), do: resource
+  defp deserialize_meta(resource_object, %{"meta" => meta}) when is_map(meta),
+    do: %__MODULE__{resource_object | meta: meta}
 
-  defp deserialize_related_from_included(
-         view,
-         conn,
-         %{"data" => %{"id" => id, "type" => type}},
-         included,
-         false = _many
-       ) do
-    Enum.find_value(included, fn
-      %{"type" => ^type, "id" => ^id} = included_resource ->
-        case View.for_related_type(view, type) do
-          nil -> nil
-          related_view -> deserialize(related_view, conn, included_resource, included)
-        end
-
-      _included_resource ->
-        nil
-    end)
+  defp deserialize_meta(_resource_object, %{"meta" => _meta}) do
+    raise InvalidDocument,
+      message: "Resource object 'meta' must be an object",
+      reference: "https://jsonapi.org/format/#document-resource-objects"
   end
 
-  defp deserialize_related_from_included(
-         view,
-         conn,
-         data,
-         included,
-         true = _many
-       )
-       when is_list(data) do
-    Enum.reduce(data, [], fn relationship_data, resources ->
-      case deserialize_related_from_included(view, conn, relationship_data, included, false) do
-        nil -> resources
-        resource -> [resource | resources]
-      end
-    end)
-    |> Enum.reverse()
-  end
+  defp deserialize_meta(resource_object, _data), do: resource_object
+
+  @spec serialize(t()) :: t()
+  def serialize(resource_object), do: resource_object
 end

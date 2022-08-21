@@ -63,7 +63,7 @@ defmodule JSONAPI.TestSupport.Views do
     use JSONAPI.View,
       type: "industry",
       attributes: [:name],
-      relationships: [tags: [view: TagView]]
+      relationships: [tags: [many: true, view: TagView]]
   end
 
   defmodule MyPostView do
@@ -73,7 +73,7 @@ defmodule JSONAPI.TestSupport.Views do
 
     use JSONAPI.View,
       type: "my-type",
-      attributes: [:text, :body],
+      attributes: [:body, :text, :title],
       relationships: [
         author: [view: UserView],
         comments: [view: CommentView, many: true],

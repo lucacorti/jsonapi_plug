@@ -1,6 +1,6 @@
 defmodule JSONAPI.View do
   @moduledoc """
-  A View is simply a module that defines how to render your JSON:API resource:
+  A View is simply a module that describes how to render your data as JSON:API resources:
 
       defmodule MyApp.UsersView do
         use JSONAPI.View,
@@ -8,20 +8,20 @@ defmodule JSONAPI.View do
           attributes: [:id, :username]
       end
 
-  You can now call `UsersView.render("show.json", %{data: user})` or `View.render(UsersView, user, conn)`
+  You can now call `UsersView.render("show.json", %{data: user})` or `View.render(UsersView, conn, user)`
   to render a valid JSON:API document from your data. If you use phoenix, you can use:
 
       conn
       |> put_view(UsersView)
       |> render("show.json", %{data: user})
 
-  in your controller to render the document in the same way.
+  in your controller functions to render the document in the same way.
 
   ## Attributes
 
-  By default, the resulting JSON document consists of attributes taken from your data.
-  Only attributes defined on the view will be (de)serialized. You can customize attributes
-  by using a keyword list of options instead:
+  By default, the resulting JSON document consists of resourcess taken from your data.
+  Only resource  attributes defined on the view will be (de)serialized. You can customize
+  how attributes are handled by using a keyword list of options instead:
 
       defmodule MyApp.UsersView do
         use JSONAPI.View,
@@ -35,12 +35,12 @@ defmodule JSONAPI.View do
       end
 
   For example here we are defining a computed attribute by passing the `serialize` option a function reference.
-  Serialization functions take `resource` and `conn` as arguments and return the value to be added to the resource.
-  The `deserialize` option set to `false` makes sure the attribute is ignored when deserializing requests.
+  Serialization functions take `resource` and `conn` as arguments and return the attribute value to be serialized.
+  The `deserialize` option set to `false` makes sure the attribute is ignored when deserializing data from requests.
 
   ## Relationships
 
-  Relationships are defined similarly, by passing the `relationships` option to `use JSONAPI.View`.
+  Relationships are defined by passing the `relationships` option to `use JSONAPI.View`.
 
       defmodule MyApp.PostsView do
         use JSONAPI.View,
@@ -62,50 +62,56 @@ defmodule JSONAPI.View do
       end
 
   When requesting `GET /posts?include=author`, if the author key is present on the data you pass from the controller
-  and you are using the `JSONAPI.Plug.Request` it will be included in the `included` section of the JSONAPI response.
+  and you are using the `JSONAPI.Plug` it will appear in the `included` section of the JSONAPI response.
 
   ## Links
 
   When rendering resource links, the default behaviour is to is to derive values for `host`, `port`
   and `scheme` from the connection. If you need to use different values for some reason, you can specify them
-  passing `JSONAPI.API` configuration options in your api configuration:
+  using `JSONAPI.API` configuration options in your api configuration:
 
-      config :my_app, MyApp.MyAPI, host: "adifferenthost.com"
+      config :my_app, MyApp.API, host: "adifferenthost.com"
   """
 
-  alias JSONAPI.{API, Document, Document.ErrorObject, Resource, Resource}
+  alias JSONAPI.{
+    API,
+    Document,
+    Document.ErrorObject,
+    Normalizer.Ecto.Params,
+    Resource,
+    Resource
+  }
+
   alias Plug.Conn
 
   @attribute_schema [
     name: [
       doc: "Maps the resource attribute name to the given key.",
-      type: :atom,
-      required: false
+      type: :atom
     ],
     serialize: [
       doc:
         "Controls attribute serialization. Can be either a boolean (do/don't serialize) or a function reference returning the attribute value to be serialized for full control.",
       type: {:or, [:boolean, {:fun, 2}]},
-      required: false
+      default: true
     ],
     deserialize: [
       doc:
         "Controls attribute deserialization. Can be either a boolean (do/don't deserialize) or a function reference returning the attribute value to be deserialized for full control.",
       type: {:or, [:boolean, {:fun, 2}]},
-      required: false
+      default: true
     ]
   ]
 
   @relationship_schema [
     name: [
       doc: "Maps the resource relationship name to the given key.",
-      type: :atom,
-      required: false
+      type: :atom
     ],
     many: [
       doc: "Specifies a to many relationship.",
       type: :boolean,
-      required: false
+      default: false
     ],
     view: [
       doc: "Specifies the view to be used to serialize the relationship",
@@ -124,26 +130,22 @@ defmodule JSONAPI.View do
                  [
                    {:list, :atom},
                    {:keyword_list, [*: [type: [keyword_list: [keys: @attribute_schema]]]]}
-                 ]},
-              required: false
+                 ]}
             ],
             id_attribute: [
               doc:
                 "Attribute on your data to be used as the JSON:API resource id. Defaults to :id",
-              type: :atom,
-              required: false
+              type: :atom
             ],
             path: [
               doc: "A custom path to be used for the resource. Defaults to the type value.",
-              type: :string,
-              required: false
+              type: :string
             ],
             relationships: [
               doc:
                 "Resource relationships. This will be used to (de)serialize requests/responses",
               type: :keyword_list,
-              keys: [*: [type: :non_empty_keyword_list, keys: @relationship_schema]],
-              required: false
+              keys: [*: [type: :non_empty_keyword_list, keys: @relationship_schema]]
             ],
             type: [
               doc: "Resource type. To be used as the JSON:API resource type value",
@@ -197,6 +199,15 @@ defmodule JSONAPI.View do
     {relationships, options} = Keyword.pop(options, :relationships, [])
     {type, _options} = Keyword.pop(options, :type)
 
+    if field =
+         Enum.concat(attributes, relationships)
+         |> Enum.find(&(JSONAPI.View.field_name(&1) in [:id, :type])) do
+      name = JSONAPI.View.field_name(field)
+      view = Module.split(__CALLER__.module) |> List.last()
+
+      raise "Illegal field name '#{name}' for view #{view}. Check out https://jsonapi.org/format/#document-resource-object-fields for more information."
+    end
+
     quote do
       NimbleOptions.validate!(unquote(options), unquote(Macro.escape(@schema)))
 
@@ -237,8 +248,8 @@ defmodule JSONAPI.View do
           when action in ["create.json", "index.json", "show.json", "update.json"] do
         JSONAPI.View.render(
           __MODULE__,
-          Map.get(assigns, :data),
           Map.get(assigns, :conn),
+          Map.get(assigns, :data),
           Map.get(assigns, :meta),
           Map.get(assigns, :options)
         )
@@ -255,19 +266,20 @@ defmodule JSONAPI.View do
   def field_name({name, nil}), do: name
   def field_name({name, options}) when is_list(options), do: name
 
-  def field_name(field),
-    do: raise("invalid field definition: #{inspect(field)}")
+  def field_name(field) do
+    raise "invalid field definition: #{inspect(field)}"
+  end
 
-  @spec field_option(field(), atom(), term()) :: term()
-  def field_option(name, _option, default) when is_atom(name), do: default
+  @spec field_option(field(), atom()) :: term()
+  def field_option(name, _option) when is_atom(name), do: nil
+  def field_option({_name, nil}, _option), do: nil
 
-  def field_option({_name, nil}, _option, default), do: default
+  def field_option({_name, options}, option) when is_list(options),
+    do: Keyword.get(options, option)
 
-  def field_option({_name, options}, option, default) when is_list(options),
-    do: Keyword.get(options, option, default)
-
-  def field_option(field, _option, _default),
-    do: raise("invalid field definition: #{inspect(field)}")
+  def field_option(field, _option, _default) do
+    raise "invalid field definition: #{inspect(field)}"
+  end
 
   @spec for_related_type(t(), Resource.type()) :: t() | nil
   def for_related_type(view, type) do
@@ -282,10 +294,13 @@ defmodule JSONAPI.View do
     end)
   end
 
-  @spec render(t(), data() | nil, Conn.t() | nil, Document.meta() | nil, options()) ::
-          Document.t()
-  def render(view, data \\ nil, conn \\ nil, meta \\ nil, options \\ []),
-    do: Document.serialize(%Document{data: data, meta: meta}, view, conn, options)
+  @spec render(t(), Conn.t(), data() | nil, Document.meta() | nil, options()) ::
+          Document.t() | no_return()
+  def render(view, conn, data \\ nil, meta \\ nil, options \\ []) do
+    view
+    |> Params.normalize(conn, data, meta, options)
+    |> Document.serialize()
+  end
 
   @spec send_error(Conn.t(), Conn.status(), [ErrorObject.t()]) :: Conn.t()
   def send_error(conn, status, errors) do
@@ -334,17 +349,17 @@ defmodule JSONAPI.View do
   defp render_uri(_conn, path), do: %URI{path: "/" <> Enum.join(path, "/")}
 
   defp scheme(%Conn{private: %{jsonapi: %JSONAPI{} = jsonapi}, scheme: scheme}),
-    do: to_string(API.get_config(jsonapi.api, :scheme, scheme))
+    do: to_string(API.get_config(jsonapi.api, [:scheme], scheme))
 
   defp scheme(_conn), do: nil
 
   defp host(%Conn{private: %{jsonapi: %JSONAPI{} = jsonapi}, host: host}),
-    do: API.get_config(jsonapi.api, :host, host)
+    do: API.get_config(jsonapi.api, [:host], host)
 
   defp host(_conn), do: nil
 
   defp namespace(%Conn{private: %{jsonapi: %JSONAPI{} = jsonapi}}) do
-    case API.get_config(jsonapi.api, :namespace) do
+    case API.get_config(jsonapi.api, [:namespace]) do
       nil -> ""
       namespace -> "/" <> namespace
     end
@@ -353,7 +368,7 @@ defmodule JSONAPI.View do
   defp namespace(_conn), do: ""
 
   defp port(%Conn{private: %{jsonapi: %JSONAPI{} = jsonapi}, port: port} = conn) do
-    case API.get_config(jsonapi.api, :port, port) do
+    case API.get_config(jsonapi.api, [:port], port) do
       nil -> nil
       port -> if port == URI.default_port(scheme(conn)), do: nil, else: port
     end

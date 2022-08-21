@@ -11,14 +11,14 @@ defmodule JSONAPI.Plug.FormatRequired do
   @behaviour Plug
 
   @impl Plug
-  def init(options), do: options
+  def init(opts), do: opts
 
   @impl Plug
-  def call(%{method: method} = conn, _options) when method in ["DELETE", "GET", "HEAD"], do: conn
+  def call(%{method: method} = conn, _opts) when method in ["DELETE", "GET", "HEAD"], do: conn
 
-  def call(%{method: "POST", params: %{"data" => %{"type" => _}}} = conn, _), do: conn
+  def call(%{method: "POST", params: %{"data" => %{"type" => _}}} = conn, _opts), do: conn
 
-  def call(%{method: method, params: %{"data" => [%{"type" => _} | _]}} = conn, _)
+  def call(%{method: method, params: %{"data" => [%{"type" => _} | _]}} = conn, _opts)
       when method in ["DELETE", "PATCH", "POST"] do
     if String.contains?(conn.request_path, "relationships") do
       conn
@@ -33,11 +33,11 @@ defmodule JSONAPI.Plug.FormatRequired do
     end
   end
 
-  def call(%Conn{params: %{"data" => %{"type" => _, "id" => _}}} = conn, _), do: conn
+  def call(%Conn{params: %{"data" => %{"type" => _, "id" => _}}} = conn, _opts), do: conn
 
   def call(
         %Conn{method: "PATCH", params: %{"data" => %{"attributes" => _, "type" => _}}} = conn,
-        _
+        _opts
       ) do
     View.send_error(conn, :bad_request, [
       %ErrorObject{
@@ -50,7 +50,7 @@ defmodule JSONAPI.Plug.FormatRequired do
 
   def call(
         %Conn{method: "PATCH", params: %{"data" => %{"attributes" => _, "id" => _}}} = conn,
-        _
+        _opts
       ) do
     View.send_error(conn, :bad_request, [
       %ErrorObject{
@@ -61,7 +61,7 @@ defmodule JSONAPI.Plug.FormatRequired do
     ])
   end
 
-  def call(%Conn{params: %{"data" => %{"attributes" => _}}} = conn, _) do
+  def call(%Conn{params: %{"data" => %{"attributes" => _}}} = conn, _opts) do
     View.send_error(conn, :bad_request, [
       %ErrorObject{
         detail:
@@ -71,7 +71,7 @@ defmodule JSONAPI.Plug.FormatRequired do
     ])
   end
 
-  def call(%{params: %{"data" => _}} = conn, _) do
+  def call(%{params: %{"data" => _}} = conn, _opts) do
     View.send_error(conn, :bad_request, [
       %ErrorObject{
         detail:
@@ -81,7 +81,7 @@ defmodule JSONAPI.Plug.FormatRequired do
     ])
   end
 
-  def call(conn, _) do
+  def call(conn, _opts) do
     View.send_error(conn, :bad_request, [
       %ErrorObject{
         detail:
