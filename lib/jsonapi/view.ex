@@ -77,7 +77,7 @@ defmodule JSONAPI.View do
     API,
     Document,
     Document.ErrorObject,
-    Normalizer.Ecto.Params,
+    Normalizer.Ecto,
     Resource,
     Resource
   }
@@ -298,7 +298,7 @@ defmodule JSONAPI.View do
           Document.t() | no_return()
   def render(view, conn, data \\ nil, meta \\ nil, options \\ []) do
     view
-    |> Params.normalize(conn, data, meta, options)
+    |> Ecto.normalize(conn, data, meta, options)
     |> Document.serialize()
   end
 

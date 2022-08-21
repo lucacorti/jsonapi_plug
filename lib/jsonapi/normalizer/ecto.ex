@@ -1,4 +1,4 @@
-defmodule JSONAPI.Normalizer.Ecto.Params do
+defmodule JSONAPI.Normalizer.Ecto do
   @moduledoc """
   JSON:API parameters normalizer implementation for Ecto
 
@@ -23,9 +23,9 @@ defmodule JSONAPI.Normalizer.Ecto.Params do
 
   alias Plug.Conn
 
-  @behaviour Normalizer.Params
+  @behaviour Normalizer
 
-  @impl Normalizer.Params
+  @impl Normalizer
   def denormalize(%Document{data: nil}, _view, _conn), do: %{}
 
   def denormalize(%Document{data: resource_objects} = document, view, conn)
@@ -142,7 +142,7 @@ defmodule JSONAPI.Normalizer.Ecto.Params do
     end)
   end
 
-  @impl Normalizer.Params
+  @impl Normalizer
   def normalize(view, conn, data, meta, options) do
     %Document{meta: meta}
     |> normalize_data(view, conn, data, options)

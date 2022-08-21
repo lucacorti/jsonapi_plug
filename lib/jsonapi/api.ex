@@ -46,19 +46,22 @@ defmodule JSONAPI.API do
       type: :string
     ],
     normalizer: [
-      doc: "Normalizers to be used for transformation of JSON:API to user data",
+      doc: "Normalizer for transformation of JSON:API document to and from user data",
+      type: :atom,
+      default: JSONAPI.Normalizer.Ecto
+    ],
+    query_parsers: [
+      doc: "Normalizer for transformation of JSON:API document to and from user data",
       type: :keyword_list,
       keys: [
-        filter: [doc: "Filter normalizer", type: :atom, default: JSONAPI.Normalizer.Ecto.Filter],
-        page: [doc: "Page normalizer", type: :atom, default: JSONAPI.Normalizer.Ecto.Page],
-        params: [doc: "Params normalizer", type: :atom, default: JSONAPI.Normalizer.Ecto.Params],
-        sort: [doc: "Sort normalizer", type: :atom, default: JSONAPI.Normalizer.Ecto.Sort]
+        filter: [doc: "Filter parser", type: :atom, default: JSONAPI.QueryParser.Ecto.Filter],
+        page: [doc: "Page parser", type: :atom, default: JSONAPI.QueryParser.Page],
+        sort: [doc: "Sort parser", type: :atom, default: JSONAPI.QueryParser.Ecto.Sort]
       ],
       default: [
-        filter: JSONAPI.Normalizer.Ecto.Filter,
-        page: JSONAPI.Normalizer.Ecto.Page,
-        params: JSONAPI.Normalizer.Ecto.Params,
-        sort: JSONAPI.Normalizer.Ecto.Sort
+        filter: JSONAPI.QueryParser.Ecto.Filter,
+        page: JSONAPI.QueryParser.Page,
+        sort: JSONAPI.QueryParser.Ecto.Sort
       ]
     ],
     pagination: [

@@ -14,12 +14,7 @@ defmodule JSONAPI.Mixfile do
       source_url: "https://github.com/lucacorti/jsonapi",
       deps: deps(),
       dialyzer: dialyzer(),
-      docs: [
-        extras: [
-          "README.md"
-        ],
-        main: "readme"
-      ]
+      docs: docs()
     ]
   end
 
@@ -48,6 +43,18 @@ defmodule JSONAPI.Mixfile do
       {:jason, "~> 1.0"},
       {:nimble_options, "~> 0.4"},
       {:plug, "~> 1.0"}
+    ]
+  end
+
+  defp docs do
+    [
+      main: "readme",
+      extras: ["README.md"],
+      groups_for_modules: [
+        Plugs: [~r/JSONAPI\.Plug\..*/],
+        Document: [~r/JSONAPI\.Document\..*/],
+        Ecto: [~r/JSONAPI\.(Normalizer|QueryParser)\..*/]
+      ]
     ]
   end
 

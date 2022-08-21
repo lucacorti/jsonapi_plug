@@ -13,7 +13,7 @@ defmodule JSONAPI.Plug.Params do
 
   @impl Plug
   def call(%Conn{private: %{jsonapi: %JSONAPI{} = jsonapi}} = conn, _options) do
-    normalizer = API.get_config(jsonapi.api, [:normalizer, :params])
+    normalizer = API.get_config(jsonapi.api, [:normalizer])
     body_params = normalizer.denormalize(jsonapi.document, jsonapi.view, conn)
 
     %Conn{

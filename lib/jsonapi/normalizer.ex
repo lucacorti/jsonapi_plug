@@ -1,10 +1,11 @@
-defmodule JSONAPI.Normalizer.Params do
+defmodule JSONAPI.Normalizer do
   @moduledoc """
   Interface to normalize user data to and from a JSON:API Document
   """
   alias JSONAPI.{Document, View}
   alias Plug.Conn
 
+  @type t :: module()
   @type data :: Document.payload()
   @type meta :: Document.payload()
 

@@ -1,4 +1,6 @@
 defmodule JSONAPI.Exceptions do
+  @moduledoc false
+
   defmodule InvalidQuery do
     @moduledoc """
     Defines a generic exception for when an invalid query parameter is received.

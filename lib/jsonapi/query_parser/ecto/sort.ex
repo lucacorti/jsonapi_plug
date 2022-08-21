@@ -1,4 +1,4 @@
-defmodule JSONAPI.Normalizer.Ecto.Sort do
+defmodule JSONAPI.QueryParser.Ecto.Sort do
   @moduledoc """
   JSON:API 'sort' query parameter normalizer implementation for Ecto
 
@@ -12,14 +12,14 @@ defmodule JSONAPI.Normalizer.Ecto.Sort do
   /?sort=-createdAt,name
   /?sort=-name
   """
-  alias JSONAPI.{Exceptions.InvalidQuery, Normalizer, View}
+  alias JSONAPI.{Exceptions.InvalidQuery, QueryParser, View}
 
-  @behaviour Normalizer.Sort
+  @behaviour QueryParser
 
-  @impl Normalizer.Sort
-  def parse_sort(%JSONAPI{sort: sort}, nil), do: sort
+  @impl QueryParser
+  def parse(%JSONAPI{sort: sort}, nil), do: sort
 
-  def parse_sort(%JSONAPI{view: view}, sort) when is_binary(sort) do
+  def parse(%JSONAPI{view: view}, sort) when is_binary(sort) do
     valid_sort_fields =
       view.attributes()
       |> Enum.map(&to_string(View.field_option(&1, :name) || View.field_name(&1)))
@@ -37,7 +37,7 @@ defmodule JSONAPI.Normalizer.Ecto.Sort do
     end)
   end
 
-  def parse_sort(%JSONAPI{view: view}, sort) do
+  def parse(%JSONAPI{view: view}, sort) do
     raise InvalidQuery, type: view.type(), param: :sort, value: inspect(sort)
   end
 

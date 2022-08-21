@@ -16,12 +16,12 @@ defmodule JSONAPI.Plug.Page do
         %Conn{private: %{jsonapi: %JSONAPI{} = jsonapi}, query_params: query_params} = conn,
         _opts
       ) do
-    normalizer = API.get_config(jsonapi.api, [:normalizer, :page])
+    page_parser = API.get_config(jsonapi.api, [:query_parsers, :page])
 
     Conn.put_private(
       conn,
       :jsonapi,
-      %JSONAPI{jsonapi | page: normalizer.parse_page(jsonapi, query_params["page"])}
+      %JSONAPI{jsonapi | page: page_parser.parse(jsonapi, query_params["page"])}
     )
   end
 end

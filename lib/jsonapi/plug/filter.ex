@@ -16,12 +16,12 @@ defmodule JSONAPI.Plug.Filter do
         %Conn{private: %{jsonapi: %JSONAPI{} = jsonapi}, query_params: query_params} = conn,
         _opts
       ) do
-    normalizer = API.get_config(jsonapi.api, [:normalizer, :filter])
+    filter_parser = API.get_config(jsonapi.api, [:query_parsers, :filter])
 
     Conn.put_private(
       conn,
       :jsonapi,
-      %JSONAPI{jsonapi | filter: normalizer.parse_filter(jsonapi, query_params["filter"])}
+      %JSONAPI{jsonapi | filter: filter_parser.parse(jsonapi, query_params["filter"])}
     )
   end
 end
