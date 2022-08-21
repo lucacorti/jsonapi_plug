@@ -10,6 +10,5 @@ defmodule JSONAPI.QueryParser.Page do
   @behaviour QueryParser
 
   @impl QueryParser
-  def parse(%JSONAPI{page: page}, nil), do: page
   def parse(_jsonapi, page), do: page
 end

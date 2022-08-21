@@ -10,6 +10,5 @@ defmodule JSONAPI.QueryParser.Ecto.Filter do
   @behaviour QueryParser
 
   @impl QueryParser
-  def parse(%JSONAPI{filter: filter}, nil), do: filter
   def parse(_jsonapi, filter), do: filter
 end

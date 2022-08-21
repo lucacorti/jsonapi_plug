@@ -17,8 +17,6 @@ defmodule JSONAPI.QueryParser.Ecto.Sort do
   @behaviour QueryParser
 
   @impl QueryParser
-  def parse(%JSONAPI{sort: sort}, nil), do: sort
-
   def parse(%JSONAPI{view: view}, sort) when is_binary(sort) do
     valid_sort_fields =
       view.attributes()

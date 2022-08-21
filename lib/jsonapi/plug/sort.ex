@@ -16,12 +16,17 @@ defmodule JSONAPI.Plug.Sort do
         %Conn{private: %{jsonapi: %JSONAPI{} = jsonapi}, query_params: query_params} = conn,
         _opts
       ) do
-    sort_parser = API.get_config(jsonapi.api, [:query_parsers, :sort])
-
     Conn.put_private(
       conn,
       :jsonapi,
-      %JSONAPI{jsonapi | sort: sort_parser.parse(jsonapi, query_params["sort"])}
+      %JSONAPI{jsonapi | sort: parse(jsonapi, query_params["sort"])}
     )
+  end
+
+  defp parse(%JSONAPI{} = jsonapi, nil), do: jsonapi.sort
+
+  defp parse(jsonapi, sort) do
+    parser = API.get_config(jsonapi.api, [:query_parsers, :sort])
+    parser.parse(jsonapi, sort)
   end
 end
