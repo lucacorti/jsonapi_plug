@@ -239,7 +239,7 @@ defmodule JSONAPI.Normalizer.Ecto.Params do
     }
   end
 
-  def normalize_relationship(view, conn, data) when is_list(data) do
+  defp normalize_relationship(view, conn, data) when is_list(data) do
     %RelationshipObject{
       data:
         Enum.map(
@@ -255,7 +255,7 @@ defmodule JSONAPI.Normalizer.Ecto.Params do
     }
   end
 
-  def normalize_relationship(view, conn, data) do
+  defp normalize_relationship(view, conn, data) do
     %RelationshipObject{
       data: %ResourceIdentifierObject{
         id: view.id(data),
