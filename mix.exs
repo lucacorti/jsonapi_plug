@@ -51,9 +51,10 @@ defmodule JSONAPIPlug.Mixfile do
       main: "readme",
       extras: ["README.md"],
       groups_for_modules: [
-        Plugs: [~r/JSONAPIPlug\.Plug\..*/],
         Document: [~r/JSONAPIPlug\.Document\..*/],
-        Ecto: [~r/JSONAPIPlug\.(Normalizer|QueryParser)\..*/]
+        Plugs: [~r/JSONAPIPlug\.Plug\..*/],
+        Ecto: [~r/JSONAPIPlug\.(Normalizer|QueryParser)\.Ecto\.*/],
+        Parsers: [~r/JSONAPIPlug\.QueryParser\..*/]
       ]
     ]
   end
