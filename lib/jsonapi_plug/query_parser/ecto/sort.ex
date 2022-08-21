@@ -2,22 +2,15 @@ defmodule JSONAPIPlug.QueryParser.Ecto.Sort do
   @moduledoc """
   JSON:API 'sort' query parameter normalizer implementation for Ecto
 
-  Expects sort parameters to be specified as an ordered comma separated list
-  of resource attributes to sort the response by. The order is descending
-  unless a '-' is prefixed to the attribute name.
-
-  Examples:
-
-  /?sort=createdAt
-  /?sort=-createdAt,name
-  /?sort=-name
+  Expects sort parameters to be specified in the recommended [JSON:API sort](https://jsonapi.org/format/#fetching-sorting)
+  format and converts them to Ecto `order_by` format for ease of use.
   """
   alias JSONAPIPlug.{Exceptions.InvalidQuery, QueryParser, View}
 
   @behaviour QueryParser
 
   @impl QueryParser
-  def parse(%JSONAPIPlug{} = jsonapi_plug, nil), do: jsonapi_plug.sort
+  def parse(_jsonapi_plug, nil), do: []
 
   def parse(%JSONAPIPlug{} = jsonapi_plug, sort) when is_binary(sort) do
     valid_sort_fields =
