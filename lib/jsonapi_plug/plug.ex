@@ -52,96 +52,19 @@ defmodule JSONAPIPlug.Plug do
 
   By default, body parameters are transformed into a format that is easily used with
   Ecto Changeset to perform inserts/updates. However, you can transform the data in any
-  format you want by writing your own module adopting the `JSONAPIPlug.Normalizer` behaviour:
-
-  ```elixir
-  defmodule MyApp.API.Normalizer
-    ...
-
-    @behaviour JSONAPIPlug.Normalizer
-
-    # Transforms requests from `JSONAPIPlug.Document` to user data
-    @impl JSONAPIPlug.Normalizer
-    def denormalize(document, view, conn) do
-      ...
-    end
-
-    # Transforms responsens from user data to `JSONAPIPlug.Document`
-    @impl JSONAPIPlug.Normalizer
-    def normalize(view, conn, data, meta, options) do
-      ...
-    end
-
-    ...
-  end
-  ```
-
-  and by configuring in in your api configuration:
-
-  ```elixir
-  config :my_app, MyAPP.API, normalizer: MyAPP.API.Normalizer
-  ```
-
-  The normalizer takes the preparsed `JSONAPI.Document` as input and its return value
-  replaces the conn `body_params` and is also placed in the conn `params` under a "data" key
-  for use in your application logic.
-
-  You can return an error during parsing by raising `JSONAPIPlug.Exceptions.InvalidDocument` at
-  any point in your normalizer code.
+  format you want by writing your own module adopting the `JSONAPIPlug.Normalizer` behaviour.
 
   ## Filter, Page and Sort query parameters
 
-  The `sort` query parameter format is not mandated by the spec, although it suggests to use a
-  specific format for encoding sorting by attribute names with a prefixed '-' to invert ordering
-  direction.
+  The `sort` query parameter format is not mandated, however the specification suggests to use a
+  format for encoding sorting by attribute names with a prefixed '-' to invert ordering direction.
+  The default implementation accepts the suggested format and converts it to data usable as
+  `order_by` arguments to Ecto queries.
 
-  The default implementation takes the suggested format and converts it to a format compatible
-   with order_by arguments to Ecto queries.
+  The `filter` and `page` query parameters format is not defined by the JSON:API specification,
+  therefore the default implementation just copies the value of the query parameters in `JSONAPIPlug`.
 
-  You customize the default behaviour by implementing a module adopting the `JSONAPIPlug.QueryParser`
-  behaviour for your sort format:
-
-  ```elixir
-  defmodule MyApp.API.QueryParsers.Sort do
-    ...
-    @behaviour JSONAPIPlug.QueryParser
-
-    # Transforms the query parameter value to a user defined format
-    @impl JSONAPIPlug.QueryParser
-    def parse(jsonapi_plug, sort) do
-      ...
-    end
-  end
-  ```
-
-  and configure it in your API configuration under the `parsers` key.
-
-  ```elixir
-  config :my_app, MyApp.API,
-    parsers: [
-      sort: MyApp.API.QueryParsers.Sort
-    ]
-  ```
-
-  The `filter` and `page` query parameters format is not specified by the JSON:API specification,
-  therefore the default implementation just copies the value of the query parameter.
-
-  Parsing can be customized, just like with sort, by implementing the `JSONAPIPlug.QueryParser`
-  behaviour for your parameter format and configuring it in your API configuration under the `parsers` key.
-
-  ```elixir
-  config :my_app, MyApp.API,
-    parsers: [
-      filter: MyApp.API.QueryParser.Filter,
-      page: MyApp.API.QueryParser.Page
-    ]
-  ```
-
-  The parser takes the query paramter value and its return value is placed under the query parameter
-  name in the `JSONAPIPlug` structure in the conn `private` assigns so that you can retrieve it and
-  use it in your application logic.
-
-  You can return an error by raising `JSONAPIPlug.Exceptions.InvalidQuery` at any point in your parser code.
+  Parsing can be customized by implementing the `JSONAPIPlug.QueryParser` behaviour.
   """
 
   @options_schema NimbleOptions.new!(

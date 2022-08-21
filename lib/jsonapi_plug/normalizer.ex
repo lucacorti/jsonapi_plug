@@ -1,6 +1,44 @@
 defmodule JSONAPIPlug.Normalizer do
   @moduledoc """
   Interface to normalize user data to and from a JSON:API Document
+
+  You can implement your custom normalizer to convert your application
+  data to and from the `JSONAPIPlug.Document` data structure:
+
+  ```elixir
+  defmodule MyApp.API.Normalizer
+    ...
+
+    @behaviour JSONAPIPlug.Normalizer
+
+    # Transforms requests from `JSONAPIPlug.Document` to user data
+    @impl JSONAPIPlug.Normalizer
+    def denormalize(document, view, conn) do
+      ...
+    end
+
+    # Transforms responsens from user data to `JSONAPIPlug.Document`
+    @impl JSONAPIPlug.Normalizer
+    def normalize(view, conn, data, meta, options) do
+      ...
+    end
+
+    ...
+  end
+  ```
+
+  and by configuring in in your api configuration:
+
+  ```elixir
+  config :my_app, MyAPP.API, normalizer: MyAPP.API.Normalizer
+  ```
+
+  The normalizer takes the preparsed `JSONAPI.Document` as input and its return value
+  replaces the conn `body_params` and is also placed in the conn `params` under a "data" key
+  for use in your application logic.
+
+  You can return an error during parsing by raising `JSONAPIPlug.Exceptions.InvalidDocument` at
+  any point in your normalizer code.
   """
   alias JSONAPIPlug.{Document, View}
   alias Plug.Conn
