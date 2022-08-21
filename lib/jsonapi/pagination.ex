@@ -58,7 +58,7 @@ defmodule JSONAPI.Pagination do
     query =
       query_params
       |> to_list_of_query_string_components()
-      |> Conn.Query.encode()
+      |> URI.encode_query()
 
     prepare_url(view, resources, conn, query)
   end
