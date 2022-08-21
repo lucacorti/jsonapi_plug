@@ -1,17 +1,17 @@
-defmodule JSONAPI.Mixfile do
+defmodule JSONAPIPlug.Mixfile do
   use Mix.Project
 
   def project do
     [
-      app: :jsonapi,
-      version: "1.4.0",
+      app: :jsonapi_plug,
+      version: "1.0.0",
       package: package(),
       description: "JSON:API library for Plug based applications",
       elixir: "~> 1.10",
       elixirc_paths: elixirc_paths(Mix.env()),
       build_embedded: Mix.env() == :prod,
       start_permanent: Mix.env() == :prod,
-      source_url: "https://github.com/lucacorti/jsonapi",
+      source_url: "https://github.com/lucacorti/jsonapi_plug",
       deps: deps(),
       dialyzer: dialyzer(),
       docs: docs()
@@ -51,9 +51,9 @@ defmodule JSONAPI.Mixfile do
       main: "readme",
       extras: ["README.md"],
       groups_for_modules: [
-        Plugs: [~r/JSONAPI\.Plug\..*/],
-        Document: [~r/JSONAPI\.Document\..*/],
-        Ecto: [~r/JSONAPI\.(Normalizer|QueryParser)\..*/]
+        Plugs: [~r/JSONAPIPlug\.Plug\..*/],
+        Document: [~r/JSONAPIPlug\.Document\..*/],
+        Ecto: [~r/JSONAPIPlug\.(Normalizer|QueryParser)\..*/]
       ]
     ]
   end
@@ -63,7 +63,7 @@ defmodule JSONAPI.Mixfile do
       maintainers: ["Luca Corti"],
       licenses: ["MIT"],
       links: %{
-        github: "https://github.com/lucacorti/jsonapi"
+        github: "https://github.com/lucacorti/jsonapi_plug"
       }
     ]
   end

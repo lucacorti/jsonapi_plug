@@ -1,4 +1,4 @@
-defmodule JSONAPI.TestSupport.Pagination do
+defmodule JSONAPIPlug.TestSupport.Pagination do
   @moduledoc false
 
   defmodule PageBasedPagination do
@@ -6,11 +6,13 @@ defmodule JSONAPI.TestSupport.Pagination do
     Page based pagination strategy
     """
 
-    alias JSONAPI.Pagination
+    alias JSONAPIPlug.Pagination
 
     @behaviour Pagination
 
     @impl Pagination
+    def paginate(_view, _resource, _conn, nil = _page, _options), do: %{}
+
     def paginate(view, resources, conn, page, options) do
       number =
         page

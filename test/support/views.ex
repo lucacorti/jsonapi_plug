@@ -1,20 +1,20 @@
-defmodule JSONAPI.TestSupport.Views do
+defmodule JSONAPIPlug.TestSupport.Views do
   @moduledoc false
 
-  alias JSONAPI.TestSupport.Resources.{Post, User}
+  alias JSONAPIPlug.TestSupport.Resources.{Post, User}
 
   defmodule CarView do
     @moduledoc false
 
-    use JSONAPI.View, type: "car"
+    use JSONAPIPlug.View, type: "car"
   end
 
   defmodule CommentView do
     @moduledoc false
 
-    alias JSONAPI.TestSupport.Views.UserView
+    alias JSONAPIPlug.TestSupport.Views.UserView
 
-    use JSONAPI.View,
+    use JSONAPIPlug.View,
       type: "comment",
       attributes: [:body, :text],
       relationships: [user: [view: UserView]]
@@ -23,9 +23,9 @@ defmodule JSONAPI.TestSupport.Views do
   defmodule CompanyView do
     @moduledoc false
 
-    alias JSONAPI.TestSupport.Views.IndustryView
+    alias JSONAPIPlug.TestSupport.Views.IndustryView
 
-    use JSONAPI.View,
+    use JSONAPIPlug.View,
       type: "company",
       attributes: [:name],
       relationships: [industry: [view: IndustryView]]
@@ -34,14 +34,14 @@ defmodule JSONAPI.TestSupport.Views do
   defmodule ExpensiveResourceView do
     @moduledoc false
 
-    use JSONAPI.View,
+    use JSONAPIPlug.View,
       type: "expensive-post",
       attributes: [:name]
 
-    @impl JSONAPI.View
+    @impl JSONAPIPlug.View
     def links(nil, _conn), do: %{}
 
-    @impl JSONAPI.View
+    @impl JSONAPIPlug.View
     def links(resource, _conn) do
       %{
         queue: "/expensive-post/queue/#{resource.id}",
@@ -58,9 +58,9 @@ defmodule JSONAPI.TestSupport.Views do
   defmodule IndustryView do
     @moduledoc false
 
-    alias JSONAPI.TestSupport.Views.TagView
+    alias JSONAPIPlug.TestSupport.Views.TagView
 
-    use JSONAPI.View,
+    use JSONAPIPlug.View,
       type: "industry",
       attributes: [:name],
       relationships: [tags: [many: true, view: TagView]]
@@ -69,9 +69,9 @@ defmodule JSONAPI.TestSupport.Views do
   defmodule MyPostView do
     @moduledoc false
 
-    alias JSONAPI.TestSupport.Views.{CommentView, UserView}
+    alias JSONAPIPlug.TestSupport.Views.{CommentView, UserView}
 
-    use JSONAPI.View,
+    use JSONAPIPlug.View,
       type: "my-type",
       attributes: [:body, :text, :title],
       relationships: [
@@ -84,9 +84,9 @@ defmodule JSONAPI.TestSupport.Views do
   defmodule NotIncludedView do
     @moduledoc false
 
-    alias JSONAPI.TestSupport.Views.{CommentView, UserView}
+    alias JSONAPIPlug.TestSupport.Views.{CommentView, UserView}
 
-    use JSONAPI.View,
+    use JSONAPIPlug.View,
       type: "not-included",
       attributes: [:foo],
       relationships: [
@@ -98,9 +98,9 @@ defmodule JSONAPI.TestSupport.Views do
   defmodule PostView do
     @moduledoc false
 
-    alias JSONAPI.TestSupport.Views.{CommentView, UserView}
+    alias JSONAPIPlug.TestSupport.Views.{CommentView, UserView}
 
-    use JSONAPI.View,
+    use JSONAPIPlug.View,
       type: "post",
       path: "posts",
       attributes: [
@@ -117,22 +117,22 @@ defmodule JSONAPI.TestSupport.Views do
         other_user: [view: UserView]
       ]
 
-    @impl JSONAPI.View
+    @impl JSONAPIPlug.View
     def meta(%Post{} = post, _conn), do: %{meta_text: "meta_#{post.text}"}
   end
 
   defmodule TagView do
     @moduledoc false
 
-    use JSONAPI.View, type: "tag"
+    use JSONAPIPlug.View, type: "tag"
   end
 
   defmodule UserView do
     @moduledoc false
 
-    alias JSONAPI.TestSupport.Views.{CompanyView, MyPostView}
+    alias JSONAPIPlug.TestSupport.Views.{CompanyView, MyPostView}
 
-    use JSONAPI.View,
+    use JSONAPIPlug.View,
       type: "user",
       path: "users",
       attributes: [

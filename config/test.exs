@@ -1,6 +1,6 @@
 import Config
 
-alias JSONAPI.TestSupport.{
+alias JSONAPIPlug.TestSupport.{
   APIs.DasherizingAPI,
   APIs.DefaultAPI,
   APIs.OtherHostAPI,
@@ -10,10 +10,10 @@ alias JSONAPI.TestSupport.{
   Pagination.PageBasedPagination
 }
 
-config :jsonapi, DasherizingAPI, case: :dasherize
-config :jsonapi, DefaultAPI, pagination: PageBasedPagination
-config :jsonapi, OtherHostAPI, host: "www.otherhost.com"
-config :jsonapi, OtherNamespaceAPI, namespace: "somespace"
-config :jsonapi, OtherPortAPI, port: 42
-config :jsonapi, OtherSchemeAPI, scheme: :https
-config :jsonapi, UnderscoringAPI, case: :underscore
+config :jsonapi_plug, DasherizingAPI, case: :dasherize
+config :jsonapi_plug, DefaultAPI, pagination: PageBasedPagination
+config :jsonapi_plug, OtherHostAPI, host: "www.otherhost.com"
+config :jsonapi_plug, OtherNamespaceAPI, namespace: "somespace"
+config :jsonapi_plug, OtherPortAPI, port: 42
+config :jsonapi_plug, OtherSchemeAPI, scheme: :https
+config :jsonapi_plug, UnderscoringAPI, case: :underscore

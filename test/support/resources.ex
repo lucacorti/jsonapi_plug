@@ -1,4 +1,4 @@
-defmodule JSONAPI.TestSupport.Resources do
+defmodule JSONAPIPlug.TestSupport.Resources do
   @moduledoc false
 
   defmodule Tag do
