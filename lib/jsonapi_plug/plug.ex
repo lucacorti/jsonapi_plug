@@ -25,12 +25,13 @@ defmodule JSONAPIPlug.Plug do
   %Plug.Conn{...
     private: %{...
       jsonapi_plug: %JSONAPIPlug{
-        fields: %{"my-type" => [:id, :text], "comment" => [:id, :body]},
-        filter: ... # Passed as is by default, can be customized via `JSONAPIPlug.QueryParser`
-        include: [comments: [user: []]] # Easily insertable into a Repo.preload,
-        page: ... # Passed as is by default, can be customized via `JSONAPIPlug.QueryParser`
+        api: MyApp.API,
         document: %JSONAPIPlug.Document{...},
-        sort: [desc: :created_at] # Converted to Ecto order_by format by default, can be customized via `JSONAPIPlug.QueryParser`
+        fields: %{"my-type" => [:id, :text], "comment" => [:id, :body]},
+        filter: ... # Passed as is by default, can be customized.
+        include: [comments: [user: []]] # Easily insertable into a Repo.preload,
+        page: ... # Passed as is by default, can be customized.
+        sort: [desc: :created_at] # Converted to Ecto order_by format by default, can be customized.
         view: MyApp.MyView
       }
     }

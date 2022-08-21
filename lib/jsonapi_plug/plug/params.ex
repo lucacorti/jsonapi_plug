@@ -21,7 +21,7 @@ defmodule JSONAPIPlug.Plug.Params do
       | body_params: body_params,
         params:
           conn.params
-          |> Map.drop(["data", "included"])
+          |> Map.drop(["errors", "included", "jsonapi", "links", "meta"])
           |> Map.put("data", body_params)
     }
   end
