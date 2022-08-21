@@ -81,7 +81,7 @@ defmodule JSONAPI do
       iex> recase("corgiAge", :underscore)
       "corgi_age"
   """
-  @spec recase(Resource.field(), case()) :: String.t()
+  @spec recase(Resource.field() | String.t(), case()) :: String.t()
   def recase(field, case) when is_atom(field) do
     field
     |> to_string()
