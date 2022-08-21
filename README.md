@@ -1,10 +1,10 @@
-# JSON:API library for Plug based applications
+# JSON:API library for Phoenix and Plug applications
 
 Server library to build [JSON:API](http://jsonapi.org) compliant REST APIs.
 
 ## JSON:API Support
 
-This library implements [version 1.0](https://jsonapi.org/format/1.0/) of the JSON:API spec.
+This library currently implements [version 1.0](https://jsonapi.org/format/1.0/) of the JSON:API spec.
 
 ## Documentation
 
