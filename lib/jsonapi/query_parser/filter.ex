@@ -1,4 +1,4 @@
-defmodule JSONAPI.QueryParser.Ecto.Filter do
+defmodule JSONAPI.QueryParser.Filter do
   @moduledoc """
   JSON:API 'filter' query parameter normalizer implementation for Ecto
 

@@ -54,12 +54,12 @@ defmodule JSONAPI.API do
       doc: "Normalizer for transformation of JSON:API document to and from user data",
       type: :keyword_list,
       keys: [
-        filter: [doc: "Filter parser", type: :atom, default: JSONAPI.QueryParser.Ecto.Filter],
+        filter: [doc: "Filter parser", type: :atom, default: JSONAPI.QueryParser.Filter],
         page: [doc: "Page parser", type: :atom, default: JSONAPI.QueryParser.Page],
         sort: [doc: "Sort parser", type: :atom, default: JSONAPI.QueryParser.Ecto.Sort]
       ],
       default: [
-        filter: JSONAPI.QueryParser.Ecto.Filter,
+        filter: JSONAPI.QueryParser.Filter,
         page: JSONAPI.QueryParser.Page,
         sort: JSONAPI.QueryParser.Ecto.Sort
       ]
