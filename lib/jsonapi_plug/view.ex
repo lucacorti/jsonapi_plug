@@ -164,6 +164,8 @@ defmodule JSONAPIPlug.View do
 
   @type data :: resource() | [resource()]
 
+  @type meta :: Document.meta()
+
   @type field_name :: atom()
 
   @typedoc """

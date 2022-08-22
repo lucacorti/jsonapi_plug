@@ -55,7 +55,7 @@ defmodule JSONAPIPlug.Document do
 
   https://jsonapi.org/format/#document-meta
   """
-  @type meta :: %{atom() => value()}
+  @type meta :: payload()
 
   @typedoc """
   JSON:API Links
