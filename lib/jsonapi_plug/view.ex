@@ -77,9 +77,8 @@ defmodule JSONAPIPlug.View do
     API,
     Document,
     Document.ErrorObject,
-    Normalizer.Ecto,
-    Resource,
-    Resource
+    Document.ResourceObject,
+    Normalizer.Ecto
   }
 
   alias Plug.Conn
@@ -161,36 +160,40 @@ defmodule JSONAPIPlug.View do
   """
   @type options :: keyword()
 
-  @type data :: Resource.t() | [Resource.t()]
+  @type resource :: term()
+
+  @type data :: resource() | [resource()]
+
+  @type field_name :: atom()
 
   @typedoc """
   Attribute options\n#{NimbleOptions.docs(NimbleOptions.new!(@attribute_schema))}
   """
   @type attribute_options :: [
-          name: Resource.field(),
-          serialize: boolean() | (Resource.t(), Conn.t() -> term()),
-          deserialize: boolean() | (Resource.t(), Conn.t() -> term())
+          name: field_name(),
+          serialize: boolean() | (resource(), Conn.t() -> term()),
+          deserialize: boolean() | (resource(), Conn.t() -> term())
         ]
 
-  @type attributes :: [Resource.field()] | [{Resource.field(), attribute_options()}]
+  @type attributes :: [field_name()] | [{field_name(), attribute_options()}]
 
   @typedoc """
   Relationship options\n#{NimbleOptions.docs(NimbleOptions.new!(@relationship_schema))}
   """
-  @type relationship_options :: [many: boolean(), name: Resource.field(), view: t()]
-  @type relationships :: [{Resource.field(), relationship_options()}]
+  @type relationship_options :: [many: boolean(), name: field_name(), view: t()]
+  @type relationships :: [{field_name(), relationship_options()}]
 
   @type field ::
-          Resource.field() | {Resource.field(), attribute_options() | relationship_options()}
+          field_name() | {field_name(), attribute_options() | relationship_options()}
 
-  @callback id(Resource.t()) :: Resource.id()
-  @callback id_attribute :: Resource.field()
+  @callback id(resource()) :: ResourceObject.id()
+  @callback id_attribute :: field_name()
   @callback attributes :: attributes()
-  @callback links(Resource.t(), Conn.t() | nil) :: Document.links()
-  @callback meta(Resource.t(), Conn.t() | nil) :: Document.meta()
+  @callback links(resource(), Conn.t() | nil) :: Document.links()
+  @callback meta(resource(), Conn.t() | nil) :: Document.meta()
   @callback path :: String.t() | nil
   @callback relationships :: relationships()
-  @callback type :: Resource.type()
+  @callback type :: ResourceObject.type()
 
   defmacro __using__(options \\ []) do
     {attributes, options} = Keyword.pop(options, :attributes, [])
@@ -261,7 +264,7 @@ defmodule JSONAPIPlug.View do
     end
   end
 
-  @spec field_name(field()) :: Resource.field()
+  @spec field_name(field()) :: field_name()
   def field_name(field) when is_atom(field), do: field
   def field_name({name, nil}), do: name
   def field_name({name, options}) when is_list(options), do: name
@@ -281,7 +284,7 @@ defmodule JSONAPIPlug.View do
     raise "invalid field definition: #{inspect(field)}"
   end
 
-  @spec for_related_type(t(), Resource.type()) :: t() | nil
+  @spec for_related_type(t(), ResourceObject.type()) :: t() | nil
   def for_related_type(view, type) do
     Enum.find_value(view.relationships(), fn {_relationship, options} ->
       relationship_view = Keyword.fetch!(options, :view)
@@ -319,7 +322,7 @@ defmodule JSONAPIPlug.View do
     |> Conn.halt()
   end
 
-  @spec url_for_relationship(t(), Resource.t(), Conn.t() | nil, Resource.type()) :: String.t()
+  @spec url_for_relationship(t(), resource(), Conn.t() | nil, ResourceObject.type()) :: String.t()
   def url_for_relationship(view, resource, conn, relationship_type) do
     Enum.join([url_for(view, resource, conn), "relationships", relationship_type], "/")
   end

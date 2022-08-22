@@ -9,16 +9,17 @@ defmodule JSONAPIPlug.Document.ResourceObject do
     Document,
     Document.LinkObject,
     Document.RelationshipObject,
-    Exceptions.InvalidDocument,
-    Resource
+    Exceptions.InvalidDocument
   }
 
+  @type id :: String.t()
+  @type type :: String.t()
   @type links :: %{atom() => LinkObject.t()}
 
   @type t :: %__MODULE__{
-          id: Resource.id(),
-          lid: Resource.id(),
-          type: Resource.type(),
+          id: id(),
+          lid: id(),
+          type: type(),
           attributes: Document.value() | nil,
           relationships: %{String.t() => [RelationshipObject.t()]} | nil,
           links: links() | nil

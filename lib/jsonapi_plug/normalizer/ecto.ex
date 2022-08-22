@@ -17,7 +17,6 @@ defmodule JSONAPIPlug.Normalizer.Ecto do
     Exceptions.InvalidDocument,
     Normalizer,
     Pagination,
-    Resource,
     View
   }
 
@@ -213,7 +212,7 @@ defmodule JSONAPIPlug.Normalizer.Ecto do
       resource_object
       | relationships:
           view.relationships()
-          |> Enum.filter(&Resource.loaded?(Map.get(data, elem(&1, 0))))
+          |> Enum.filter(&relationship_loaded?(Map.get(data, elem(&1, 0))))
           |> Enum.into(%{}, fn relationship ->
             name = View.field_name(relationship)
             related_data = Map.get(data, name)
@@ -348,7 +347,7 @@ defmodule JSONAPIPlug.Normalizer.Ecto do
        ) do
     name = View.field_name(relationship)
     related_data = Map.get(data, name)
-    related_loaded? = Resource.loaded?(related_data)
+    related_loaded? = relationship_loaded?(related_data)
     related_view = View.field_option(relationship, :view)
     related_many = View.field_option(relationship, :many)
 
@@ -408,6 +407,10 @@ defmodule JSONAPIPlug.Normalizer.Ecto do
 
   defp recase_field(_conn, field),
     do: JSONAPIPlug.recase(field, :camelize)
+
+  defp relationship_loaded?(nil), do: false
+  defp relationship_loaded?(%{__struct__: Ecto.Associaton.NotLoaded}), do: false
+  defp relationship_loaded?(_value), do: true
 
   defp requested_fields(attributes, view, %Conn{
          private: %{jsonapi_plug: %JSONAPIPlug{fields: fields}}

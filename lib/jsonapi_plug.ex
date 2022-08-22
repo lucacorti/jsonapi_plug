@@ -5,7 +5,7 @@ defmodule JSONAPIPlug do
   Stores configuration and parsed request data. See the `JSONAPIPlug.Plug` module for more information.
   """
 
-  alias JSONAPIPlug.{API, Document, Resource, View}
+  alias JSONAPIPlug.{API, Document, View}
 
   @type case :: :camelize | :dasherize | :underscore
 
@@ -35,7 +35,7 @@ defmodule JSONAPIPlug do
   def mime_type, do: "application/vnd.api+json"
 
   @doc """
-  Inflects Resource fields for serialization
+  Recase Resource fields for serialization
 
   Replace underscores or dashes between words in `value` with camelCasing
   Ignores underscores or dashes that are not between letters/numbers
@@ -81,7 +81,7 @@ defmodule JSONAPIPlug do
       iex> recase("corgiAge", :underscore)
       "corgi_age"
   """
-  @spec recase(Resource.field() | String.t(), case()) :: String.t()
+  @spec recase(View.field_name() | String.t(), case()) :: String.t()
   def recase(field, case) when is_atom(field) do
     field
     |> to_string()

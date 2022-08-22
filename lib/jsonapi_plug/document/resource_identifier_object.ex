@@ -5,11 +5,11 @@ defmodule JSONAPIPlug.Document.ResourceIdentifierObject do
   https://jsonapi.org/format/#document-resource-object-linkage
   """
 
-  alias JSONAPIPlug.{Document, Exceptions.InvalidDocument, Resource}
+  alias JSONAPIPlug.{Document, Document.ResourceObject, Exceptions.InvalidDocument}
 
   @type t :: %__MODULE__{
-          id: Resource.id(),
-          type: Resource.type(),
+          id: ResourceObject.id(),
+          type: ResourceObject.type(),
           meta: Document.meta()
         }
   defstruct [:id, :type, :meta]
