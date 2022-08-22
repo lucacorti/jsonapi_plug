@@ -3,7 +3,7 @@ defmodule JSONAPIPlug.QueryParser.Ecto.Include do
   JSON:API 'include' query parameter parser implementation for Ecto
 
   Expects `include` parameter to be in the [JSON:API include](https://jsonapi.org/format/#fetching-includes)
-  format and converts them to Ecto `preload` format for ease of use with `Ecto.Repo` functions.
+  format and converts them to Ecto `preload` optio to `Ecto.Repo` functions.
   """
 
   alias JSONAPIPlug.{Exceptions.InvalidQuery, QueryParser, View}

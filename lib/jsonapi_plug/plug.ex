@@ -55,7 +55,7 @@ defmodule JSONAPIPlug.Plug do
 
   The `fields` and `include` query parameters format is defined by the `JSON:API` specification.
   The default implementation accepts the specification format and converts it to data usable as
-  `select` and `preload` arguments to `Ecto.Repo` functions.
+  `select` and `preload` options to `Ecto.Repo` functions.
 
   The `sort` query parameter format is not defined, however the specification suggests to use a
   format for encoding sorting by attribute names with an optional `-` prefix to invert ordering

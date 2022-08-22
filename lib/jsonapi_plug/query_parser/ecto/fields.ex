@@ -4,7 +4,7 @@ defmodule JSONAPIPlug.QueryParser.Ecto.Fields do
 
   Expects `include` parameter to in the [JSON:API fields](https://jsonapi.org/format/#fetching-sparse-fieldsets)
   format and converts the specification format to a map of fields list format for ease of
-  use with `Ecto select` options to Ecto.Repo functions.
+  use with `select` option to `Ecto.Repo` functions.
   """
 
   alias JSONAPIPlug.{Exceptions.InvalidQuery, QueryParser, View}
@@ -58,7 +58,7 @@ defmodule JSONAPIPlug.QueryParser.Ecto.Fields do
     end)
   end
 
-  def parse_fields(%JSONAPIPlug{view: view}, fields) do
+  def parse(%JSONAPIPlug{view: view}, fields) do
     raise InvalidQuery, type: view.type(), param: :fields, value: fields
   end
 
