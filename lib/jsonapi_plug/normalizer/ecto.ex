@@ -409,7 +409,7 @@ defmodule JSONAPIPlug.Normalizer.Ecto do
     do: JSONAPIPlug.recase(field, :camelize)
 
   defp relationship_loaded?(nil), do: false
-  defp relationship_loaded?(%{__struct__: Ecto.Associaton.NotLoaded}), do: false
+  defp relationship_loaded?(%{__struct__: Ecto.Association.NotLoaded}), do: false
   defp relationship_loaded?(_value), do: true
 
   defp requested_fields(attributes, view, %Conn{
