@@ -5,7 +5,7 @@ defmodule JSONAPIPlug.Plug do
   This plug handles the standard `JSON:API` request body and query parameters
   (`fields`, `filter`, `include`, `page` and `sort`).
 
-  # Usage
+  ## Usage
 
   To enable request deserialization add this plug to your plug pipeline/controller like this:
 
@@ -27,7 +27,7 @@ defmodule JSONAPIPlug.Plug do
       jsonapi_plug: %JSONAPIPlug{
         api: MyApp.API,
         document: %JSONAPIPlug.Document{...},
-        fields: ..., # Defaults to a map of attributes by type.
+        fields: ..., # Defaults to a map of field names by type.
         filter: ..., # Defaults to the query parameter value.
         include: ..., # Defaults to Ecto preload format.
         page: ..., # Defaults to the query parameter value.
@@ -42,16 +42,16 @@ defmodule JSONAPIPlug.Plug do
 
   You can then use the contents of the struct to load data and generate responses.
 
-  # Customizing default behaviour
+  ## Customizing default behaviour
 
-  ## Body parameters
+  ### Body parameters
 
   By default, body parameters are transformed into a format that is easily used with
   `Ecto.Changeset` and `Ecto.Repo` to perform inserts/updates. However, you can transform
   the `JSON:API` data in any format you want by writing your own module adopting the
   `JSONAPIPlug.Normalizer` behaviour and configuring it through `JSONAPIPlug.API` configuration.
 
-  ## Query parameters
+  ### Query parameters
 
   The `fields` and `include` query parameters format is defined by the `JSON:API` specification.
   The default implementation accepts the specification format and converts it to data usable as

@@ -19,7 +19,7 @@ defmodule JSONAPIPlug.View do
 
   ## Attributes
 
-  By default, the resulting JSON document consists of resourcess taken from your data.
+  By default, the resulting JSON document consists of resources taken from your data.
   Only resource  attributes defined on the view will be (de)serialized. You can customize
   how attributes are handled by using a keyword list of options instead:
 
