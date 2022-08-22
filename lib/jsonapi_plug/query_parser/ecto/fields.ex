@@ -1,32 +1,20 @@
-defmodule JSONAPIPlug.Plug.Fields do
+defmodule JSONAPIPlug.QueryParser.Ecto.Fields do
   @moduledoc """
-  Plug for parsing the 'fields' JSON:API query parameter
+  JSON:API 'fields' query parameter parser implementation for Ecto
+
+  Expects `include` parameter to in the [JSON:API fields](https://jsonapi.org/format/#fetching-sparse-fieldsets)
+  format and converts the specification format to a map of fields list format for ease of
+  use with `Ecto select` options to Ecto.Repo functions.
   """
 
-  alias JSONAPIPlug.{Exceptions.InvalidQuery, View}
-  alias Plug.Conn
+  alias JSONAPIPlug.{Exceptions.InvalidQuery, QueryParser, View}
 
-  @behaviour Plug
+  @behaviour QueryParser
 
-  @impl Plug
-  def init(opts), do: opts
+  @impl QueryParser
+  def parse(_jsonapi_plug, nil), do: %{}
 
-  @impl Plug
-  def call(
-        %Conn{private: %{jsonapi_plug: %JSONAPIPlug{} = jsonapi_plug}, query_params: query_params} =
-          conn,
-        _opts
-      ) do
-    Conn.put_private(
-      conn,
-      :jsonapi_plug,
-      %JSONAPIPlug{jsonapi_plug | fields: parse_fields(jsonapi_plug, query_params["fields"])}
-    )
-  end
-
-  defp parse_fields(%JSONAPIPlug{fields: fields}, nil), do: fields
-
-  defp parse_fields(%JSONAPIPlug{view: view}, fields) when is_map(fields) do
+  def parse(%JSONAPIPlug{view: view}, fields) when is_map(fields) do
     Enum.reduce(fields, %{}, fn {type, value}, fields ->
       valid_fields =
         view
@@ -54,18 +42,15 @@ defmodule JSONAPIPlug.Plug.Fields do
       size = MapSet.size(requested_fields)
 
       case MapSet.subset?(requested_fields, valid_fields) do
-        # no fields if empty - https://jsonapi.org/format/#fetching-sparse-fieldsets
         false when size > 0 ->
-          bad_fields =
-            requested_fields
-            |> MapSet.difference(valid_fields)
-            |> MapSet.to_list()
-            |> Enum.join(",")
-
           raise InvalidQuery,
             type: view.type(),
             param: :fields,
-            value: bad_fields
+            value:
+              requested_fields
+              |> MapSet.difference(valid_fields)
+              |> MapSet.to_list()
+              |> Enum.join(",")
 
         _ ->
           Map.put(fields, type, MapSet.to_list(requested_fields))
@@ -73,7 +58,7 @@ defmodule JSONAPIPlug.Plug.Fields do
     end)
   end
 
-  defp parse_fields(%JSONAPIPlug{view: view}, fields) do
+  def parse_fields(%JSONAPIPlug{view: view}, fields) do
     raise InvalidQuery, type: view.type(), param: :fields, value: fields
   end
 

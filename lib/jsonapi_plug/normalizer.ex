@@ -1,6 +1,6 @@
 defmodule JSONAPIPlug.Normalizer do
   @moduledoc """
-  Interface to normalize user data to and from a JSON:API Document
+  Interface to normalize user data to and from a `JSON:API` Document
 
   You can implement your custom normalizer to convert your application
   data to and from the `JSONAPIPlug.Document` data structure:
@@ -47,7 +47,7 @@ defmodule JSONAPIPlug.Normalizer do
   @type data :: Document.payload()
   @type meta :: Document.payload()
 
-  @doc "Transforms a JSON:API Document into params"
+  @doc "Transforms a JSON:API Document user data"
   @callback denormalize(Document.t(), View.t(), Conn.t()) :: Conn.params() | no_return()
 
   @doc "Transforms user data into a JSON:API Document"

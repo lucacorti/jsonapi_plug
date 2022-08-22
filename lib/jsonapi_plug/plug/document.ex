@@ -1,6 +1,6 @@
 defmodule JSONAPIPlug.Plug.Document do
   @moduledoc """
-  Plug for parsing the JSON:API Document body
+  Plug for parsing the JSON:API Document in requests
   """
 
   alias JSONAPIPlug.Document

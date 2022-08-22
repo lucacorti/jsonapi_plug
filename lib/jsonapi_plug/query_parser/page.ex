@@ -1,8 +1,9 @@
 defmodule JSONAPIPlug.QueryParser.Page do
   @moduledoc """
-  JSON:API 'page' query parameter normalizer implementation for Ecto
+  JSON:API 'page' query parameter parser
 
-  Defaults to returning the value of 'page' as received in the request.
+  Since the specification does not define the format for the [JSON:API page](http://jsonapi.org/format/#fetching-filtering)
+  parameter, the default implementation just returns the value of 'page' as is.
   """
 
   alias JSONAPIPlug.QueryParser

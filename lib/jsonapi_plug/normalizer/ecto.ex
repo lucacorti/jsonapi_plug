@@ -2,7 +2,7 @@ defmodule JSONAPIPlug.Normalizer.Ecto do
   @moduledoc """
   JSON:API parameters normalizer implementation for Ecto
 
-  Normalizer implementation translating JSON:API documents to and from an Ecto friendly
+  Normalizer implementation translating `JSON:API` documents to and from an Ecto friendly
   format in conn params. Deserialization produces attributes and relationships in a way
   that directly translates to attributes that can be passed to an `Ecto.Changeset` for
   validation and later to `Ecto.Repo` for database operations.

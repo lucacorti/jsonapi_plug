@@ -67,7 +67,7 @@ defmodule JSONAPIPlug.View do
   ## Links
 
   When rendering resource links, the default behaviour is to is to derive values for `host`, `port`
-  and `scheme` from the connection. If you need to use different values for some reason, you can specify them
+  and `scheme` from the connection. If you need to use different values for some reason, you can override them
   using `JSONAPIPlug.API` configuration options in your api configuration:
 
       config :my_app, MyApp.API, host: "adifferenthost.com"

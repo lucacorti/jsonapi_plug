@@ -4,7 +4,7 @@ Server library to build [JSON:API](http://jsonapi.org) compliant REST APIs.
 
 ## JSON:API Support
 
-This library currently implements [version 1.0](https://jsonapi.org/format/1.0/) of the JSON:API spec.
+This library currently implements [version 1.0](https://jsonapi.org/format/1.0/) of the `JSON:API` spec.
 
 ## Documentation
 
@@ -57,9 +57,9 @@ end
 
 This will take care of ensuring `JSON:API` spec compliance and will return errors for malformed requests.
 
-The `:api` option expects an API module for configuration.
+The `:api` option expects a module using `JSONAPI.API` for configuration.
 
-You also need to provide the `:view` option specifying which `JSONAPIPlug.View` to use for rendering data provided by your controller.
+The `:view` option expects a module using `JSONAPIPlug.View` to convert data to and from `JSON:API` format.
 
 When requests are processed, the `:jsonapi_plug` connection private field is populated with the parsed request.
 

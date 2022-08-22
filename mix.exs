@@ -6,7 +6,7 @@ defmodule JSONAPIPlug.Mixfile do
       app: :jsonapi_plug,
       version: "1.0.0",
       package: package(),
-      description: "JSON:API library for Plug based applications",
+      description: " JSON:API library for Phoenix and Plug applications ",
       elixir: "~> 1.10",
       elixirc_paths: elixirc_paths(Mix.env()),
       build_embedded: Mix.env() == :prod,
@@ -54,7 +54,8 @@ defmodule JSONAPIPlug.Mixfile do
         Document: [~r/JSONAPIPlug\.Document\..*/],
         Plugs: [~r/JSONAPIPlug\.Plug\..*/],
         Ecto: [~r/JSONAPIPlug\.(Normalizer|QueryParser)\.Ecto\.*/],
-        Parsers: [~r/JSONAPIPlug\.QueryParser\..*/]
+        Parsers: [~r/JSONAPIPlug\.QueryParser\..*/],
+        Behaviours: [~r/JSONAPIPlug\.(Normalizer|QueryParser)/]
       ]
     ]
   end

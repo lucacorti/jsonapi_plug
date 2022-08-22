@@ -1,32 +1,19 @@
-defmodule JSONAPIPlug.Plug.Include do
+defmodule JSONAPIPlug.QueryParser.Ecto.Include do
   @moduledoc """
-  Plug for parsing the 'include' JSON:API query parameter
+  JSON:API 'include' query parameter parser implementation for Ecto
+
+  Expects `include` parameter to be in the [JSON:API include](https://jsonapi.org/format/#fetching-includes)
+  format and converts them to Ecto `preload` format for ease of use with `Ecto.Repo` functions.
   """
 
-  alias JSONAPIPlug.{Exceptions.InvalidQuery, View}
-  alias Plug.Conn
+  alias JSONAPIPlug.{Exceptions.InvalidQuery, QueryParser, View}
 
-  @behaviour Plug
+  @behaviour QueryParser
 
-  @impl Plug
-  def init(opts), do: opts
+  @impl QueryParser
+  def parse(_jsonapi, nil), do: []
 
-  @impl Plug
-  def call(
-        %Conn{private: %{jsonapi_plug: %JSONAPIPlug{} = jsonapi_plug}, query_params: query_params} =
-          conn,
-        _opts
-      ) do
-    Conn.put_private(
-      conn,
-      :jsonapi_plug,
-      %JSONAPIPlug{jsonapi_plug | include: parse_include(jsonapi_plug, query_params["include"])}
-    )
-  end
-
-  defp parse_include(%JSONAPIPlug{include: include}, nil), do: include
-
-  defp parse_include(%JSONAPIPlug{view: view}, include) when is_binary(include) do
+  def parse(%JSONAPIPlug{view: view}, include) when is_binary(include) do
     include
     |> String.split(",", trim: true)
     |> Enum.map(fn include ->
@@ -37,7 +24,7 @@ defmodule JSONAPIPlug.Plug.Include do
     |> valid_includes(view)
   end
 
-  defp parse_include(%JSONAPIPlug{view: view}, include) do
+  def parse(%JSONAPIPlug{view: view}, include) do
     raise InvalidQuery, type: view.type(), param: :include, value: include
   end
 

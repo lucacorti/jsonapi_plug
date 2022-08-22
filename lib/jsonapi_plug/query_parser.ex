@@ -2,7 +2,7 @@ defmodule JSONAPIPlug.QueryParser do
   @moduledoc """
   Parses a JSON:API query parameter to a user defined format.
 
-  You can implement a custom format for JSON:API query parameters that do not define
+  You can implement a custom format for `JSON:API` query parameters that do not define
   a standard format: filter, page and sort.
 
   To customize the default parser implement a module adopting the `JSONAPIPlug.QueryParser`
@@ -36,7 +36,7 @@ defmodule JSONAPIPlug.QueryParser do
   attribute with the same name as the query parameter in the `JSONAPIPlug` structure in the conn
   `private` assigns so that you can retrieve it and use it in your application logic.
 
-  You can return a standard JSON:API error to the client by raising `JSONAPIPlug.Exceptions.InvalidQuery`
+  You can return a standard `JSON:API` error to the client by raising `JSONAPIPlug.Exceptions.InvalidQuery`
   exception at any point in your parser code.
   """
 

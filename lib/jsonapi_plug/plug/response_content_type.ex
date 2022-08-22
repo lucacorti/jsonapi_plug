@@ -1,6 +1,8 @@
 defmodule JSONAPIPlug.Plug.ResponseContentType do
   @moduledoc """
-  Sets the JSON:API mime type on responses.
+  Plug for setting the response content type
+
+  Registers a before send function that sets the `JSON:API` content type on responses.
   """
 
   alias Plug.Conn

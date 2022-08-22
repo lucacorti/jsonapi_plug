@@ -1,5 +1,7 @@
 defmodule JSONAPIPlug.Plug.QueryParam do
   @moduledoc """
+  JSON:API Query Paramter parser plug
+
   Plug for parsing a JSON:API query parameter via a `JSONAPI.QueryParser` implementation.
   """
 

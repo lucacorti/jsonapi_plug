@@ -2,7 +2,7 @@ defmodule JSONAPIPlug do
   @moduledoc """
   JSON:API Context
 
-  Stores configuration and parsed request information
+  Stores configuration and parsed request data. See the `JSONAPIPlug.Plug` module for more information.
   """
 
   alias JSONAPIPlug.{API, Document, Resource, View}
@@ -12,18 +12,18 @@ defmodule JSONAPIPlug do
   @type t :: %__MODULE__{
           api: API.t(),
           document: Document.t() | nil,
-          fields: %{Resource.type() => [Resource.field()]},
+          fields: term(),
           filter: term(),
-          include: keyword(keyword()),
+          include: term(),
           page: term(),
           sort: term(),
           view: View.t()
         }
   defstruct api: nil,
             document: nil,
-            fields: %{},
+            fields: nil,
             filter: nil,
-            include: [],
+            include: nil,
             page: nil,
             sort: nil,
             view: nil

@@ -46,20 +46,24 @@ defmodule JSONAPIPlug.API do
       type: :string
     ],
     normalizer: [
-      doc: "Normalizer for transformation of JSON:API document to and from user data",
+      doc: "Normalizer for transformation of `JSON:API` document to and from user data",
       type: :atom,
       default: JSONAPIPlug.Normalizer.Ecto
     ],
     query_parsers: [
-      doc: "Normalizer for transformation of JSON:API document to and from user data",
+      doc: "Parsers for transformation of `JSON:API` request query parameters to user data",
       type: :keyword_list,
       keys: [
-        filter: [doc: "Filter parser", type: :atom, default: JSONAPIPlug.QueryParser.Filter],
-        page: [doc: "Page parser", type: :atom, default: JSONAPIPlug.QueryParser.Page],
-        sort: [doc: "Sort parser", type: :atom, default: JSONAPIPlug.QueryParser.Ecto.Sort]
+        fields: [doc: "Fields", type: :atom, default: JSONAPIPlug.QueryParser.Ecto.Fields],
+        filter: [doc: "Filter", type: :atom, default: JSONAPIPlug.QueryParser.Filter],
+        include: [doc: "Include", type: :atom, default: JSONAPIPlug.QueryParser.Ecto.Include],
+        page: [doc: "Page", type: :atom, default: JSONAPIPlug.QueryParser.Page],
+        sort: [doc: "Sort", type: :atom, default: JSONAPIPlug.QueryParser.Ecto.Sort]
       ],
       default: [
+        fields: JSONAPIPlug.QueryParser.Ecto.Fields,
         filter: JSONAPIPlug.QueryParser.Filter,
+        include: JSONAPIPlug.QueryParser.Ecto.Include,
         page: JSONAPIPlug.QueryParser.Page,
         sort: JSONAPIPlug.QueryParser.Ecto.Sort
       ]
@@ -78,7 +82,7 @@ defmodule JSONAPIPlug.API do
       type: {:in, [:http, :https]}
     ],
     version: [
-      doc: "[JSON:API](https://jsonapi.org) version advertised in the document",
+      doc: "`JSON:API` version advertised in the document",
       type: {:in, [:"1.0"]},
       default: :"1.0"
     ]

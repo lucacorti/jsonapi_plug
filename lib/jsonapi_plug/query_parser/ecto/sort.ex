@@ -1,10 +1,11 @@
 defmodule JSONAPIPlug.QueryParser.Ecto.Sort do
   @moduledoc """
-  JSON:API 'sort' query parameter normalizer implementation for Ecto
+  JSON:API 'sort' query parameter parser implementation for Ecto
 
-  Expects sort parameters to be specified in the recommended [JSON:API sort](https://jsonapi.org/format/#fetching-sorting)
+  Expects sort parameters to be in the *recommended* [JSON:API sort](https://jsonapi.org/format/#fetching-sorting)
   format and converts them to Ecto `order_by` format for ease of use.
   """
+
   alias JSONAPIPlug.{Exceptions.InvalidQuery, QueryParser, View}
 
   @behaviour QueryParser

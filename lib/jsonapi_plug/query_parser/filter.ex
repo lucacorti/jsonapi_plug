@@ -1,8 +1,9 @@
 defmodule JSONAPIPlug.QueryParser.Filter do
   @moduledoc """
-  JSON:API 'filter' query parameter normalizer implementation for Ecto
+  JSON:API 'filter' query parameter parser
 
-  Defaults to returning the value of 'filter' as is, raises otherwise.
+  Since the specification does not define the format for the [JSON:API filter](http://jsonapi.org/format/#fetching-filtering)
+  parameter, the default implementation just returns the value of 'filter' as is.
   """
 
   alias JSONAPIPlug.QueryParser
