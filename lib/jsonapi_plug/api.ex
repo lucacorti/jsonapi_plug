@@ -105,8 +105,8 @@ defmodule JSONAPIPlug.API do
       |> Keyword.pop(:otp_app)
 
     quote do
-      @__otp_app__ unquote(otp_app)
-      def __otp_app__, do: @__otp_app__
+      @doc false
+      def __otp_app__, do: unquote(otp_app)
     end
   end
 
