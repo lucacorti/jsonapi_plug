@@ -21,7 +21,7 @@ defmodule JSONAPIPlug.View do
 
   By default, the resulting JSON document consists of resources taken from your data.
   Only resource  attributes defined on the view will be (de)serialized. You can customize
-  how attributes are handled by using a keyword list of options instead:
+  how attributes are handled by passing a keyword list of options:
 
       defmodule MyApp.UsersView do
         use JSONAPIPlug.View,
@@ -34,9 +34,9 @@ defmodule JSONAPIPlug.View do
         defp fullname(resource, conn), do: "\#{resouce.first_name} \#{resource.last_name}"
       end
 
-  For example here we are defining a computed attribute by passing the `serialize` option a function reference.
+  In this example we are defining a computed attribute by passing the `serialize` option a function reference.
   Serialization functions take `resource` and `conn` as arguments and return the attribute value to be serialized.
-  The `deserialize` option set to `false` makes sure the attribute is ignored when deserializing data from requests.
+  The `deserialize` option set to `false` makes sure the attribute is not deserialized when receiving a request.
 
   ## Relationships
 
