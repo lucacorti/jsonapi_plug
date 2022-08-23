@@ -32,7 +32,7 @@ defmodule JSONAPIPlug.API do
   @config_schema [
     case: [
       doc:
-        "This option controls how your API's field names will be cased. The current [JSON:API Spec (v1.0)](https://jsonapi.org/format/1.0/) recommends dasherizing (e.g. `\"favorite-color\": \"blue\"`), while the upcoming [JSON:API Spec (v1.1)](https://jsonapi.org/format/1.1/) recommends camelCase (e.g. `\"favoriteColor\": \"blue\"`)",
+        "This option controls how your API's field names will be cased. The current [JSON:API Specification (v1.0)](https://jsonapi.org/format/1.0/) recommends dasherizing (e.g. `\"favorite-color\": \"blue\"`), while the upcoming [JSON:API Specification (v1.1)](https://jsonapi.org/format/1.1/) recommends camelCase (e.g. `\"favoriteColor\": \"blue\"`)",
       type: {:in, [:camelize, :dasherize, :underscore]},
       default: :camelize
     ],

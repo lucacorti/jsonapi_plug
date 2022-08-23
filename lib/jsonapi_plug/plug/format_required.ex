@@ -2,7 +2,7 @@ defmodule JSONAPIPlug.Plug.FormatRequired do
   @moduledoc """
   Enforces the JSON:API format for request bodies
 
-  See the [spec](https://jsonapi.org/format/#crud-updating-to-many-relationships).
+  See the [specification](https://jsonapi.org/format/#crud-updating-to-many-relationships).
   """
 
   alias JSONAPIPlug.{Document.ErrorObject, View}

@@ -4,12 +4,12 @@ Server library to build [JSON:API](http://jsonapi.org) compliant REST APIs.
 
 ## JSON:API Support
 
-This library currently implements [version 1.0](https://jsonapi.org/format/1.0/) of the `JSON:API` spec.
+This library currently implements [version 1.0](https://jsonapi.org/format/1.0/) of the `JSON:API` specification.
 
 ## Documentation
 
 - [Full docs here](https://hexdocs.pm/jsonapi_plug)
-- [JSON API Spec (v1.0)](https://jsonapi.org/format/1.0/)
+- [JSON API Specification (v1.0)](https://jsonapi.org/format/1.0/)
 
 ## Badges
 
@@ -55,7 +55,7 @@ defmodule MyApp.PostsController do
 end
 ```
 
-This will take care of ensuring `JSON:API` spec compliance and will return errors for malformed requests.
+This will take care of ensuring `JSON:API` specification compliance and will return errors for invalid requests.
 
 The `:api` option expects a module using `JSONAPI.API` for configuration.
 
