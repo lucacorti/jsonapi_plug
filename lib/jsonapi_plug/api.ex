@@ -19,8 +19,6 @@ defmodule JSONAPIPlug.API do
     ```
   """
 
-  alias JSONAPIPlug.Pagination
-
   @options_schema [
     otp_app: [
       doc: "OTP application to use for API configuration.",
@@ -89,14 +87,6 @@ defmodule JSONAPIPlug.API do
   ]
 
   @type t :: module()
-
-  @type case :: JSONAPIPlug.case()
-  @type host :: String.t()
-  @type namespace :: String.t()
-  @type pagination :: Pagination.t()
-  @type http_port :: pos_integer()
-  @type scheme :: :http | :https
-  @type version :: :"1.0"
 
   defmacro __using__(options) do
     {otp_app, _options} =

@@ -3,9 +3,11 @@ defmodule JSONAPIPlug.Document.JSONAPIObject do
   JSON:API Document JSON:API Object
   """
 
-  alias JSONAPIPlug.{API, Document, Exceptions.InvalidDocument}
+  alias JSONAPIPlug.{Document, Exceptions.InvalidDocument}
 
-  @type t :: %__MODULE__{meta: map() | nil, version: API.version()}
+  @type version :: :"1.0"
+
+  @type t :: %__MODULE__{meta: map() | nil, version: version()}
   defstruct meta: nil, version: nil
 
   @spec deserialize(Document.payload()) :: t() | no_return()
