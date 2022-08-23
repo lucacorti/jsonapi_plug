@@ -73,14 +73,7 @@ defmodule JSONAPIPlug.View do
       config :my_app, MyApp.API, host: "adifferenthost.com"
   """
 
-  alias JSONAPIPlug.{
-    API,
-    Document,
-    Document.ErrorObject,
-    Document.ResourceObject,
-    Normalizer.Ecto
-  }
-
+  alias JSONAPIPlug.{API, Document, Document.ErrorObject, Document.ResourceObject}
   alias Plug.Conn
 
   @attribute_schema [
@@ -266,6 +259,7 @@ defmodule JSONAPIPlug.View do
     end
   end
 
+  @doc "Returns the field name for a field definition"
   @spec field_name(field()) :: field_name()
   def field_name(field) when is_atom(field), do: field
   def field_name({name, nil}), do: name
@@ -275,6 +269,7 @@ defmodule JSONAPIPlug.View do
     raise "invalid field definition: #{inspect(field)}"
   end
 
+  @doc "Returns the value of a field option for a field definition"
   @spec field_option(field(), atom()) :: term()
   def field_option(name, _option) when is_atom(name), do: nil
   def field_option({_name, nil}, _option), do: nil
@@ -286,6 +281,7 @@ defmodule JSONAPIPlug.View do
     raise "invalid field definition: #{inspect(field)}"
   end
 
+  @doc "Returns the view for a relationship of a specific type."
   @spec for_related_type(t(), ResourceObject.type()) :: t() | nil
   def for_related_type(view, type) do
     Enum.find_value(view.relationships(), fn {_relationship, options} ->
@@ -301,9 +297,17 @@ defmodule JSONAPIPlug.View do
 
   @spec render(t(), Conn.t(), data() | nil, Document.meta() | nil, options()) ::
           Document.t() | no_return()
-  def render(view, conn, data \\ nil, meta \\ nil, options \\ []) do
+  def render(
+        view,
+        %Conn{private: %{jsonapi_plug: %JSONAPIPlug{} = jsonapi_plug}} = conn,
+        data \\ nil,
+        meta \\ nil,
+        options \\ []
+      ) do
+    normalizer = API.get_config(jsonapi_plug.api, [:normalizer])
+
     view
-    |> Ecto.normalize(conn, data, meta, options)
+    |> normalizer.normalize(conn, data, meta, options)
     |> Document.serialize()
   end
 

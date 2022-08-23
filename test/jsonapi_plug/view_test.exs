@@ -191,34 +191,42 @@ defmodule JSONAPIPlug.ViewTest do
   end
 
   test "show renders with data, conn" do
+    conn = conn(:get, "/") |> UnderscoringPostPlug.call([])
+
     assert %Document{
              data: %ResourceObject{
                attributes: %{
                  "body" => "hi"
                }
              }
-           } = View.render(CommentView, nil, %Comment{id: 1, body: "hi"})
+           } = View.render(CommentView, conn, %Comment{id: 1, body: "hi"})
   end
 
   test "show renders with data, conn, meta" do
+    conn = conn(:get, "/") |> UnderscoringPostPlug.call([])
+
     assert %Document{
              meta: %{total_pages: 100}
-           } = View.render(CommentView, nil, %Comment{id: 1, body: "hi"}, %{total_pages: 100})
+           } = View.render(CommentView, conn, %Comment{id: 1, body: "hi"}, %{total_pages: 100})
   end
 
   test "index renders with data, conn" do
+    conn = conn(:get, "/") |> UnderscoringPostPlug.call([])
+
     assert %Document{
              data: [
                %ResourceObject{attributes: %{"body" => "hi"}}
              ]
-           } = View.render(CommentView, nil, [%Comment{id: 1, body: "hi"}])
+           } = View.render(CommentView, conn, [%Comment{id: 1, body: "hi"}])
   end
 
   test "index renders with data, conn, meta" do
+    conn = conn(:get, "/") |> UnderscoringPostPlug.call([])
+
     assert %Document{meta: %{total_pages: 100}} =
              View.render(
                CommentView,
-               nil,
+               conn,
                [%Comment{id: 1, body: "hi"}],
                %{total_pages: 100}
              )
@@ -261,6 +269,8 @@ defmodule JSONAPIPlug.ViewTest do
   end
 
   test "attributes/2 can return only requested fields" do
+    conn = conn(:get, "/?fields[post]=body") |> UnderscoringPostPlug.call([])
+
     assert %Document{
              data: %ResourceObject{
                id: "1",
@@ -270,9 +280,7 @@ defmodule JSONAPIPlug.ViewTest do
            } =
              View.render(
                PostView,
-               %Conn{
-                 private: %{jsonapi_plug: %JSONAPIPlug{fields: %{PostView.type() => [:body]}}}
-               },
+               conn,
                %Post{id: 1, body: "Chunky", title: "Bacon", text: "Gello"}
              )
 
