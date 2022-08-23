@@ -30,7 +30,7 @@ defmodule JSONAPIPlug.Normalizer do
   and by configuring in in your api configuration:
 
   ```elixir
-  config :my_app, MyAPP.API, normalizer: MyAPP.API.Normalizer
+  config :my_app, MyApp.API, normalizer: MyAPP.API.Normalizer
   ```
 
   The normalizer takes the preparsed `JSONAPI.Document` as input and its return value

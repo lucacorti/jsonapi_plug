@@ -74,7 +74,7 @@ defmodule MyApp.Post do
   @type t :: %__MODULE__{id: pos_integer(), body: String.t(), title: String.t()}
 
   @enforce_keys [:id, :body, :title]
-  defstruct id: nil, body: "", title: ""
+  defstruct [:id, :body, :title]
 end
 ```
 
@@ -143,4 +143,4 @@ See the `JSONAPIPlug.Plug` and `JSONAPIPlug.View` modules documentation for more
 
 - This project was born as a fork of [JSONAPI](https://hexdocs.pm/jsonapi_plug) but was almost completely rewritten and is now a different project, therefore the APIs are not compatible.
 - PRs for new features, bug fixes, documentation and tests are welcome
-- If you are proposing a large feature, please open an issue for discussion
+- If you are proposing a large feature or change, please open an issue for discussion
