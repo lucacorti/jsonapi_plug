@@ -59,8 +59,8 @@ defmodule JSONAPIPlug.Plug do
 
   The `sort` query parameter format is not defined, however the specification suggests to use a
   format for encoding sorting by attribute names with an optional `-` prefix to invert ordering
-  direction. The default implementation accepts the suggested format and converts it to data usable
-  as `order_by` arguments to Ecto queries.
+  direction. The default implementation accepts the suggested format and converts it to usable
+  as `order_by` option to `Ecto.Repo` functions.
 
   The `filter` and `page` query parameters format is not defined by the JSON:API specification,
   therefore the default implementation just copies the value of the query parameters in `JSONAPIPlug`.
