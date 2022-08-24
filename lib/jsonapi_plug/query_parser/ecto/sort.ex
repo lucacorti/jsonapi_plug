@@ -20,21 +20,23 @@ defmodule JSONAPIPlug.QueryParser.Ecto.Sort do
 
     sort
     |> String.split(",", trim: true)
-    |> Enum.flat_map(fn field ->
-      [_, direction, name] = Regex.run(~r/(-?)(\S*)/, field)
+    |> Enum.map(fn name ->
+      direction = if String.starts_with?(name, "-"), do: :desc, else: :asc
 
-      unless name in valid_sort_fields do
-        raise InvalidQuery, type: jsonapi_plug.view.type(), param: :sort, value: field
+      field_name =
+        name
+        |> String.trim_leading("-")
+        |> JSONAPIPlug.recase(:underscore)
+
+      unless field_name in valid_sort_fields do
+        raise InvalidQuery, type: jsonapi_plug.view.type(), param: :sort, value: name
       end
 
-      build_sort(direction, String.to_existing_atom(name))
+      {direction, String.to_existing_atom(field_name)}
     end)
   end
 
   def parse(%JSONAPIPlug{view: view}, sort) do
     raise InvalidQuery, type: view.type(), param: :sort, value: inspect(sort)
   end
-
-  defp build_sort("", field), do: [asc: field]
-  defp build_sort("-", field), do: [desc: field]
 end
