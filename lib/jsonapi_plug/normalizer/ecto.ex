@@ -188,13 +188,14 @@ defmodule JSONAPIPlug.Normalizer.Ecto do
           |> requested_fields(view, conn)
           |> Enum.reduce(%{}, fn attribute, attributes ->
             name = View.field_name(attribute)
+            key = View.field_option(attribute, :name) || View.field_name(attribute)
 
             case View.field_option(attribute, :serialize) do
               false ->
                 attributes
 
               serialize when serialize in [true, nil] ->
-                value = Map.get(data, name)
+                value = Map.get(data, key)
 
                 Map.put(attributes, recase_field(conn, name), value)
 
