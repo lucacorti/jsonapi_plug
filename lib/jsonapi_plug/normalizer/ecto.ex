@@ -36,15 +36,15 @@ defmodule JSONAPIPlug.Normalizer.Ecto do
 
   defp denormalize_resource(document, %ResourceObject{} = resource_object, view, conn) do
     %{}
-    |> denormalize_resource_id(resource_object, view, conn)
-    |> denormalize_resource_attributes(resource_object, view, conn)
+    |> denormalize_id(resource_object, view, conn)
+    |> denormalize_attributes(resource_object, view, conn)
     |> denormalize_relationships(resource_object, document, view, conn)
   end
 
-  defp denormalize_resource_id(params, resource_object, view, _conn),
+  defp denormalize_id(params, resource_object, view, _conn),
     do: Map.put(params, to_string(view.id_attribute()), resource_object.id || resource_object.lid)
 
-  defp denormalize_resource_attributes(params, %ResourceObject{} = resource_object, view, conn) do
+  defp denormalize_attributes(params, %ResourceObject{} = resource_object, view, conn) do
     Enum.reduce(view.attributes(), params, fn attribute, params ->
       name = View.field_name(attribute)
       deserialize = View.field_option(attribute, :deserialize)
@@ -216,8 +216,8 @@ defmodule JSONAPIPlug.Normalizer.Ecto do
           |> Enum.filter(&relationship_loaded?(Map.get(data, elem(&1, 0))))
           |> Enum.into(%{}, fn relationship ->
             name = View.field_name(relationship)
-            related_data = Map.get(data, name)
-            type = recase_field(conn, name)
+            key = View.field_option(relationship, :name) || View.field_name(relationship)
+            related_data = Map.get(data, key)
             related_view = View.field_option(relationship, :view)
             related_many = View.field_option(relationship, :many)
 
@@ -233,7 +233,10 @@ defmodule JSONAPIPlug.Normalizer.Ecto do
                   reference: nil
 
               {_related_many, related_data} ->
-                {type, normalize_relationship(related_view, conn, related_data)}
+                {
+                  recase_field(conn, name),
+                  normalize_relationship(related_view, conn, related_data)
+                }
             end
           end)
     }
