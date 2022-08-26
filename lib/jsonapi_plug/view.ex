@@ -11,7 +11,7 @@ defmodule JSONAPIPlug.View do
           attributes: [:id, :username]
       end
 
-  See `t:options/0` for all available options you can pass to "use" `JSONAPIPlug.View`.
+  See `t:options/0` for all available options you can pass to `use JSONAPIPlug.View`.
 
   You can now call `UsersView.render("show.json", %{data: user})` or `View.render(UsersView, conn, user)`
   to render a valid JSON:API document from your data. If you use phoenix, you can use:
