@@ -4,7 +4,7 @@ Server library to build [JSON:API](http://jsonapi.org) compliant REST APIs.
 
 ## JSON:API Support
 
-This library currently implements [version 1.0](https://jsonapi.org/format/1.0/) of the `JSON:API` specification.
+This library currently implements version `1.0`] of the [JSON:API](https://jsonapi.org) specification.
 
 ## Documentation
 
@@ -59,7 +59,7 @@ This will take care of ensuring `JSON:API` specification compliance and will ret
 
 The `:api` option expects a module using `JSONAPI.API` for configuration.
 
-The `:view` option expects a module using `JSONAPIPlug.View` to convert data to and from `JSON:API` format.
+The `:view` option expects a module using `JSONAPIPlug.View` to convert to/from `JSON:API` format.
 
 When requests are processed, the `:jsonapi_plug` connection private field is populated with the parsed request.
 
@@ -136,6 +136,8 @@ To use the view module in Phoenix, just call render and pass the data from your 
     end
   end
 ```
+
+If you have a `Plug` application, you can call `JSONAPIPlug.View.render/5` to generate a `JSONAPI.Document` with your data for the client. The structure is serializable to JSON with `Jason`.
 
 See the `JSONAPIPlug.Plug` and `JSONAPIPlug.View` modules documentation for more information.
 
