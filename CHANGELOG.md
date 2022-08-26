@@ -15,4 +15,4 @@ What `jsonapi_plug` has to offer to users of Phoenix/Plug for quickly building `
 
 ### Contributors
 
-Just me: @lucacorti
+@lucacorti
