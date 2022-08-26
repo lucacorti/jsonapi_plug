@@ -141,6 +141,7 @@ See the `JSONAPIPlug.Plug` and `JSONAPIPlug.View` modules documentation for more
 
 ## Contributing
 
-- This project was born as a fork of [JSONAPI](https://hexdocs.pm/jsonapi_plug) but was almost completely rewritten and is now a different project, therefore the APIs are not compatible.
+- This project was born as a fork of the [jsonapi](https://github.com/beam-community/jsonapi)
+library but has since been completely rewritten and is now a completely different project.
 - PRs for new features, bug fixes, documentation and tests are welcome
 - If you are proposing a large feature or change, please open an issue for discussion
