@@ -65,6 +65,11 @@ defmodule JSONAPIPlug.Document do
   """
   @type links :: %{atom() => LinkObject.t()}
 
+  @typedoc """
+  JSONA:API Document
+
+  https://jsonapi.org/format/#document-structure
+  """
   @type t :: %__MODULE__{
           data: data() | View.data() | nil,
           errors: errors() | nil,
