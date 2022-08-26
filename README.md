@@ -4,7 +4,7 @@ Server library to build [JSON:API](http://jsonapi.org) compliant REST APIs.
 
 ## JSON:API Support
 
-This library currently implements version `1.0`] of the [JSON:API](https://jsonapi.org) specification.
+This library currently implements version `1.0` of the [JSON:API](https://jsonapi.org) specification.
 
 ## Documentation
 
