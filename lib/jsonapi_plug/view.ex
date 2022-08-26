@@ -410,7 +410,7 @@ defmodule JSONAPIPlug.View do
   @doc """
   Related View based on JSON:API type
 
-  Returns the view used for relationships of the requested type byy the passed view.
+  Returns the view used to handle relationships of the requested type by the passed view.
   """
   @spec for_related_type(t(), ResourceObject.type()) :: t() | nil
   def for_related_type(view, type) do

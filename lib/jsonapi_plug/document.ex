@@ -80,6 +80,12 @@ defmodule JSONAPIPlug.Document do
         }
   defstruct [:data, :errors, :included, :jsonapi, :links, :meta]
 
+  @doc """
+  Deserialize JSON:API Document
+
+  Takes a map representing a JSON:API Document as input, validates it
+  and parses it into a `t:t/0` struct.
+  """
   @spec deserialize(payload()) :: t() | no_return()
   def deserialize(data) do
     %__MODULE__{}
@@ -164,6 +170,12 @@ defmodule JSONAPIPlug.Document do
 
   defp deserialize_meta(document, _data), do: document
 
+  @doc """
+  Serialize a Document struct representing a JSON:API Document
+
+  Takes a `t:t/0` struct representing a JSON:API Document as input, validates
+  it and returns the struct if valid.
+  """
   @spec serialize(t()) :: t() | no_return()
   def serialize(document) do
     document
