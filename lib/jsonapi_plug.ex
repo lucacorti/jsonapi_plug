@@ -41,8 +41,8 @@ defmodule JSONAPIPlug do
   @doc """
   Recase resource fields
 
-  Changes the case of resource field names to the specified case, leaving ignoring underscores
-  or dashes that are not between letters/numbers
+  Changes the case of resource field names to the specified case, ignoring underscores
+  or dashes that are not between letters/numbers.
 
   ## Examples
 
