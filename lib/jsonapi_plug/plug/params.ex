@@ -1,6 +1,11 @@
 defmodule JSONAPIPlug.Plug.Params do
   @moduledoc """
   Transforms conn body params to denormalized form
+
+  This plug uses the configured normalizer (which defaults to `JSONAPIPlug.Normalizer.Ecto`) to
+  transform the received `JSON:API` document into the format suitable for application use.
+
+  The returned data replaces `Plug.Conn` `body_params` and is added to `params` under a "data" key.
   """
 
   alias JSONAPIPlug.API

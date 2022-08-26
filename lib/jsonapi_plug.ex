@@ -1,8 +1,10 @@
 defmodule JSONAPIPlug do
   @moduledoc """
-  JSON:API Context
+  JSONAPIPlug request data containter
 
-  Stores configuration and parsed request data. See the `JSONAPIPlug.Plug` module for more information.
+  This defines a struct for storing configuration and request data. `JSONAPIPlug.Plug` populates
+  its attributes by means of a number of other plug modules used to parse and validate requests
+  and stores it in the `Plug.Conn` private assings under the `jsonapi_plug` key.
   """
 
   alias JSONAPIPlug.{API, Document, View}

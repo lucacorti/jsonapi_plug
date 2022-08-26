@@ -2,7 +2,7 @@ defmodule JSONAPIPlug.API do
   @moduledoc """
     JSON:API API Configuration
 
-    You can define an API by calling `use JSONAPIPlug.API` in your module
+    You can define an API by "use-ing" `JSONAPIPlug.API` in your API module:
 
     ```elixir
     defmodule MyApp.API do
@@ -10,13 +10,15 @@ defmodule JSONAPIPlug.API do
     end
     ```
 
-    API module behavior can be customized via your application configuration:
+    API module configuration can be customized via your application configuration:
 
     ```elixir
     config :my_app, MyApp.API,
       namespace: "api",
       case: :dasherize
     ```
+
+    See `t:options/0` for all available configuration options.
   """
 
   @options_schema [
@@ -30,7 +32,7 @@ defmodule JSONAPIPlug.API do
   @config_schema [
     case: [
       doc:
-        "This option controls how your API's field names will be cased. The current [JSON:API Specification (v1.0)](https://jsonapi.org/format/1.0/) recommends dasherizing (e.g. `\"favorite-color\": \"blue\"`), while the upcoming [JSON:API Specification (v1.1)](https://jsonapi.org/format/1.1/) recommends camelCase (e.g. `\"favoriteColor\": \"blue\"`)",
+        "This option controls how your API's field names will be cased. The current [JSON:API Specification (v1.0)](https://jsonapi.org/format/1.0/) recommends dasherizing (e.g. `\"favorite-color\": \"blue\"`), while the upcoming [JSON:API Specification (v1.1)](https://jsonapi.org/format/1.1/) recommends camelCase (e.g. `\"favoriteColor\": \"blue\"`).",
       type: {:in, [:camelize, :dasherize, :underscore]},
       default: :camelize
     ],
@@ -44,19 +46,39 @@ defmodule JSONAPIPlug.API do
       type: :string
     ],
     normalizer: [
-      doc: "Normalizer for transformation of `JSON:API` document to and from user data",
+      doc: "Normalizer for transformation of `JSON:API` document to and from user data.",
       type: :atom,
       default: JSONAPIPlug.Normalizer.Ecto
     ],
     query_parsers: [
-      doc: "Parsers for transformation of `JSON:API` request query parameters to user data",
+      doc: "Parsers for transformation of `JSON:API` request query parameters to user data.",
       type: :keyword_list,
       keys: [
-        fields: [doc: "Fields", type: :atom, default: JSONAPIPlug.QueryParser.Ecto.Fields],
-        filter: [doc: "Filter", type: :atom, default: JSONAPIPlug.QueryParser.Filter],
-        include: [doc: "Include", type: :atom, default: JSONAPIPlug.QueryParser.Ecto.Include],
-        page: [doc: "Page", type: :atom, default: JSONAPIPlug.QueryParser.Page],
-        sort: [doc: "Sort", type: :atom, default: JSONAPIPlug.QueryParser.Ecto.Sort]
+        fields: [
+          doc: "Fields query parameter parser.",
+          type: :atom,
+          default: JSONAPIPlug.QueryParser.Ecto.Fields
+        ],
+        filter: [
+          doc: "Filter query parameter parser.",
+          type: :atom,
+          default: JSONAPIPlug.QueryParser.Filter
+        ],
+        include: [
+          doc: "Include query parameter parser.",
+          type: :atom,
+          default: JSONAPIPlug.QueryParser.Ecto.Include
+        ],
+        page: [
+          doc: "Page query parameter parser.",
+          type: :atom,
+          default: JSONAPIPlug.QueryParser.Page
+        ],
+        sort: [
+          doc: "Sort query parameter parser.",
+          type: :atom,
+          default: JSONAPIPlug.QueryParser.Ecto.Sort
+        ]
       ],
       default: [
         fields: JSONAPIPlug.QueryParser.Ecto.Fields,
@@ -88,11 +110,18 @@ defmodule JSONAPIPlug.API do
 
   @type t :: module()
 
+  @typedoc """
+  API configuration options:
+
+  #{NimbleOptions.docs(@config_schema)}
+  """
+  @type options :: keyword()
+
   defmacro __using__(options) do
-    {otp_app, _options} =
+    otp_app =
       options
       |> NimbleOptions.validate!(@options_schema)
-      |> Keyword.pop(:otp_app)
+      |> Keyword.fetch!(:otp_app)
 
     quote do
       @doc false
@@ -101,15 +130,12 @@ defmodule JSONAPIPlug.API do
   end
 
   @doc """
-  Retrieve a configuration parameter
+  Retrieve a configuration option
 
-  Retrieves an API configuration parameter value, with fallback to a default value
-  in case the configuration parameter is not present.
-
-  Available options are:
-  #{NimbleOptions.docs(@config_schema)}
+  Retrieves an API configuration option value, with fallback to a default value
+  in case the configuration option is not present.
   """
-  @spec get_config(t() | nil, [atom()], any()) :: any()
+  @spec get_config(t() | nil, [atom()], term()) :: term()
   def get_config(api, path, default \\ nil)
 
   def get_config(nil = _api, _path, default), do: default

@@ -1,12 +1,17 @@
 defmodule JSONAPIPlug.View do
   @moduledoc """
-  A View is simply a module that describes how to render your data as JSON:API resources:
+  A View is simply a module that describes how to render your data as JSON:API resources.
+
+  You can implement a view by "use-ing" the `JSONAPIPlug.View` module, which is recommeded, or
+  by adopting the `JSONAPIPlug.View` behaviour and implementing all of the callback functions:
 
       defmodule MyApp.UsersView do
         use JSONAPIPlug.View,
           type: "user",
           attributes: [:id, :username]
       end
+
+  See `t:options/0` for all available options you can pass to "use" `JSONAPIPlug.View`.any()
 
   You can now call `UsersView.render("show.json", %{data: user})` or `View.render(UsersView, conn, user)`
   to render a valid JSON:API document from your data. If you use phoenix, you can use:
@@ -61,8 +66,8 @@ defmodule JSONAPIPlug.View do
           relationships: [post: [view: MyApp.PostsView]]
       end
 
-  When requesting `GET /posts?include=author`, if the author key is present on the data you pass from the controller
-  and you are using the `JSONAPIPlug.Plug` it will appear in the `included` section of the JSON:API response.
+  When requesting `GET /posts?include=author`, if the author key is present on the data you pass from the
+  controller it will appear in the `included` section of the JSON:API response.
 
   ## Links
 
@@ -122,12 +127,14 @@ defmodule JSONAPIPlug.View do
                  [
                    {:list, :atom},
                    {:keyword_list, [*: [type: [keyword_list: [keys: @attribute_schema]]]]}
-                 ]}
+                 ]},
+              default: []
             ],
             id_attribute: [
               doc:
                 "Attribute on your data to be used as the JSON:API resource id. Defaults to :id",
-              type: :atom
+              type: :atom,
+              default: :id
             ],
             path: [
               doc: "A custom path to be used for the resource. Defaults to the type value.",
@@ -137,7 +144,8 @@ defmodule JSONAPIPlug.View do
               doc:
                 "Resource relationships. This will be used to (de)serialize requests/responses",
               type: :keyword_list,
-              keys: [*: [type: :non_empty_keyword_list, keys: @relationship_schema]]
+              keys: [*: [type: :non_empty_keyword_list, keys: @relationship_schema]],
+              default: []
             ],
             type: [
               doc: "Resource type. To be used as the JSON:API resource type value",
@@ -146,19 +154,46 @@ defmodule JSONAPIPlug.View do
             ]
           )
 
+  @typedoc """
+  View module
+
+  A Module adopting the `JSONAPIPlug.View` behaviour
+  """
   @type t :: module()
 
   @typedoc """
-  View options\n#{NimbleOptions.docs(@schema)}
+  View options
+
+  #{NimbleOptions.docs(@schema)}
   """
   @type options :: keyword()
 
+  @typedoc """
+  Resource data
+
+  User data representing a single resource
+  """
   @type resource :: term()
 
+  @typedoc """
+  View data
+
+  View data is either a resource or a list of resources
+  """
   @type data :: resource() | [resource()]
 
+  @typedoc """
+  View meta
+
+  A free form map containing metadata to be rendered
+  """
   @type meta :: Document.meta()
 
+  @typedoc """
+  View field name
+
+  The name of a View field (attribute or relationship)
+  """
   @type field_name :: atom()
 
   @typedoc """
@@ -170,35 +205,100 @@ defmodule JSONAPIPlug.View do
           deserialize: boolean() | (resource(), Conn.t() -> term())
         ]
 
+  @typedoc """
+  View attributes
+
+  A keyword list composed of attribute names and their options
+  """
   @type attributes :: [field_name()] | [{field_name(), attribute_options()}]
 
   @typedoc """
-  Relationship options\n#{NimbleOptions.docs(NimbleOptions.new!(@relationship_schema))}
+  Relationship options
+
+  #{NimbleOptions.docs(NimbleOptions.new!(@relationship_schema))}
   """
   @type relationship_options :: [many: boolean(), name: field_name(), view: t()]
+
+  @typedoc """
+  View attributes
+
+  A keyword list composed of relationship names and their options
+  """
   @type relationships :: [{field_name(), relationship_options()}]
 
   @type field ::
           field_name() | {field_name(), attribute_options() | relationship_options()}
 
+  @doc """
+  Resource Id
+
+  Returns the Resource Id of a resource for the view.
+  """
   @callback id(resource()) :: ResourceObject.id()
+
+  @doc """
+  Resource Id Attribute
+
+  Returns the attribute used to fetch resource ids for resources by the view.
+  """
   @callback id_attribute :: field_name()
+
+  @doc """
+  Resource attributes
+
+  Returns the keyword list of resource attributes for the view.
+  """
   @callback attributes :: attributes()
+
+  @doc """
+  Resource links
+
+  Returns the resource links to be returned for resources by the view.
+  """
   @callback links(resource(), Conn.t() | nil) :: Document.links()
+
+  @doc """
+  Resource meta
+
+  Returns the resource meta to be returned for resources by the view.
+  """
   @callback meta(resource(), Conn.t() | nil) :: Document.meta()
+
+  @doc """
+  View path
+
+  Returns the path to prepend to resources for the view.
+  """
   @callback path :: String.t() | nil
+
+  @doc """
+  Resource relationships
+
+  Returns the keyword list of resource relationships for the view.
+  """
   @callback relationships :: relationships()
+
+  @doc """
+  Resource Type
+
+  Returns the Resource Type of resources for the view.
+  """
   @callback type :: ResourceObject.type()
 
   defmacro __using__(options \\ []) do
-    {attributes, options} = Keyword.pop(options, :attributes, [])
-    {id_attribute, options} = Keyword.pop(options, :id_attribute, :id)
-    {path, options} = Keyword.pop(options, :path)
-    {relationships, options} = Keyword.pop(options, :relationships, [])
-    {type, _options} = Keyword.pop(options, :type)
+    options =
+      options
+      |> Macro.prewalk(&Macro.expand(&1, __CALLER__))
+      |> NimbleOptions.validate!(@schema)
+
+    attributes = Keyword.fetch!(options, :attributes)
+    id_attribute = Keyword.fetch!(options, :id_attribute)
+    path = Keyword.get(options, :path)
+    relationships = Keyword.fetch!(options, :relationships)
+    type = Keyword.fetch!(options, :type)
 
     if field =
-         Enum.concat(attributes, relationships)
+         Stream.concat(attributes, relationships)
          |> Enum.find(&(JSONAPIPlug.View.field_name(&1) in [:id, :type])) do
       name = JSONAPIPlug.View.field_name(field)
       view = Module.split(__CALLER__.module) |> List.last()
@@ -207,8 +307,6 @@ defmodule JSONAPIPlug.View do
     end
 
     quote do
-      NimbleOptions.validate!(unquote(options), unquote(Macro.escape(@schema)))
-
       @behaviour JSONAPIPlug.View
 
       @impl JSONAPIPlug.View
@@ -259,7 +357,11 @@ defmodule JSONAPIPlug.View do
     end
   end
 
-  @doc "Returns the field name for a field definition"
+  @doc """
+  Field option
+
+  Returns the name of the attribute or relationship for the field definition.
+  """
   @spec field_name(field()) :: field_name()
   def field_name(field) when is_atom(field), do: field
   def field_name({name, nil}), do: name
@@ -269,7 +371,11 @@ defmodule JSONAPIPlug.View do
     raise "invalid field definition: #{inspect(field)}"
   end
 
-  @doc "Returns the value of a field option for a field definition"
+  @doc """
+  Field option
+
+  Returns the value of the attribute or relationship option for the field definition.
+  """
   @spec field_option(field(), atom()) :: term()
   def field_option(name, _option) when is_atom(name), do: nil
   def field_option({_name, nil}, _option), do: nil
@@ -281,7 +387,11 @@ defmodule JSONAPIPlug.View do
     raise "invalid field definition: #{inspect(field)}"
   end
 
-  @doc "Returns the view for a relationship of a specific type."
+  @doc """
+  Related View based on JSON:API type
+
+  Returns the view used for relationships of the requested type byy the passed view.
+  """
   @spec for_related_type(t(), ResourceObject.type()) :: t() | nil
   def for_related_type(view, type) do
     Enum.find_value(view.relationships(), fn {_relationship, options} ->
@@ -295,6 +405,11 @@ defmodule JSONAPIPlug.View do
     end)
   end
 
+  @doc """
+  Render JSON:API response
+
+  Renders the JSON:API response for the specified View.
+  """
   @spec render(t(), Conn.t(), data() | nil, Document.meta() | nil, options()) ::
           Document.t() | no_return()
   def render(
@@ -311,6 +426,7 @@ defmodule JSONAPIPlug.View do
     |> Document.serialize()
   end
 
+  @doc false
   @spec send_error(Conn.t(), Conn.status(), [ErrorObject.t()]) :: Conn.t()
   def send_error(conn, status, errors) do
     conn
@@ -328,11 +444,21 @@ defmodule JSONAPIPlug.View do
     |> Conn.halt()
   end
 
+  @doc """
+  Generate relationships link
+
+  Generates the relationships link for a resource.
+  """
   @spec url_for_relationship(t(), resource(), Conn.t() | nil, ResourceObject.type()) :: String.t()
   def url_for_relationship(view, resource, conn, relationship_type) do
     Enum.join([url_for(view, resource, conn), "relationships", relationship_type], "/")
   end
 
+  @doc """
+  Generates the resource link
+
+  Generates the resource link for a resource.
+  """
   @spec url_for(t(), data() | nil, Conn.t() | nil) :: String.t()
   def url_for(view, resource, conn) when is_nil(resource) or is_list(resource) do
     conn

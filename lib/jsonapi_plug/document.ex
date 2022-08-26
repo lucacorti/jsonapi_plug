@@ -2,7 +2,8 @@ defmodule JSONAPIPlug.Document do
   @moduledoc """
   JSON:API Document
 
-  Handles serialization, deserialization and validation of `JSON:API` Documents.
+  This module defines the structure of a `JSON:API` document and functions that handle
+  serialization and deserialization. This also handles validation of `JSON:API` documents.
 
   https://jsonapi.org/format/#document-structure
   """

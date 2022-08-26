@@ -3,6 +3,10 @@ defmodule JSONAPIPlug.Plug.QueryParam do
   JSON:API Query Paramter parser plug
 
   Plug for parsing a JSON:API query parameter via a `JSONAPI.QueryParser` implementation.
+
+  It takes an atom corresponding to the query parameter name to parse as its only option
+  and stores the returned value in the `JSONAPIPlug` struct stored in `Plug.Conn` private
+  assigns under the `jsonapi_plug` key.
   """
 
   alias JSONAPIPlug.API
