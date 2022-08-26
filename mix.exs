@@ -6,7 +6,7 @@ defmodule JSONAPIPlug.Mixfile do
       app: :jsonapi_plug,
       version: "1.0.0",
       package: package(),
-      description: " JSON:API library for Phoenix and Plug applications ",
+      description: " JSON:API library for Plug and Phoenix applications",
       elixir: "~> 1.10",
       elixirc_paths: elixirc_paths(Mix.env()),
       build_embedded: Mix.env() == :prod,

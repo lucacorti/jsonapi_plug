@@ -1,4 +1,4 @@
-# JSON:API library for Phoenix and Plug applications
+# JSON:API library for Plug and Phoenix applications
 
 Server library to build [JSON:API](http://jsonapi.org) compliant REST APIs.
 

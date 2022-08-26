@@ -2,7 +2,7 @@
 
 ## 1.0.0 "Garetto Basso" (2022-09-01)
 
-First release of `jsonapi_plug`, a JSON:API library for Phoenix and Plug applications.
+First release of `jsonapi_plug`, a JSON:API library for Plug and Phoenix applications.
 This started as a fork of the `jsonapi` library but has been almost completely rewritten.
 
 What `jsonapi_plug` has to offer to users of Phoenix/Plug for quickly building `JSON:API` compliant APIs:
