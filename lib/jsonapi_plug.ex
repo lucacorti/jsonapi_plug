@@ -1,6 +1,6 @@
 defmodule JSONAPIPlug do
   @moduledoc """
-  JSONAPIPlug request data containter
+  JSONAPIPlug context
 
   This defines a struct for storing configuration and request data. `JSONAPIPlug.Plug` populates
   its attributes by means of a number of other plug modules used to parse and validate requests
