@@ -32,15 +32,17 @@ defmodule JSONAPIPlug do
 
   @doc """
   JSON:API MIME type
+
+  Returns the JSON:API MIME type.
   """
   @spec mime_type :: String.t()
   def mime_type, do: "application/vnd.api+json"
 
   @doc """
-  Recase Resource fields for serialization
+  Recase resource fields
 
-  Replace underscores or dashes between words in `value` with camelCasing
-  Ignores underscores or dashes that are not between letters/numbers
+  Changes the case of resource field names to the specified case, leaving ignoring underscores
+  or dashes that are not between letters/numbers
 
   ## Examples
 
