@@ -358,7 +358,8 @@ defmodule JSONAPIPlug.View do
         It takes the action (one of "create.json", "index.json", "show.json", "update.json") and
         the assings as a keyword list or map with atom keys.
         """
-        @spec render(action :: String.t(), assigns :: keyword() | %{atom() => term()}) :: Conn.t()
+        @spec render(action :: String.t(), assigns :: keyword() | %{atom() => term()}) ::
+                Document.t() | no_return()
         def render(action, assigns)
             when action in ["create.json", "index.json", "show.json", "update.json"] do
           JSONAPIPlug.View.render(
