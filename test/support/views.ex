@@ -118,7 +118,7 @@ defmodule JSONAPIPlug.TestSupport.Views do
       ]
 
     @impl JSONAPIPlug.View
-    def meta(%Post{} = post, _conn), do: %{meta_text: "meta_#{post.text}"}
+    def meta(%Post{} = post, _conn), do: %{"meta_text" => "meta_#{post.text}"}
   end
 
   defmodule TagView do
