@@ -10,7 +10,7 @@ defmodule JSONAPIPlug.Document.ResourceIdentifierObject do
   @type t :: %__MODULE__{
           id: ResourceObject.id(),
           type: ResourceObject.type(),
-          meta: Document.meta()
+          meta: Document.meta() | nil
         }
   defstruct [:id, :type, :meta]
 

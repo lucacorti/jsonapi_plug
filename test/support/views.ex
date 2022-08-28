@@ -47,9 +47,7 @@ defmodule JSONAPIPlug.TestSupport.Views do
         queue: "/expensive-post/queue/#{resource.id}",
         promotions: %{
           href: "/promotions?rel=#{resource.id}",
-          meta: %{
-            title: "Stuff you might be interested in"
-          }
+          meta: %{"title" => "Stuff you might be interested in"}
         }
       }
     end

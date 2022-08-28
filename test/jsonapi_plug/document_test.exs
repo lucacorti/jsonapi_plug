@@ -15,10 +15,10 @@ defmodule JSONAPIPlug.DocumentTest do
     end
 
     test "serialize includes meta as top level member" do
-      assert %Document{meta: %{total_pages: 10}} =
+      assert %Document{meta: %{"total_pages" => 10}} =
                Document.serialize(%Document{
                  data: %ResourceObject{id: "1", type: "post", attributes: %{"text" => "Hello"}},
-                 meta: %{total_pages: 10}
+                 meta: %{"total_pages" => 10}
                })
 
       assert %Document{meta: nil} =
@@ -26,19 +26,19 @@ defmodule JSONAPIPlug.DocumentTest do
     end
 
     test "serialize includes meta only if provided" do
-      assert %Document{data: %ResourceObject{meta: %{meta_text: "meta_Hello"}}, meta: nil} =
+      assert %Document{data: %ResourceObject{meta: %{"meta_text" => "meta_Hello"}}} =
                Document.serialize(%Document{
                  data: %ResourceObject{
                    id: "1",
                    attributes: %{"text" => "Hello"},
-                   meta: %{meta_text: "meta_Hello"}
+                   meta: %{"meta_text" => "meta_Hello"}
                  }
                })
 
-      assert %Document{data: %ResourceObject{id: "1", type: "comment"}, meta: %{cool: true}} =
+      assert %Document{data: %ResourceObject{id: "1", type: "comment"}, meta: %{"cool" => true}} =
                Document.serialize(%Document{
                  data: %ResourceObject{id: "1", type: "comment"},
-                 meta: %{cool: true}
+                 meta: %{"cool" => true}
                })
     end
 

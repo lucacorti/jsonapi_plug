@@ -11,8 +11,8 @@ defmodule JSONAPIPlug.Document.ErrorObject do
           code: String.t() | nil,
           detail: String.t() | nil,
           id: String.t() | nil,
-          links: %{String.t() => String.t()} | nil,
-          meta: %{String.t() => String.t()} | nil,
+          links: Document.links() | nil,
+          meta: Document.meta() | nil,
           source: %{pointer: String.t()} | nil,
           status: String.t() | nil,
           title: String.t() | nil

@@ -206,8 +206,9 @@ defmodule JSONAPIPlug.ViewTest do
     conn = conn(:get, "/") |> UnderscoringPostPlug.call([])
 
     assert %Document{
-             meta: %{total_pages: 100}
-           } = View.render(CommentView, conn, %Comment{id: 1, body: "hi"}, %{total_pages: 100})
+             meta: %{"total_pages" => 100}
+           } =
+             View.render(CommentView, conn, %Comment{id: 1, body: "hi"}, %{"total_pages" => 100})
   end
 
   test "index renders with data, conn" do
@@ -223,12 +224,12 @@ defmodule JSONAPIPlug.ViewTest do
   test "index renders with data, conn, meta" do
     conn = conn(:get, "/") |> UnderscoringPostPlug.call([])
 
-    assert %Document{meta: %{total_pages: 100}} =
+    assert %Document{meta: %{"total_pages" => 100}} =
              View.render(
                CommentView,
                conn,
                [%Comment{id: 1, body: "hi"}],
-               %{total_pages: 100}
+               %{"total_pages" => 100}
              )
   end
 

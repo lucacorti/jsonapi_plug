@@ -7,7 +7,7 @@ defmodule JSONAPIPlug.Document.JSONAPIObject do
 
   @type version :: :"1.0"
 
-  @type t :: %__MODULE__{meta: map() | nil, version: version()}
+  @type t :: %__MODULE__{meta: Document.meta() | nil, version: version()}
   defstruct meta: nil, version: nil
 
   @spec deserialize(Document.payload()) :: t() | no_return()

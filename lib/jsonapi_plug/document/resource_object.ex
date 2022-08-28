@@ -14,15 +14,15 @@ defmodule JSONAPIPlug.Document.ResourceObject do
 
   @type id :: String.t()
   @type type :: String.t()
-  @type links :: %{atom() => LinkObject.t()}
 
   @type t :: %__MODULE__{
           id: id(),
           lid: id(),
           type: type(),
-          attributes: Document.value() | nil,
-          relationships: %{String.t() => [RelationshipObject.t()]} | nil,
-          links: links() | nil
+          attributes: %{String.t() => Document.value()} | nil,
+          links: Document.links() | nil,
+          meta: Document.meta() | nil,
+          relationships: %{String.t() => [RelationshipObject.t()]} | nil
         }
   defstruct id: nil,
             lid: nil,
