@@ -41,8 +41,19 @@ defmodule JSONAPIPlug.Normalizer.Ecto do
     |> denormalize_relationships(resource_object, document, view, conn)
   end
 
-  defp denormalize_id(params, resource_object, view, _conn),
-    do: Map.put(params, to_string(view.id_attribute()), resource_object.id || resource_object.lid)
+  defp denormalize_id(params, resource_object, view, %Conn{
+         private: %{jsonapi_plug: %JSONAPIPlug{} = jsonapi_plug}
+       }) do
+    client_generated_ids = API.get_config(jsonapi_plug.api, [:client_generated_ids], false)
+
+    if client_generated_ids && is_nil(resource_object.id) do
+      raise InvalidDocument,
+        message: "Resource ID not received in request and API requires Client-Generated IDs",
+        reference: "https://jsonapi.org/format/1.0/#crud-creating-client-ids"
+    end
+
+    Map.put(params, to_string(view.id_attribute()), resource_object.id)
+  end
 
   defp denormalize_attributes(params, %ResourceObject{} = resource_object, view, conn) do
     Enum.reduce(view.attributes(), params, fn attribute, params ->
