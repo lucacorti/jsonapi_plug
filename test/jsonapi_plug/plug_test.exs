@@ -504,12 +504,23 @@ defmodule JSONAPIPlug.PlugTest do
       assert %Conn{private: %{jsonapi_plug: %JSONAPIPlug{sort: [asc: :body, desc: :title]}}} =
                conn(:get, "/?sort=body,-title")
                |> MyPostViewPlug.call([])
+
+      assert %Conn{private: %{jsonapi_plug: %JSONAPIPlug{sort: [asc: :author_first_name]}}} =
+               conn(:get, "/?sort=author.firstName")
+               |> MyPostViewPlug.call([])
     end
 
     test "parse_sort/2 raises on invalid sorts" do
       assert_raise InvalidQuery, "invalid parameter sort=name for type my-type", fn ->
-        conn(:get, "/?sort=name")
-        |> MyPostViewPlug.call([])
+        MyPostViewPlug.call(conn(:get, "/?sort=name"), [])
+      end
+
+      assert_raise InvalidQuery, "invalid parameter sort=no_prop for type user", fn ->
+        MyPostViewPlug.call(conn(:get, "/?sort=author.noProp"), [])
+      end
+
+      assert_raise InvalidQuery, "invalid parameter sort=no_rel for type my-type", fn ->
+        MyPostViewPlug.call(conn(:get, "/?sort=noRel"), [])
       end
     end
 
