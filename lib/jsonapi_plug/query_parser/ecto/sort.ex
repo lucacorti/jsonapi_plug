@@ -14,29 +14,62 @@ defmodule JSONAPIPlug.QueryParser.Ecto.Sort do
   def parse(_jsonapi_plug, nil), do: []
 
   def parse(%JSONAPIPlug{} = jsonapi_plug, sort) when is_binary(sort) do
-    valid_sort_fields =
-      jsonapi_plug.view.attributes()
-      |> Enum.map(&to_string(View.field_option(&1, :name) || View.field_name(&1)))
-
     sort
     |> String.split(",", trim: true)
-    |> Enum.map(fn name ->
-      direction = if String.starts_with?(name, "-"), do: :desc, else: :asc
-
-      field_name =
-        name
-        |> String.trim_leading("-")
-        |> JSONAPIPlug.recase(:underscore)
-
-      unless field_name in valid_sort_fields do
-        raise InvalidQuery, type: jsonapi_plug.view.type(), param: :sort, value: name
-      end
-
-      {direction, String.to_existing_atom(field_name)}
+    |> Enum.map(fn field_name ->
+      direction = if String.starts_with?(field_name, "-"), do: :desc, else: :asc
+      {direction, parse_sort_field(field_name, jsonapi_plug.view)}
     end)
   end
 
   def parse(%JSONAPIPlug{view: view}, sort) do
     raise InvalidQuery, type: view.type(), param: :sort, value: inspect(sort)
+  end
+
+  defp parse_sort_field(field_name, view) do
+    field_name
+    |> JSONAPIPlug.recase(:underscore)
+    |> String.trim_leading("-")
+    |> String.split(".", trim: true)
+    |> parse_sort_components(view, [])
+  end
+
+  defp parse_sort_components([field_name], view, components) do
+    valid_attributes =
+      Enum.map(
+        view.attributes(),
+        &to_string(View.field_option(&1, :name) || View.field_name(&1))
+      )
+
+    unless field_name in valid_attributes do
+      raise InvalidQuery, type: view.type(), param: :sort, value: field_name
+    end
+
+    [field_name | components]
+    |> Enum.reverse()
+    |> Enum.join("_")
+    |> String.to_existing_atom()
+  end
+
+  defp parse_sort_components([field_name | rest], view, components) do
+    relationships = view.relationships()
+
+    valid_relationships =
+      Enum.map(
+        relationships,
+        &to_string(View.field_option(&1, :name) || View.field_name(&1))
+      )
+
+    unless field_name in valid_relationships do
+      raise InvalidQuery, type: view.type(), param: :sort, value: field_name
+    end
+
+    related_view =
+      Enum.find_value(relationships, fn relationship ->
+        String.to_existing_atom(field_name) == View.field_name(relationship) &&
+          View.field_option(relationship, :view)
+      end)
+
+    parse_sort_components(rest, related_view, [field_name | components])
   end
 end
