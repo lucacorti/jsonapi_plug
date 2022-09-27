@@ -83,7 +83,7 @@ and define a view module to render your resource:
 ```elixir
 defmodule MyApp.PostsView do
   use JSONAPIPlug.View,
-    type: "post"
+    type: "post",
     attributes: [
       title: nil,
       text: nil,
