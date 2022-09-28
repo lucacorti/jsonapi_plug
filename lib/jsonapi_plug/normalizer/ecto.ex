@@ -103,6 +103,9 @@ defmodule JSONAPIPlug.Normalizer.Ecto do
             message: "Single resource for many relationship during normalization",
             reference: nil
 
+        {_many, %RelationshipObject{data: nil}} ->
+          Map.put(params, key <> "_id", nil)
+
         {_many,
          %RelationshipObject{data: %ResourceIdentifierObject{} = resource_identifier} =
              related_relationship} ->
