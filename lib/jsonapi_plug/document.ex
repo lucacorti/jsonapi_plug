@@ -12,8 +12,6 @@ defmodule JSONAPIPlug.Document do
     Document.ErrorObject,
     Document.JSONAPIObject,
     Document.LinkObject,
-    Document.RelationshipObject,
-    Document.ResourceIdentifierObject,
     Document.ResourceObject,
     Exceptions.InvalidDocument,
     View
@@ -231,25 +229,26 @@ defmodule JSONAPIPlug.Document do
   end
 
   defp serialize_meta(document), do: document
+end
 
-  defimpl Jason.Encoder,
-    for: [
-      __MODULE__,
-      ErrorObject,
-      LinkObject,
-      ResourceIdentifierObject,
-      ResourceObject,
-      RelationshipObject
-    ] do
-    def encode(document, options) do
-      document
-      |> Map.from_struct()
-      |> Enum.reduce(%{}, fn
-        {_key, nil}, data -> data
-        {_key, %{} = map}, data when map_size(map) == 0 -> data
-        {key, value}, data -> Map.put(data, key, value)
-      end)
-      |> Jason.Encode.map(options)
-    end
+defimpl Jason.Encoder,
+  for: [
+    JSONAPIPlug.Document,
+    JSONAPIPlug.Document.ErrorObject,
+    JSONAPIPlug.Document.JSONAPIObject,
+    JSONAPIPlug.Document.LinkObject,
+    JSONAPIPlug.Document.RelationshipObject,
+    JSONAPIPlug.Document.ResourceIdentifierObject,
+    JSONAPIPlug.Document.ResourceObject
+  ] do
+  def encode(document, options) do
+    document
+    |> Map.from_struct()
+    |> Enum.reduce(%{}, fn
+      {_key, nil}, data -> data
+      {_key, %{} = map}, data when map_size(map) == 0 -> data
+      {key, value}, data -> Map.put(data, key, value)
+    end)
+    |> Jason.Encode.map(options)
   end
 end
