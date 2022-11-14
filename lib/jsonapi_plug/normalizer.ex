@@ -5,7 +5,7 @@ defmodule JSONAPIPlug.Normalizer do
   The default implementation transforms `JSON:API`documents in requests to an ecto
   friendly format and expects `Ecto.Schema` instances when rendering data in responses.
   The data it produces is stored under the `:params` key of the `JSONAPIPlug` struct
-  placed in the conn private assigns.
+  that will be stored in the `Plug.Conn` private assign `:jsonapi_plug`.
 
   You can customize normalization to convert your application data to and from
   the `JSONAPIPlug.Document` data structure by providing an implementation of
