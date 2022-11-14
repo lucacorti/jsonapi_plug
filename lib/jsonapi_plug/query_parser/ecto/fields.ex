@@ -33,7 +33,7 @@ defmodule JSONAPIPlug.QueryParser.Ecto.Fields do
           ArgumentError ->
             reraise InvalidQuery.exception(
                       type: view.type(),
-                      param: :fields,
+                      param: "fields",
                       value: value
                     ),
                     __STACKTRACE__
@@ -45,7 +45,7 @@ defmodule JSONAPIPlug.QueryParser.Ecto.Fields do
         false when size > 0 ->
           raise InvalidQuery,
             type: view.type(),
-            param: :fields,
+            param: "fields",
             value:
               requested_fields
               |> MapSet.difference(valid_fields)
@@ -59,7 +59,7 @@ defmodule JSONAPIPlug.QueryParser.Ecto.Fields do
   end
 
   def parse(%JSONAPIPlug{view: view}, fields) do
-    raise InvalidQuery, type: view.type(), param: :fields, value: fields
+    raise InvalidQuery, type: view.type(), param: "fields", value: fields
   end
 
   defp attributes_for_type(view, type) do
@@ -67,7 +67,7 @@ defmodule JSONAPIPlug.QueryParser.Ecto.Fields do
       Enum.map(view.attributes(), &View.field_name/1)
     else
       case View.for_related_type(view, type) do
-        nil -> raise InvalidQuery, type: view.type(), param: :fields, value: type
+        nil -> raise InvalidQuery, type: view.type(), param: "fields", value: type
         related_view -> Enum.map(related_view.attributes(), &View.field_name/1)
       end
     end

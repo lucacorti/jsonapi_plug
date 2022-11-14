@@ -23,7 +23,7 @@ defmodule JSONAPIPlug.QueryParser.Ecto.Sort do
   end
 
   def parse(%JSONAPIPlug{view: view}, sort) do
-    raise InvalidQuery, type: view.type(), param: :sort, value: inspect(sort)
+    raise InvalidQuery, type: view.type(), param: "sort", value: inspect(sort)
   end
 
   defp parse_sort_field(field_name, view) do
@@ -42,7 +42,7 @@ defmodule JSONAPIPlug.QueryParser.Ecto.Sort do
       )
 
     unless field_name in valid_attributes do
-      raise InvalidQuery, type: view.type(), param: :sort, value: field_name
+      raise InvalidQuery, type: view.type(), param: "sort", value: field_name
     end
 
     [field_name | components]
@@ -61,7 +61,7 @@ defmodule JSONAPIPlug.QueryParser.Ecto.Sort do
       )
 
     unless field_name in valid_relationships do
-      raise InvalidQuery, type: view.type(), param: :sort, value: field_name
+      raise InvalidQuery, type: view.type(), param: "sort", value: field_name
     end
 
     related_view =

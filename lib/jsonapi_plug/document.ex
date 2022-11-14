@@ -133,7 +133,7 @@ defmodule JSONAPIPlug.Document do
   end
 
   defp deserialize_included(_document, %{"included" => included})
-       when is_list(included) do
+       when not is_nil(included) do
     raise InvalidDocument,
       message: "Document 'included' must be a list",
       reference: "https://jsonapi.org/format/#document-top-level"
@@ -160,7 +160,7 @@ defmodule JSONAPIPlug.Document do
   defp deserialize_meta(document, %{"meta" => meta}) when is_map(meta),
     do: %__MODULE__{document | meta: meta}
 
-  defp deserialize_meta(_document, %{"meta" => _meta}) do
+  defp deserialize_meta(_document, %{"meta" => meta}) when not is_nil(meta) do
     raise InvalidDocument,
       message: "Document 'meta' must be an object",
       reference: "https://jsonapi.org/format/#document-meta"

@@ -36,6 +36,12 @@ defmodule JSONAPIPlug.API do
       type: {:in, [:camelize, :dasherize, :underscore]},
       default: :camelize
     ],
+    client_generated_ids: [
+      doc:
+        "Enable support for Client-Generated IDs. When enabled, the resources received in requests are supposed to contain a valid 'id'.",
+      type: :boolean,
+      default: false
+    ],
     host: [
       doc: "Hostname used for link generation instead of deriving it from the connection.",
       type: :string

@@ -2,11 +2,11 @@ defmodule JSONAPIPlug.Plug.Document do
   @moduledoc """
   Plug for parsing the JSON:API Document in requests
 
-  It parses the `JSON:API` document in the request body to a `JSOANAPIPlug.Document` struct
-  and stores it in the `Plug.Conn` private assigns for later use by other plugs and application code.
+  It parses the `JSON:API` document in the request body to a `JSONAPIPlug.Document` struct
+  and stores it in the `Plug.Conn` private assigns for later use by other plugs.
   """
 
-  alias JSONAPIPlug.Document
+  alias JSONAPIPlug.{Document, Normalizer}
   alias Plug.Conn
 
   @behaviour Plug
@@ -24,10 +24,13 @@ defmodule JSONAPIPlug.Plug.Document do
           conn,
         _opts
       ) do
+    document = Document.deserialize(body_params)
+    body_params = Normalizer.denormalize(document, jsonapi_plug.view, conn)
+
     Conn.put_private(
       conn,
       :jsonapi_plug,
-      %JSONAPIPlug{jsonapi_plug | document: Document.deserialize(body_params)}
+      %JSONAPIPlug{jsonapi_plug | document: document, params: body_params}
     )
   end
 end

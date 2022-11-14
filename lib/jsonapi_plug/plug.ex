@@ -70,6 +70,8 @@ defmodule JSONAPIPlug.Plug do
   adopting the `JSONAPIPlug.QueryParser` behaviour and configuring it through `JSONAPIPlug.API` configuration.
   """
 
+  alias JSONAPIPlug.{Document, Exceptions}
+
   @options_schema NimbleOptions.new!(
                     api: [
                       doc: "A module use-ing `JSONAPIPlug.API` to provide configuration",
@@ -89,12 +91,15 @@ defmodule JSONAPIPlug.Plug do
   """
   @type options :: keyword()
 
+  require Logger
+
+  alias Plug.Conn.Status
+
   use Plug.Builder
+  use Plug.ErrorHandler
 
   plug :config_request, builder_opts()
   plug JSONAPIPlug.Plug.ContentTypeNegotiation
-  plug JSONAPIPlug.Plug.FormatRequired
-  plug JSONAPIPlug.Plug.IdRequired
   plug JSONAPIPlug.Plug.ResponseContentType
   plug JSONAPIPlug.Plug.QueryParam, :fields
   plug JSONAPIPlug.Plug.QueryParam, :filter
@@ -102,7 +107,6 @@ defmodule JSONAPIPlug.Plug do
   plug JSONAPIPlug.Plug.QueryParam, :page
   plug JSONAPIPlug.Plug.QueryParam, :sort
   plug JSONAPIPlug.Plug.Document
-  plug JSONAPIPlug.Plug.Params
 
   @doc false
   def config_request(conn, options) do
@@ -113,5 +117,58 @@ defmodule JSONAPIPlug.Plug do
     conn
     |> fetch_query_params()
     |> put_private(:jsonapi_plug, %JSONAPIPlug{api: api, view: view})
+  end
+
+  @impl Plug.ErrorHandler
+  def handle_errors(
+        conn,
+        %{kind: :error, reason: %Exceptions.InvalidDocument{} = exception, stack: _stack}
+      ) do
+    send_error(conn, :bad_request, %Document.ErrorObject{
+      detail: "#{exception.message}. See #{exception.reference} for more information."
+    })
+  end
+
+  def handle_errors(
+        conn,
+        %{kind: :error, reason: %Exceptions.InvalidHeader{} = exception, stack: _stack}
+      ) do
+    send_error(conn, exception.status, %Document.ErrorObject{
+      detail: "#{exception.message}. See #{exception.reference} for more information.",
+      source: %{pointer: "/header/" <> exception.header}
+    })
+  end
+
+  def handle_errors(
+        conn,
+        %{kind: :error, reason: %Exceptions.InvalidQuery{} = exception, stack: _stack}
+      ) do
+    send_error(conn, :bad_request, %Document.ErrorObject{
+      detail: exception.message,
+      source: %{pointer: "/query/" <> exception.param}
+    })
+  end
+
+  def handle_errors(conn, %{kind: _kind, reason: _reason, stack: _stack} = error) do
+    Logger.debug("Unhandled exception: #{inspect(error)}")
+    send_resp(conn, 500, "Something went wrong")
+  end
+
+  defp send_error(conn, code, error) do
+    conn
+    |> put_resp_content_type(JSONAPIPlug.mime_type())
+    |> send_resp(
+      code,
+      Jason.encode!(%Document{
+        errors: [
+          %Document.ErrorObject{
+            error
+            | status: to_string(Status.code(code)),
+              title: Status.reason_phrase(Status.code(code))
+          }
+        ]
+      })
+    )
+    |> halt()
   end
 end

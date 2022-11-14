@@ -103,32 +103,32 @@ To use the view module in Phoenix, just call render and pass the data from your 
     plug JSONAPIPlug.Plug, api: MyApp.API, view: MyApp.PostsView
     ...
 
-    def create(%Conn{private: %{jsonapi_plug: _jsonapi_plug}} = conn, params) do
-      post = ...create a post using params["data"] and jsonapi_plug parsed parameters...
+    def create(%Conn{private: %{jsonapi_plug: jsonapi_plug}} = conn, params) do
+      post = ...create a post using jsonapi_plug parsed parameters...
 
       conn
       |> put_view(MyApp.PostsView)
       |> render("create.json", %{data: post})
     end
 
-    def index(%Conn{private: %{jsonapi_plug: _jsonapi_plug}} = conn, _params) do
-      posts = ...load data using jsonapi_plug info...
+    def index(%Conn{private: %{jsonapi_plug: jsonapi_plug}} = conn, _params) do
+      posts = ...load data using jsonapi_plug parsed parameters...
 
       conn
       |> put_view(MyApp.PostsView)
       |> render("index.json", %{data: posts})
     end
 
-    def show(%Conn{private: %{jsonapi_plug: _jsonapi_plug} = conn, _params) do
-      post = ...load data using jsonapi_plug...
+    def show(%Conn{private: %{jsonapi_plug: jsonapi_plug} = conn, _params) do
+      post = ...load data using jsonapi_plug parsed parameters...
       
       conn
       |> put_view(MyApp.PostsView)
       |> render("show.json", %{data: post})
     end
 
-    def udate(%Conn{private: %{jsonapi_plug: _jsonapi_plug}} = conn, params) do
-      post = ...update a post using params["data"] and jsonapi_plug...
+    def udate(%Conn{private: %{jsonapi_plug: jsonapi_plug}} = conn, params) do
+      post = ...update a post using jsonapi_plug parsed parameters...
 
       conn
       |> put_view(MyApp.PostsView)

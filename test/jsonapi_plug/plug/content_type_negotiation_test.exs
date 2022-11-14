@@ -2,6 +2,7 @@ defmodule JSONAPIPlug.Plug.ContentTypeNegotiationTest do
   use ExUnit.Case
   use Plug.Test
 
+  alias JSONAPIPlug.Exceptions.InvalidHeader
   alias JSONAPIPlug.Plug.ContentTypeNegotiation
   alias Plug.Conn
 
@@ -78,75 +79,63 @@ defmodule JSONAPIPlug.Plug.ContentTypeNegotiationTest do
   end
 
   test "halts and returns an error if content-type header contains other media type" do
-    conn =
+    assert_raise InvalidHeader, fn ->
       conn(:post, "/example", "")
       |> Conn.put_req_header("content-type", "text/html")
       |> ContentTypeNegotiation.call([])
-
-    assert conn.halted
-    assert 415 == conn.status
+    end
   end
 
   test "halts and returns an error if content-type header contains other media type params" do
-    conn =
+    assert_raise InvalidHeader, fn ->
       conn(:post, "/example", "")
       |> Conn.put_req_header("content-type", "#{JSONAPIPlug.mime_type()}; version=1.0")
       |> ContentTypeNegotiation.call([])
-
-    assert conn.halted
-    assert 415 == conn.status
+    end
   end
 
   test "halts and returns an error if content-type header contains other media type params (multiple)" do
-    conn =
+    assert_raise InvalidHeader, fn ->
       conn(:post, "/example", "")
       |> Conn.put_req_header(
         "content-type",
         "#{JSONAPIPlug.mime_type()}; version=1.0, #{JSONAPIPlug.mime_type()}; version=1.0"
       )
       |> ContentTypeNegotiation.call([])
-
-    assert conn.halted
-    assert 415 == conn.status
+    end
   end
 
   test "halts and returns an error if content-type header contains other media type params with correct accept header" do
-    conn =
+    assert_raise InvalidHeader, fn ->
       conn(:post, "/example", "")
       |> Conn.put_req_header("content-type", "#{JSONAPIPlug.mime_type()}; version=1.0")
       |> Conn.put_req_header("accept", "#{JSONAPIPlug.mime_type()}")
       |> ContentTypeNegotiation.call([])
-
-    assert conn.halted
-    assert 415 == conn.status
+    end
   end
 
   test "halts and returns an error if accept header contains other media type params" do
-    conn =
+    assert_raise InvalidHeader, fn ->
       conn(:post, "/example", "")
       |> Conn.put_req_header("content-type", JSONAPIPlug.mime_type())
       |> Conn.put_req_header("accept", "#{JSONAPIPlug.mime_type()}; charset=utf-8")
       |> ContentTypeNegotiation.call([])
-
-    assert conn.halted
-    assert 406 == conn.status
+    end
   end
 
   test "halts and returns an error if all accept header media types contain media type params with no content-type" do
-    conn =
+    assert_raise InvalidHeader, fn ->
       conn(:post, "/example", "")
       |> Conn.put_req_header(
         "accept",
         "#{JSONAPIPlug.mime_type()}; version=1.0, #{JSONAPIPlug.mime_type()}; version=1.0"
       )
       |> ContentTypeNegotiation.call([])
-
-    assert conn.halted
-    assert 406 == conn.status
+    end
   end
 
   test "halts and returns an error if all accept header media types contain media type params" do
-    conn =
+    assert_raise InvalidHeader, fn ->
       conn(:post, "/example", "")
       |> Conn.put_req_header("content-type", JSONAPIPlug.mime_type())
       |> Conn.put_req_header(
@@ -154,21 +143,6 @@ defmodule JSONAPIPlug.Plug.ContentTypeNegotiationTest do
         "#{JSONAPIPlug.mime_type()}; version=1.0, #{JSONAPIPlug.mime_type()}; version=1.0"
       )
       |> ContentTypeNegotiation.call([])
-
-    assert conn.halted
-    assert 406 == conn.status
-  end
-
-  test "returned error has correct content type" do
-    conn =
-      conn(:post, "/example", "")
-      |> Conn.put_req_header(
-        "accept",
-        "#{JSONAPIPlug.mime_type()}; version=1.0, #{JSONAPIPlug.mime_type()}; version=1.0"
-      )
-      |> ContentTypeNegotiation.call([])
-
-    assert conn.halted
-    assert Conn.get_resp_header(conn, "content-type") == [JSONAPIPlug.mime_type()]
+    end
   end
 end

@@ -7,6 +7,7 @@ defmodule JSONAPIPlug do
   and stores it in the `Plug.Conn` private assings under the `jsonapi_plug` key.
   """
 
+  alias Plug.Conn
   alias JSONAPIPlug.{API, Document, View}
 
   @type case :: :camelize | :dasherize | :underscore
@@ -17,6 +18,7 @@ defmodule JSONAPIPlug do
           fields: term(),
           filter: term(),
           include: term(),
+          params: Conn.params(),
           page: term(),
           sort: term(),
           view: View.t()
@@ -27,6 +29,7 @@ defmodule JSONAPIPlug do
             filter: nil,
             include: nil,
             page: nil,
+            params: nil,
             sort: nil,
             view: nil
 
