@@ -78,12 +78,7 @@ defmodule JSONAPIPlug.ViewTest do
       assert View.url_for(PostView, %Post{id: 1}, conn) ==
                "http://www.example.com/somespace/posts/1"
 
-      assert View.url_for(PostView, [], nil) == "/posts"
-
-      assert View.url_for(PostView, nil, nil) == "/posts"
-      assert View.url_for(PostView, [], nil) == "/posts"
-      assert View.url_for(PostView, %{id: 1}, nil) == "/posts/1"
-      assert View.url_for(PostView, [], nil) == "/posts"
+      assert View.url_for(PostView, %{id: 1}, conn) == "http://www.example.com/somespace/posts/1"
 
       assert View.url_for(
                PostView,
@@ -92,14 +87,11 @@ defmodule JSONAPIPlug.ViewTest do
              ) ==
                "http://www.example.com:123/somespace/posts"
 
-      assert View.url_for(PostView, %{id: 1}, conn) ==
-               "http://www.example.com/somespace/posts/1"
+      assert View.url_for_relationship(PostView, [], conn, "comments") ==
+               "http://www.example.com/somespace/posts/relationships/comments"
 
-      assert View.url_for_relationship(PostView, [], nil, "comments") ==
-               "/posts/relationships/comments"
-
-      assert View.url_for_relationship(PostView, %Post{id: 1}, nil, "comments") ==
-               "/posts/1/relationships/comments"
+      assert View.url_for_relationship(PostView, %Post{id: 1}, conn, "comments") ==
+               "http://www.example.com/somespace/posts/1/relationships/comments"
     end
   end
 

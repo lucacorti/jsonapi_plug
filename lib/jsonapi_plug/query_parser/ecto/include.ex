@@ -25,7 +25,7 @@ defmodule JSONAPIPlug.QueryParser.Ecto.Include do
   end
 
   def parse(%JSONAPIPlug{view: view}, include) do
-    raise InvalidQuery, type: view.type(), param: :include, value: include
+    raise InvalidQuery, type: view.type(), param: "include", value: include
   end
 
   defp valid_includes(includes, view) do
@@ -75,7 +75,7 @@ defmodule JSONAPIPlug.QueryParser.Ecto.Include do
         if include_name in valid_relationships_includes do
           relationship_includes
         else
-          raise InvalidQuery, type: view.type(), param: :include, value: Enum.join(path, ".")
+          raise InvalidQuery, type: view.type(), param: "include", value: Enum.join(path, ".")
         end
     end)
     |> Keyword.merge(valid_includes, fn _k, a, b -> Keyword.merge(a, b) end)

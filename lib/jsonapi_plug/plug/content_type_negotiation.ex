@@ -6,7 +6,7 @@ defmodule JSONAPIPlug.Plug.ContentTypeNegotiation do
   [the specification](http://jsonapi.org/format/#content-negotiation-servers).
   """
 
-  alias JSONAPIPlug.{Document.ErrorObject, View}
+  alias JSONAPIPlug.Exceptions.InvalidHeader
   alias Plug.Conn
 
   @behaviour Plug
@@ -24,22 +24,20 @@ defmodule JSONAPIPlug.Plug.ContentTypeNegotiation do
         conn
 
       {false, _} ->
-        View.send_error(conn, :unsupported_media_type, [
-          %ErrorObject{
-            detail:
-              "The 'content-type' request header must contain the JSON:API mime type (#{JSONAPIPlug.mime_type()}).\nCheck out https://jsonapi.org/format/#content-negotiation.",
-            source: %{pointer: "/headers/content-type"}
-          }
-        ])
+        raise InvalidHeader,
+          status: :unsupported_content_type,
+          message:
+            "The 'content-type' request header must contain the JSON:API mime type (#{JSONAPIPlug.mime_type()})",
+          reference: "https://jsonapi.org/format/#content-negotiation.",
+          header: "content-type"
 
       {_, false} ->
-        View.send_error(conn, :not_acceptable, [
-          %ErrorObject{
-            detail:
-              "The 'accept' request header must contain the JSON:API mime type (#{JSONAPIPlug.mime_type()}).\nCheck out https://jsonapi.org/format/#content-negotiation.",
-            source: %{pointer: "/headers/accept"}
-          }
-        ])
+        raise InvalidHeader,
+          status: :not_acceptable,
+          message:
+            "The 'accept' request header must contain the JSON:API mime type (#{JSONAPIPlug.mime_type()})",
+          reference: "https://jsonapi.org/format/#content-negotiation",
+          header: "accept"
     end
   end
 

@@ -78,7 +78,7 @@ defmodule JSONAPIPlug.View do
       config :my_app, MyApp.API, host: "adifferenthost.com"
   """
 
-  alias JSONAPIPlug.{API, Document, Document.ErrorObject, Document.ResourceObject}
+  alias JSONAPIPlug.{API, Document, Document.ResourceObject, Normalizer}
   alias Plug.Conn
 
   @attribute_schema [
@@ -230,13 +230,6 @@ defmodule JSONAPIPlug.View do
           field_name() | {field_name(), attribute_options() | relationship_options()}
 
   @doc """
-  Resource Id
-
-  Returns the Resource Id of a resource for the view.
-  """
-  @callback id(resource()) :: ResourceObject.id()
-
-  @doc """
   Resource Id Attribute
 
   Returns the attribute used to fetch resource ids for resources by the view.
@@ -256,6 +249,13 @@ defmodule JSONAPIPlug.View do
   Returns the resource links to be returned for resources by the view.
   """
   @callback links(resource(), Conn.t() | nil) :: Document.links()
+
+  @doc """
+  Resource normalizer
+
+  Returns the resource normalizer for resources by the view.
+  """
+  @callback normalizer :: Normalizer.t()
 
   @doc """
   Resource meta
@@ -293,6 +293,7 @@ defmodule JSONAPIPlug.View do
 
     attributes = Keyword.fetch!(options, :attributes)
     id_attribute = Keyword.fetch!(options, :id_attribute)
+    normalizer = Keyword.get(options, :normalizer)
     path = Keyword.get(options, :path)
     relationships = Keyword.fetch!(options, :relationships)
     type = Keyword.fetch!(options, :type)
@@ -303,19 +304,11 @@ defmodule JSONAPIPlug.View do
       name = JSONAPIPlug.View.field_name(field)
       view = Module.split(__CALLER__.module) |> List.last()
 
-      raise "Illegal field name '#{name}' for view #{view}. Check out https://jsonapi.org/format/#document-resource-object-fields for more information."
+      raise "Illegal field name '#{name}' for view #{view}. See https://jsonapi.org/format/#document-resource-object-fields for more information."
     end
 
     quote do
       @behaviour JSONAPIPlug.View
-
-      @impl JSONAPIPlug.View
-      def id(resource) do
-        case Map.fetch(resource, unquote(id_attribute)) do
-          {:ok, id} -> to_string(id)
-          :error -> raise "Resources must have an id defined"
-        end
-      end
 
       @impl JSONAPIPlug.View
       def id_attribute, do: unquote(id_attribute)
@@ -331,6 +324,9 @@ defmodule JSONAPIPlug.View do
 
       @impl JSONAPIPlug.View
       def path, do: unquote(path)
+
+      @impl JSONAPIPlug.View
+      def normalizer, do: unquote(normalizer)
 
       @impl JSONAPIPlug.View
       def relationships, do: unquote(relationships)
@@ -435,34 +431,14 @@ defmodule JSONAPIPlug.View do
           Document.t() | no_return()
   def render(
         view,
-        %Conn{private: %{jsonapi_plug: %JSONAPIPlug{} = jsonapi_plug}} = conn,
+        conn,
         data \\ nil,
         meta \\ nil,
         options \\ []
       ) do
-    normalizer = API.get_config(jsonapi_plug.api, [:normalizer])
-
     view
-    |> normalizer.normalize(conn, data, meta, options)
+    |> Normalizer.normalize(conn, data, meta, options)
     |> Document.serialize()
-  end
-
-  @doc false
-  @spec send_error(Conn.t(), Conn.status(), [ErrorObject.t()]) :: Conn.t()
-  def send_error(conn, status, errors) do
-    conn
-    |> Conn.update_resp_header("content-type", JSONAPIPlug.mime_type(), & &1)
-    |> Conn.send_resp(
-      status,
-      Jason.encode!(%Document{
-        errors:
-          Enum.map(errors, fn %ErrorObject{} = error ->
-            code = Conn.Status.code(status)
-            %ErrorObject{error | status: to_string(code), title: Conn.Status.reason_phrase(code)}
-          end)
-      })
-    )
-    |> Conn.halt()
   end
 
   @doc """
@@ -487,9 +463,18 @@ defmodule JSONAPIPlug.View do
     |> to_string()
   end
 
-  def url_for(view, resource, conn) do
+  def url_for(
+        view,
+        resource,
+        %Conn{private: %{jsonapi_plug: %JSONAPIPlug{} = jsonapi_plug}} = conn
+      ) do
+    normalizer = view.normalizer() || API.get_config(jsonapi_plug.api, [:normalizer])
+
     conn
-    |> render_uri([view.path() || view.type(), view.id(resource)])
+    |> render_uri([
+      view.path() || view.type(),
+      normalizer.normalize_attribute(resource, view.id_attribute())
+    ])
     |> to_string()
   end
 
