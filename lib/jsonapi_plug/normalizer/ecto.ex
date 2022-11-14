@@ -18,7 +18,7 @@ defmodule JSONAPIPlug.Normalizer.Ecto do
 
   @impl Normalizer
   def denormalize_attribute(params, attribute, value),
-    do: Map.put(params, attribute, value)
+    do: Map.put(params, to_string(attribute), value)
 
   @impl Normalizer
   def denormalize_relationship(
