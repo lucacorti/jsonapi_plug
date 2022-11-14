@@ -11,10 +11,6 @@ This library currently implements version `1.0` of the [JSON:API](https://jsonap
 - [Full docs here](https://hexdocs.pm/jsonapi_plug)
 - [JSON API Specification (v1.0)](https://jsonapi.org/format/1.0/)
 
-## Badges
-
-![CI](https://github.com/lucacorti/jsonapi_plug/workflows/Continuous%20Integration/badge.svg)
-
 ## Quickstart
 
 ### Installation
