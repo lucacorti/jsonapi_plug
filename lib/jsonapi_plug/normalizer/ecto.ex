@@ -28,12 +28,12 @@ defmodule JSONAPIPlug.Normalizer.Ecto do
         value
       ) do
     params
-    |> Map.put(relationship, value)
+    |> Map.put(to_string(relationship), value)
     |> Map.put("#{relationship}_id", data.id)
   end
 
   def denormalize_relationship(params, _relationship_objects, relationship, value),
-    do: Map.put(params, relationship, value)
+    do: Map.put(params, to_string(relationship), value)
 
   @impl Normalizer
   def normalize_attribute(params, attribute), do: Map.get(params, attribute)
