@@ -86,9 +86,9 @@ defmodule JSONAPIPlug.Normalizer do
   defp denormalize_id(
          params,
          %ResourceObject{id: nil},
-         view,
+         _view,
          %Conn{private: %{jsonapi_plug: %JSONAPIPlug{} = jsonapi_plug}},
-         normalizer
+         _normalizer
        ) do
     if API.get_config(jsonapi_plug.api, [:client_generated_ids], false) do
       raise InvalidDocument,
@@ -96,7 +96,7 @@ defmodule JSONAPIPlug.Normalizer do
         reference: "https://jsonapi.org/format/1.0/#crud-creating-client-ids"
     end
 
-    normalizer.denormalize_attribute(params, view.id_attribute(), nil)
+    params
   end
 
   defp denormalize_id(params, %ResourceObject{} = resource_object, view, _conn, normalizer),
