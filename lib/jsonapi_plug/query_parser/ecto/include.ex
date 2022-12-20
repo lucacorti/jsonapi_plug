@@ -18,8 +18,8 @@ defmodule JSONAPIPlug.QueryParser.Ecto.Include do
     |> String.split(",", trim: true)
     |> Enum.map(fn include ->
       include
-      |> JSONAPIPlug.recase(:underscore)
       |> String.split(".", trim: true)
+      |> Enum.map(&JSONAPIPlug.recase(&1, :underscore))
     end)
     |> valid_includes(view)
   end
