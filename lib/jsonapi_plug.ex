@@ -44,7 +44,8 @@ defmodule JSONAPIPlug do
   @doc """
   Recase resource fields
 
-  Changes the case of resource field names to the specified case.
+  Changes the case of resource field names to the specified case, ignoring underscores
+  or dashes that are not between letters/numbers.
 
   ## Examples
 
@@ -55,19 +56,22 @@ defmodule JSONAPIPlug do
       "topPosts"
 
       iex> recase("_top_posts", :camelize)
-      "topPosts"
+      "_topPosts"
 
       iex> recase("_top__posts_", :camelize)
-      "topPosts"
+      "_top__posts_"
+
+      iex> recase("", :camelize)
+      ""
 
       iex> recase("top_posts", :dasherize)
       "top-posts"
 
       iex> recase("_top_posts", :dasherize)
-      "top-posts"
+      "_top-posts"
 
       iex> recase("_top__posts_", :dasherize)
-      "top-posts"
+      "_top__posts_"
 
       iex> recase("top-posts", :underscore)
       "top_posts"
@@ -76,22 +80,42 @@ defmodule JSONAPIPlug do
       "top_posts"
 
       iex> recase("-top-posts", :underscore)
-      "top_posts"
+      "-top_posts"
 
       iex> recase("-top--posts-", :underscore)
-      "top_posts"
+      "-top--posts-"
 
       iex> recase("corgiAge", :underscore)
       "corgi_age"
   """
   @spec recase(View.field_name() | String.t(), case()) :: String.t()
-  def recase(field, to_case) when is_atom(field) do
+  def recase(field, case) when is_atom(field) do
     field
     |> to_string()
-    |> recase(to_case)
+    |> recase(case)
   end
 
-  def recase(field, :camelize), do: Recase.to_camel(field)
-  def recase(field, :dasherize), do: Recase.to_kebab(field)
-  def recase(field, :underscore), do: Recase.underscore(field)
+  def recase("", :camelize), do: ""
+
+  def recase(field, :camelize) do
+    [h | t] =
+      Regex.split(~r{(?<=[a-zA-Z0-9])[-_](?=[a-zA-Z0-9])}, field)
+      |> Enum.filter(&(&1 != ""))
+
+    Enum.join([String.downcase(h) | camelize_list(t)])
+  end
+
+  def recase(field, :dasherize) do
+    String.replace(field, ~r/([a-zA-Z0-9])_([a-zA-Z0-9])/, "\\1-\\2")
+  end
+
+  def recase(field, :underscore) do
+    field
+    |> String.replace(~r/([a-zA-Z\d])-([a-zA-Z\d])/, "\\1_\\2")
+    |> String.replace(~r/([a-z\d])([A-Z])/, "\\1_\\2")
+    |> String.downcase()
+  end
+
+  defp camelize_list([]), do: []
+  defp camelize_list([h | t]), do: [String.capitalize(h) | camelize_list(t)]
 end

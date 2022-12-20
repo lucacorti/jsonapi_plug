@@ -42,8 +42,7 @@ defmodule JSONAPIPlug.Mixfile do
       {:ex_doc, "~> 0.20", only: :dev, runtime: false},
       {:jason, "~> 1.0"},
       {:nimble_options, "~> 0.4"},
-      {:plug, "~> 1.0"},
-      {:recase, "~> 0.7"}
+      {:plug, "~> 1.0"}
     ]
   end
 

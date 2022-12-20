@@ -472,6 +472,9 @@ defmodule JSONAPIPlug.Normalizer do
   defp recase_field(%Conn{private: %{jsonapi_plug: %JSONAPIPlug{} = jsonapi_plug}}, field),
     do: JSONAPIPlug.recase(field, API.get_config(jsonapi_plug.api, [:case], :camelize))
 
+  defp recase_field(_conn, field),
+    do: JSONAPIPlug.recase(field, :camelize)
+
   defp relationship_loaded?(nil), do: false
   defp relationship_loaded?(%{__struct__: Ecto.Association.NotLoaded}), do: false
   defp relationship_loaded?(_value), do: true

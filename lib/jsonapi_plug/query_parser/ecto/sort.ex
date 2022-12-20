@@ -16,12 +16,9 @@ defmodule JSONAPIPlug.QueryParser.Ecto.Sort do
   def parse(%JSONAPIPlug{} = jsonapi_plug, sort) when is_binary(sort) do
     sort
     |> String.split(",", trim: true)
-    |> Enum.map(fn
-      "-" <> field_name ->
-        {:desc, parse_sort_field(field_name, jsonapi_plug.view)}
-
-      field_name ->
-        {:asc, parse_sort_field(field_name, jsonapi_plug.view)}
+    |> Enum.map(fn field_name ->
+      direction = if String.starts_with?(field_name, "-"), do: :desc, else: :asc
+      {direction, parse_sort_field(field_name, jsonapi_plug.view)}
     end)
   end
 
@@ -31,8 +28,9 @@ defmodule JSONAPIPlug.QueryParser.Ecto.Sort do
 
   defp parse_sort_field(field_name, view) do
     field_name
+    |> JSONAPIPlug.recase(:underscore)
+    |> String.trim_leading("-")
     |> String.split(".", trim: true)
-    |> Enum.map(&JSONAPIPlug.recase(&1, :underscore))
     |> parse_sort_components(view, [])
   end
 
