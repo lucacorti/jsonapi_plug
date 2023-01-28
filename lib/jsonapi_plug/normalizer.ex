@@ -30,6 +30,7 @@ defmodule JSONAPIPlug.Normalizer do
   You can return an error during parsing by raising `JSONAPIPlug.Exceptions.InvalidDocument` at
   any point in your normalizer code.
   """
+
   alias JSONAPIPlug.{
     API,
     Document,

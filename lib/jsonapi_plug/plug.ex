@@ -70,8 +70,6 @@ defmodule JSONAPIPlug.Plug do
   adopting the `JSONAPIPlug.QueryParser` behaviour and configuring it through `JSONAPIPlug.API` configuration.
   """
 
-  alias JSONAPIPlug.{Document, Exceptions}
-
   @options_schema NimbleOptions.new!(
                     api: [
                       doc: "A module use-ing `JSONAPIPlug.API` to provide configuration",
@@ -91,12 +89,13 @@ defmodule JSONAPIPlug.Plug do
   """
   @type options :: keyword()
 
-  require Logger
-
-  alias Plug.Conn.Status
-
   use Plug.Builder
   use Plug.ErrorHandler
+
+  require Logger
+
+  alias JSONAPIPlug.{Document, Exceptions}
+  alias Plug.Conn.Status
 
   plug :config_request, builder_opts()
   plug JSONAPIPlug.Plug.ContentTypeNegotiation
