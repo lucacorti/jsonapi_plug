@@ -3,7 +3,7 @@ defmodule JSONAPIPlug.Plug.Params do
   Plug for parsing the JSON:API Document in requests
 
   It parses the `JSON:API` document in the request body to a `JSONAPIPlug.Document` struct,
-  notmalizes and stores it in the `Plug.Conn` private assigns for later use.
+  notmalizes it and stores params in the `Plug.Conn` private assigns for later use.
   """
 
   alias JSONAPIPlug.{Document, Normalizer}
