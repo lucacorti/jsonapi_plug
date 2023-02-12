@@ -8,13 +8,12 @@ defmodule JSONAPIPlug do
   """
 
   alias Plug.Conn
-  alias JSONAPIPlug.{API, Document, Resource}
+  alias JSONAPIPlug.{API, Resource}
 
   @type case :: :camelize | :dasherize | :underscore
 
   @type t :: %__MODULE__{
           api: API.t(),
-          document: Document.t() | nil,
           fields: term(),
           filter: term(),
           include: term(),
@@ -24,7 +23,6 @@ defmodule JSONAPIPlug do
           resource: Resource.t()
         }
   defstruct api: nil,
-            document: nil,
             fields: nil,
             filter: nil,
             include: nil,

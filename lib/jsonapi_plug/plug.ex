@@ -26,11 +26,11 @@ defmodule JSONAPIPlug.Plug do
       ...
       jsonapi_plug: %JSONAPIPlug{
         api: MyApp.API,
-        document: %JSONAPIPlug.Document{...},
         fields: ..., # Defaults to a map of field names by type.
         filter: ..., # Defaults to the query parameter value.
         include: ..., # Defaults to Ecto preload format.
         page: ..., # Defaults to the query parameter value.
+        params: ..., # Defaults to Ecto normalized data.
         sort: ..., # Defaults to Ecto order_by format.
         resource: MyApp.MyResource
       }
