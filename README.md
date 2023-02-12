@@ -101,30 +101,22 @@ To use the resource module in Phoenix, just call render and pass the data from y
 
     def create(%Conn{private: %{jsonapi_plug: jsonapi_plug}} = conn, params) do
       post = ...create a post using jsonapi_plug parsed parameters...
-
-      conn
-      |> render("create.json", %{data: post})
+      render(conn, "create.json", %{data: post})
     end
 
     def index(%Conn{private: %{jsonapi_plug: jsonapi_plug}} = conn, _params) do
       posts = ...load data using jsonapi_plug parsed parameters...
-
-      conn
-      |> render("index.json", %{data: posts})
+      render(conn, "index.json", %{data: posts})
     end
 
     def show(%Conn{private: %{jsonapi_plug: jsonapi_plug} = conn, _params) do
       post = ...load data using jsonapi_plug parsed parameters...
-      
-      conn
-      |> render("show.json", %{data: post})
+      render(conn, "show.json", %{data: post})
     end
 
     def udate(%Conn{private: %{jsonapi_plug: jsonapi_plug}} = conn, params) do
       post = ...update a post using jsonapi_plug parsed parameters...
-
-      conn
-      |> render("update.json", %{data: post})
+     render(conn, "update.json", %{data: post})
     end
   end
 ```
