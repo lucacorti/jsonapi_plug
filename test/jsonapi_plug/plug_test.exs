@@ -271,40 +271,6 @@ defmodule JSONAPIPlug.PlugTest do
                |> put_req_header("content-type", JSONAPIPlug.mime_type())
                |> put_req_header("accept", JSONAPIPlug.mime_type())
                |> UserResourcePlug.call([])
-
-      # assert Enum.find(included, fn
-      #          %ResourceObject{
-      #            id: "234",
-      #            type: "friend",
-      #            attributes: %{"name" => "Tara"},
-      #            relationships: %{
-      #              "baz" => %RelationshipObject{
-      #                data: %ResourceIdentifierObject{id: "2", type: "baz"}
-      #              },
-      #              "boo" => %RelationshipObject{data: nil}
-      #            }
-      #          } ->
-      #            true
-
-      #          _ ->
-      #            false
-      #        end)
-
-      # assert Enum.find(included, fn
-      #          %ResourceObject{id: "0012", type: "friend", attributes: %{"name" => "Wild Bill"}} ->
-      #            true
-
-      #          _ ->
-      #            false
-      #        end)
-
-      # assert Enum.find(included, fn
-      #          %ResourceObject{id: "456", type: "organization", attributes: %{"title" => "Sr"}} ->
-      #            true
-
-      #          _ ->
-      #            false
-      #        end)
     end
 
     test "processes simple array of data" do
