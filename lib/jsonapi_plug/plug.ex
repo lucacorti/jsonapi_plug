@@ -149,8 +149,8 @@ defmodule JSONAPIPlug.Plug do
     })
   end
 
-  def handle_errors(conn, %{kind: _kind, reason: _reason, stack: _stack} = error) do
-    Logger.debug("Unhandled exception: #{inspect(error)}")
+  def handle_errors(conn, error) do
+    Logger.error("Unhandled exception: #{inspect(error)}")
     send_resp(conn, 500, "Something went wrong")
   end
 
