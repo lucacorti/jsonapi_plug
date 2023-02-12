@@ -96,17 +96,18 @@ defmodule JSONAPIPlug.Plug do
   require Logger
 
   alias JSONAPIPlug.{Document, Exceptions}
+  alias JSONAPIPlug.Plug.{ContentTypeNegotiation, Params, QueryParam, ResponseContentType}
   alias Plug.Conn.Status
 
   plug :config_request, builder_opts()
-  plug JSONAPIPlug.Plug.ContentTypeNegotiation
-  plug JSONAPIPlug.Plug.ResponseContentType
-  plug JSONAPIPlug.Plug.QueryParam, :fields
-  plug JSONAPIPlug.Plug.QueryParam, :filter
-  plug JSONAPIPlug.Plug.QueryParam, :include
-  plug JSONAPIPlug.Plug.QueryParam, :page
-  plug JSONAPIPlug.Plug.QueryParam, :sort
-  plug JSONAPIPlug.Plug.Document
+  plug ContentTypeNegotiation
+  plug ResponseContentType
+  plug QueryParam, :fields
+  plug QueryParam, :filter
+  plug QueryParam, :include
+  plug QueryParam, :page
+  plug QueryParam, :sort
+  plug Params
 
   @doc false
   def config_request(conn, options) do

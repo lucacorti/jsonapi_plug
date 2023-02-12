@@ -1,4 +1,4 @@
-defmodule JSONAPIPlug.Plug.Document do
+defmodule JSONAPIPlug.Plug.Params do
   @moduledoc """
   Plug for parsing the JSON:API Document in requests
 
