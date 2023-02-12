@@ -25,7 +25,7 @@ defmodule JSONAPIPlug.Plug.Document do
         _opts
       ) do
     document = Document.deserialize(body_params)
-    body_params = Normalizer.denormalize(document, jsonapi_plug.view, conn)
+    body_params = Normalizer.denormalize(document, jsonapi_plug.resource, conn)
 
     Conn.put_private(
       conn,

@@ -46,7 +46,7 @@ In order to parse `JSON:API` requests from clients you need to add the `JSONAPIP
 ```elixir
 defmodule MyApp.PostsController do
   ...
-  plug JSONAPIPlug.Plug, api: MyApp.API, view: MyApp.PostsView
+  plug JSONAPIPlug.Plug, api: MyApp.API, resource: MyApp.PostResource
   ...
 end
 ```
@@ -55,7 +55,7 @@ This will take care of ensuring `JSON:API` specification compliance and will ret
 
 The `:api` option expects a module using `JSONAPI.API` for configuration.
 
-The `:view` option expects a module using `JSONAPIPlug.View` to convert to/from `JSON:API` format.
+The `:resource` option expects a module using `JSONAPIPlug.Resource` to convert to/from `JSON:API` format.
 
 When requests are processed, the `:jsonapi_plug` connection private field is populated with the parsed request.
 
@@ -74,11 +74,11 @@ defmodule MyApp.Post do
 end
 ```
 
-and define a view module to render your resource:
+and define a resource module to render your resource:
 
 ```elixir
-defmodule MyApp.PostsView do
-  use JSONAPIPlug.View,
+defmodule MyApp.PostResource do
+  use JSONAPIPlug.Resource,
     type: "post",
     attributes: [
       title: nil,
@@ -86,24 +86,23 @@ defmodule MyApp.PostsView do
       excerpt: [serialize: fn %Post{} = post, _conn -> String.slice(post.body, 0..5) end]
     ]
 
-  @impl JSONAPIPlug.View
+  @impl JSONAPIPlug.Resource
   def meta(%Post{} = post, _conn), do: %{slug: to_slug(post.title)}
 end
 ```
 
-To use the view module in Phoenix, just call render and pass the data from your controller:
+To use the resource module in Phoenix, just call render and pass the data from your controller:
 
 ```elixir
   defmodule MyAppWeb.PostsController do
     ...
-    plug JSONAPIPlug.Plug, api: MyApp.API, view: MyApp.PostsView
+    plug JSONAPIPlug.Plug, api: MyApp.API, resource: MyApp.PostResource
     ...
 
     def create(%Conn{private: %{jsonapi_plug: jsonapi_plug}} = conn, params) do
       post = ...create a post using jsonapi_plug parsed parameters...
 
       conn
-      |> put_view(MyApp.PostsView)
       |> render("create.json", %{data: post})
     end
 
@@ -111,7 +110,6 @@ To use the view module in Phoenix, just call render and pass the data from your 
       posts = ...load data using jsonapi_plug parsed parameters...
 
       conn
-      |> put_view(MyApp.PostsView)
       |> render("index.json", %{data: posts})
     end
 
@@ -119,7 +117,6 @@ To use the view module in Phoenix, just call render and pass the data from your 
       post = ...load data using jsonapi_plug parsed parameters...
       
       conn
-      |> put_view(MyApp.PostsView)
       |> render("show.json", %{data: post})
     end
 
@@ -127,15 +124,14 @@ To use the view module in Phoenix, just call render and pass the data from your 
       post = ...update a post using jsonapi_plug parsed parameters...
 
       conn
-      |> put_view(MyApp.PostsView)
       |> render("update.json", %{data: post})
     end
   end
 ```
 
-If you have a `Plug` application, you can call `JSONAPIPlug.View.render/5` to generate a `JSONAPI.Document` with your data for the client. The structure is serializable to JSON with `Jason`.
+If you have a `Plug` application, you can call `JSONAPIPlug.Resource.render/5` to generate a `JSONAPI.Document` with your data for the client. The structure is serializable to JSON with `Jason`.
 
-See the `JSONAPIPlug.Plug` and `JSONAPIPlug.View` modules documentation for more information.
+See the `JSONAPIPlug.Plug` and `JSONAPIPlug.Resource` modules documentation for more information.
 
 ## Contributing
 

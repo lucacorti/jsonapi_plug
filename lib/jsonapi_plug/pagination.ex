@@ -9,7 +9,7 @@ defmodule JSONAPIPlug.Pagination do
 
   ```elixir
   defmodule MyApp.MyController do
-    plug JSONAPIPlug.Plug, api: MyApp.MyApi, view: MyApp.MyView
+    plug JSONAPIPlug.Plug, api: MyApp.MyApi, resource: MyApp.MyResource
   end
   ```
 
@@ -25,7 +25,7 @@ defmodule JSONAPIPlug.Pagination do
   See the tests for an example implementation of page based pagination strategy.
   """
 
-  alias JSONAPIPlug.{Document.LinkObject, View}
+  alias JSONAPIPlug.{Document.LinkObject, Resource}
   alias Plug.Conn
 
   @type t :: module()
@@ -35,23 +35,23 @@ defmodule JSONAPIPlug.Pagination do
   @type params :: %{String.t() => String.t()}
 
   @callback paginate(
-              View.t(),
-              [View.resource()],
+              Resource.t(),
+              [Resource.resource()],
               Conn.t() | nil,
               params(),
-              View.options()
+              Resource.options()
             ) :: links()
 
   @spec url_for(
-          View.t(),
-          [View.resource()],
+          Resource.t(),
+          [Resource.resource()],
           Conn.t() | nil,
           params() | nil
         ) ::
           LinkObject.t()
   def url_for(
-        view,
-        resources,
+        resource,
+        data,
         %Conn{query_params: query_params} = conn,
         nil = _params
       ) do
@@ -60,28 +60,29 @@ defmodule JSONAPIPlug.Pagination do
       |> to_list_of_query_string_components()
       |> URI.encode_query()
 
-    prepare_url(view, resources, conn, query)
+    prepare_url(resource, data, conn, query)
   end
 
   def url_for(
-        view,
-        resources,
+        resource,
+        data,
         %Conn{query_params: query_params} = conn,
         params
       ) do
     url_for(
-      view,
-      resources,
+      resource,
+      data,
       %Conn{conn | query_params: Map.put(query_params, "page", params)},
       nil
     )
   end
 
-  defp prepare_url(view, resources, conn, "" = _query), do: View.url_for(view, resources, conn)
+  defp prepare_url(resource, data, conn, "" = _query),
+    do: Resource.url_for(resource, data, conn)
 
-  defp prepare_url(view, resources, conn, query) do
-    view
-    |> View.url_for(resources, conn)
+  defp prepare_url(resource, data, conn, query) do
+    resource
+    |> Resource.url_for(data, conn)
     |> URI.parse()
     |> struct(query: query)
     |> URI.to_string()

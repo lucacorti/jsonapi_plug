@@ -6,14 +6,14 @@ defmodule JSONAPIPlug.QueryParser.Ecto.Include do
   format and converts them to Ecto `preload` optio to `Ecto.Repo` functions.
   """
 
-  alias JSONAPIPlug.{Exceptions.InvalidQuery, QueryParser, View}
+  alias JSONAPIPlug.{Exceptions.InvalidQuery, QueryParser, Resource}
 
   @behaviour QueryParser
 
   @impl QueryParser
   def parse(_jsonapi, nil), do: []
 
-  def parse(%JSONAPIPlug{view: view}, include) when is_binary(include) do
+  def parse(%JSONAPIPlug{resource: resource}, include) when is_binary(include) do
     include
     |> String.split(",", trim: true)
     |> Enum.map(fn include ->
@@ -21,33 +21,33 @@ defmodule JSONAPIPlug.QueryParser.Ecto.Include do
       |> JSONAPIPlug.recase(:underscore)
       |> String.split(".", trim: true)
     end)
-    |> valid_includes(view)
+    |> valid_includes(resource)
   end
 
-  def parse(%JSONAPIPlug{view: view}, include) do
-    raise InvalidQuery, type: view.type(), param: "include", value: include
+  def parse(%JSONAPIPlug{resource: resource}, include) do
+    raise InvalidQuery, type: resource.type(), param: "include", value: include
   end
 
-  defp valid_includes(includes, view) do
-    relationships = view.relationships()
-    valid_relationships_includes = Enum.map(relationships, &to_string(View.field_name(&1)))
+  defp valid_includes(includes, resource) do
+    relationships = resource.relationships()
+    valid_relationships_includes = Enum.map(relationships, &to_string(Resource.field_name(&1)))
 
     Enum.reduce(
       relationships,
       [],
-      &process_relationship_include(view, &1, includes, &2, valid_relationships_includes)
+      &process_relationship_include(resource, &1, includes, &2, valid_relationships_includes)
     )
     |> Keyword.merge([], fn _k, a, b -> Keyword.merge(a, b) end)
   end
 
   defp process_relationship_include(
-         view,
+         resource,
          relationship,
          includes,
          valid_includes,
          valid_relationships_includes
        ) do
-    name = View.field_option(relationship, :name) || View.field_name(relationship)
+    name = Resource.field_option(relationship, :name) || Resource.field_name(relationship)
     include_name = to_string(name)
 
     Enum.reduce(includes, [], fn
@@ -59,15 +59,15 @@ defmodule JSONAPIPlug.QueryParser.Ecto.Include do
         )
 
       [^include_name | rest], relationship_includes ->
-        case View.field_option(relationship, :view) do
+        case Resource.field_option(relationship, :resource) do
           nil ->
             relationship_includes
 
-          related_view ->
+          related_resource ->
             update_in(
               relationship_includes,
               [name],
-              &Keyword.merge(&1 || [], valid_includes([rest], related_view))
+              &Keyword.merge(&1 || [], valid_includes([rest], related_resource))
             )
         end
 
@@ -75,7 +75,7 @@ defmodule JSONAPIPlug.QueryParser.Ecto.Include do
         if include_name in valid_relationships_includes do
           relationship_includes
         else
-          raise InvalidQuery, type: view.type(), param: "include", value: Enum.join(path, ".")
+          raise InvalidQuery, type: resource.type(), param: "include", value: Enum.join(path, ".")
         end
     end)
     |> Keyword.merge(valid_includes, fn _k, a, b -> Keyword.merge(a, b) end)
