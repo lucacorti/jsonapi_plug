@@ -1,4 +1,4 @@
-defmodule JSONAPIPlug.ViewTest do
+defmodule JSONAPIPlug.ResourceTest do
   use ExUnit.Case
   use Plug.Test
 
@@ -11,51 +11,58 @@ defmodule JSONAPIPlug.ViewTest do
     UnderscoringAPI
   }
 
-  alias JSONAPIPlug.TestSupport.Resources.{Comment, Post, User}
-  alias JSONAPIPlug.TestSupport.Views.{CommentView, MyPostView, PostView, UserView}
-  alias JSONAPIPlug.{Document, Document.ResourceObject, Pagination, View}
+  alias JSONAPIPlug.TestSupport.Schemas.{Comment, Post, User}
+
+  alias JSONAPIPlug.TestSupport.Resources.{
+    CommentResource,
+    MyPostResource,
+    PostResource,
+    UserResource
+  }
+
+  alias JSONAPIPlug.{Document, Document.ResourceObject, Pagination, Resource}
   alias Plug.Conn
 
   defmodule MyPostPlug do
     use Plug.Builder
 
     plug Plug.Parsers, parsers: [:json], pass: ["text/*"], json_decoder: Jason
-    plug JSONAPIPlug.Plug, api: DasherizingAPI, view: PostView
+    plug JSONAPIPlug.Plug, api: DasherizingAPI, resource: PostResource
   end
 
   defmodule OtherNamespacePostPlug do
     use Plug.Builder
 
     plug Plug.Parsers, parsers: [:json], pass: ["text/*"], json_decoder: Jason
-    plug JSONAPIPlug.Plug, api: OtherNamespaceAPI, view: PostView
+    plug JSONAPIPlug.Plug, api: OtherNamespaceAPI, resource: PostResource
   end
 
   defmodule OtherHostPostPlug do
     use Plug.Builder
 
     plug Plug.Parsers, parsers: [:json], pass: ["text/*"], json_decoder: Jason
-    plug JSONAPIPlug.Plug, api: OtherHostAPI, view: PostView
+    plug JSONAPIPlug.Plug, api: OtherHostAPI, resource: PostResource
   end
 
   defmodule OtherPortPostPlug do
     use Plug.Builder
 
     plug Plug.Parsers, parsers: [:json], pass: ["text/*"], json_decoder: Jason
-    plug JSONAPIPlug.Plug, api: OtherPortAPI, view: PostView
+    plug JSONAPIPlug.Plug, api: OtherPortAPI, resource: PostResource
   end
 
   defmodule OtherSchemePostPlug do
     use Plug.Builder
 
     plug Plug.Parsers, parsers: [:json], pass: ["text/*"], json_decoder: Jason
-    plug JSONAPIPlug.Plug, api: OtherSchemeAPI, view: PostView
+    plug JSONAPIPlug.Plug, api: OtherSchemeAPI, resource: PostResource
   end
 
   defmodule UnderscoringPostPlug do
     use Plug.Builder
 
     plug Plug.Parsers, parsers: [:json], pass: ["text/*"], json_decoder: Jason
-    plug JSONAPIPlug.Plug, api: UnderscoringAPI, view: PostView
+    plug JSONAPIPlug.Plug, api: UnderscoringAPI, resource: PostResource
   end
 
   setup do
@@ -63,7 +70,7 @@ defmodule JSONAPIPlug.ViewTest do
   end
 
   test "type/0 when specified via using macro" do
-    assert PostView.type() == "post"
+    assert PostResource.type() == "post"
   end
 
   describe "url_for/3 when host and scheme not configured" do
@@ -72,25 +79,25 @@ defmodule JSONAPIPlug.ViewTest do
     end
 
     test "url_for/3", %{conn: conn} do
-      assert View.url_for(PostView, nil, conn) == "http://www.example.com/somespace/posts"
-      assert View.url_for(PostView, [], conn) == "http://www.example.com/somespace/posts"
+      assert Resource.url_for(PostResource, [], conn) == "http://www.example.com/somespace/posts"
 
-      assert View.url_for(PostView, %Post{id: 1}, conn) ==
+      assert Resource.url_for(PostResource, %Post{id: 1}, conn) ==
                "http://www.example.com/somespace/posts/1"
 
-      assert View.url_for(PostView, %{id: 1}, conn) == "http://www.example.com/somespace/posts/1"
+      assert Resource.url_for(PostResource, %{id: 1}, conn) ==
+               "http://www.example.com/somespace/posts/1"
 
-      assert View.url_for(
-               PostView,
+      assert Resource.url_for(
+               PostResource,
                [],
                %Conn{conn | port: 123}
              ) ==
                "http://www.example.com:123/somespace/posts"
 
-      assert View.url_for_relationship(PostView, [], conn, "comments") ==
+      assert Resource.url_for_relationship(PostResource, [], conn, "comments") ==
                "http://www.example.com/somespace/posts/relationships/comments"
 
-      assert View.url_for_relationship(PostView, %Post{id: 1}, conn, "comments") ==
+      assert Resource.url_for_relationship(PostResource, %Post{id: 1}, conn, "comments") ==
                "http://www.example.com/somespace/posts/1/relationships/comments"
     end
   end
@@ -101,15 +108,15 @@ defmodule JSONAPIPlug.ViewTest do
     end
 
     test "uses API host instead of that on Conn", %{conn: conn} do
-      assert View.url_for_relationship(PostView, [], conn, "comments") ==
+      assert Resource.url_for_relationship(PostResource, [], conn, "comments") ==
                "http://www.otherhost.com/posts/relationships/comments"
 
-      assert View.url_for_relationship(PostView, %Post{id: 1}, conn, "comments") ==
+      assert Resource.url_for_relationship(PostResource, %Post{id: 1}, conn, "comments") ==
                "http://www.otherhost.com/posts/1/relationships/comments"
 
-      assert View.url_for(PostView, [], conn) == "http://www.otherhost.com/posts"
+      assert Resource.url_for(PostResource, [], conn) == "http://www.otherhost.com/posts"
 
-      assert View.url_for(PostView, %Post{id: 1}, conn) ==
+      assert Resource.url_for(PostResource, %Post{id: 1}, conn) ==
                "http://www.otherhost.com/posts/1"
     end
   end
@@ -123,15 +130,15 @@ defmodule JSONAPIPlug.ViewTest do
     end
 
     test "uses API scheme instead of that on Conn", %{conn: conn} do
-      assert View.url_for(PostView, [], conn) == "https://www.example.com/posts"
+      assert Resource.url_for(PostResource, [], conn) == "https://www.example.com/posts"
 
-      assert View.url_for(PostView, %Post{id: 1}, conn) ==
+      assert Resource.url_for(PostResource, %Post{id: 1}, conn) ==
                "https://www.example.com/posts/1"
 
-      assert View.url_for_relationship(PostView, [], conn, "comments") ==
+      assert Resource.url_for_relationship(PostResource, [], conn, "comments") ==
                "https://www.example.com/posts/relationships/comments"
 
-      assert View.url_for_relationship(PostView, %Post{id: 1}, conn, "comments") ==
+      assert Resource.url_for_relationship(PostResource, %Post{id: 1}, conn, "comments") ==
                "https://www.example.com/posts/1/relationships/comments"
     end
   end
@@ -142,15 +149,15 @@ defmodule JSONAPIPlug.ViewTest do
     end
 
     test "uses configured port instead of that on Conn", %{conn: conn} do
-      assert View.url_for(PostView, [], conn) == "http://www.example.com:42/posts"
+      assert Resource.url_for(PostResource, [], conn) == "http://www.example.com:42/posts"
 
-      assert View.url_for(PostView, %{id: 1}, conn) ==
+      assert Resource.url_for(PostResource, %{id: 1}, conn) ==
                "http://www.example.com:42/posts/1"
 
-      assert View.url_for_relationship(PostView, [], conn, "comments") ==
+      assert Resource.url_for_relationship(PostResource, [], conn, "comments") ==
                "http://www.example.com:42/posts/relationships/comments"
 
-      assert View.url_for_relationship(PostView, %{id: 1}, conn, "comments") ==
+      assert Resource.url_for_relationship(PostResource, %{id: 1}, conn, "comments") ==
                "http://www.example.com:42/posts/1/relationships/comments"
     end
   end
@@ -161,23 +168,23 @@ defmodule JSONAPIPlug.ViewTest do
     end
 
     test "with pagination information", %{conn: conn} do
-      assert Pagination.url_for(PostView, nil, conn, %{}) ==
+      assert Pagination.url_for(PostResource, [], conn, %{}) ==
                "https://www.example.com/posts"
 
-      assert Pagination.url_for(PostView, nil, conn, %{number: 1, size: 10}) ==
+      assert Pagination.url_for(PostResource, [], conn, %{number: 1, size: 10}) ==
                "https://www.example.com/posts?page%5Bnumber%5D=1&page%5Bsize%5D=10"
     end
 
     test "with query parameters", %{conn: conn} do
       conn_with_query_params = update_in(conn.query_params, &Map.put(&1, "comments", [5, 2]))
 
-      assert Pagination.url_for(PostView, nil, conn_with_query_params, %{
+      assert Pagination.url_for(PostResource, [], conn_with_query_params, %{
                number: 1,
                size: 10
              }) ==
                "https://www.example.com/posts?comments%5B%5D=5&comments%5B%5D=2&page%5Bnumber%5D=1&page%5Bsize%5D=10"
 
-      assert Pagination.url_for(PostView, nil, conn_with_query_params, %{}) ==
+      assert Pagination.url_for(PostResource, [], conn_with_query_params, %{}) ==
                "https://www.example.com/posts?comments%5B%5D=5&comments%5B%5D=2"
     end
   end
@@ -191,7 +198,7 @@ defmodule JSONAPIPlug.ViewTest do
                  "body" => "hi"
                }
              }
-           } = View.render(CommentView, conn, %Comment{id: 1, body: "hi"})
+           } = Resource.render(CommentResource, conn, %Comment{id: 1, body: "hi"})
   end
 
   test "show renders with data, conn, meta" do
@@ -200,7 +207,9 @@ defmodule JSONAPIPlug.ViewTest do
     assert %Document{
              meta: %{"total_pages" => 100}
            } =
-             View.render(CommentView, conn, %Comment{id: 1, body: "hi"}, %{"total_pages" => 100})
+             Resource.render(CommentResource, conn, %Comment{id: 1, body: "hi"}, %{
+               "total_pages" => 100
+             })
   end
 
   test "index renders with data, conn" do
@@ -210,22 +219,22 @@ defmodule JSONAPIPlug.ViewTest do
              data: [
                %ResourceObject{attributes: %{"body" => "hi"}}
              ]
-           } = View.render(CommentView, conn, [%Comment{id: 1, body: "hi"}])
+           } = Resource.render(CommentResource, conn, [%Comment{id: 1, body: "hi"}])
   end
 
   test "index renders with data, conn, meta" do
     conn = conn(:get, "/") |> UnderscoringPostPlug.call([])
 
     assert %Document{meta: %{"total_pages" => 100}} =
-             View.render(
-               CommentView,
+             Resource.render(
+               CommentResource,
                conn,
                [%Comment{id: 1, body: "hi"}],
                %{"total_pages" => 100}
              )
   end
 
-  test "view returns all field names by default" do
+  test "resource returns all field names by default" do
     conn = conn(:get, "/") |> UnderscoringPostPlug.call([])
 
     assert %Document{
@@ -242,13 +251,13 @@ defmodule JSONAPIPlug.ViewTest do
                    "username" => _username
                  } = attributes
              }
-           } = View.render(UserView, conn, %User{id: 1})
+           } = Resource.render(UserResource, conn, %User{id: 1})
 
     assert map_size(attributes) == 6
   end
 
-  test "view trims returned field names to only those requested" do
-    conn = conn(:get, "/?fields[#{PostView.type()}]=body") |> MyPostPlug.call([])
+  test "resource trims returned field names to only those requested" do
+    conn = conn(:get, "/?fields[#{PostResource.type()}]=body") |> MyPostPlug.call([])
 
     assert %Document{
              data: %ResourceObject{
@@ -256,7 +265,7 @@ defmodule JSONAPIPlug.ViewTest do
                type: "post",
                attributes: %{"body" => _body} = attributes
              }
-           } = View.render(PostView, conn, %Post{id: 1, body: "hi", text: "Hello"})
+           } = Resource.render(PostResource, conn, %Post{id: 1, body: "hi", text: "Hello"})
 
     assert map_size(attributes) == 1
   end
@@ -271,8 +280,8 @@ defmodule JSONAPIPlug.ViewTest do
                attributes: %{"body" => "Chunky"} = attributes
              }
            } =
-             View.render(
-               PostView,
+             Resource.render(
+               PostResource,
                conn,
                %Post{id: 1, body: "Chunky", title: "Bacon", text: "Gello"}
              )
@@ -280,11 +289,11 @@ defmodule JSONAPIPlug.ViewTest do
     assert map_size(attributes) == 1
   end
 
-  test "for_related_type/2 using view.type as key" do
-    assert View.for_related_type(MyPostView, "comment") == CommentView
+  test "for_related_type/2 using resource.type as key" do
+    assert Resource.for_related_type(MyPostResource, "comment") == CommentResource
   end
 
   test "for_type/2 returns nil on invalid fields" do
-    assert View.for_related_type(MyPostView, "cupcake") == nil
+    assert Resource.for_related_type(MyPostResource, "cupcake") == nil
   end
 end

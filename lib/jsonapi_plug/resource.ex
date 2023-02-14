@@ -1,35 +1,33 @@
-defmodule JSONAPIPlug.View do
+defmodule JSONAPIPlug.Resource do
   @moduledoc """
-  A View is simply a module that describes how to render your data as JSON:API resources.
+  A Resource is simply a module that describes how to render your data as JSON:API resources.
 
-  You can implement a view by "use-ing" the `JSONAPIPlug.View` module, which is recommeded, or
-  by adopting the `JSONAPIPlug.View` behaviour and implementing all of the callback functions:
+  You can implement a resource by "use-ing" the `JSONAPIPlug.Resource` module, which is recommeded, or
+  by adopting the `JSONAPIPlug.Resource` behaviour and implementing all of the callback functions:
 
-      defmodule MyApp.UsersView do
-        use JSONAPIPlug.View,
+      defmodule MyApp.UsersResource do
+        use JSONAPIPlug.Resource,
           type: "user",
           attributes: [:id, :username]
       end
 
-  See `t:options/0` for all available options you can pass to `use JSONAPIPlug.View`.
+  See `t:options/0` for all available options you can pass to `use JSONAPIPlug.Resource`.
 
-  You can now call `UsersView.render("show.json", %{data: user})` or `View.render(UsersView, conn, user)`
+  You can now call `UsersResource.render("show.json", %{data: user})` or `Resource.render(UsersResource, conn, user)`
   to render a valid JSON:API document from your data. If you use phoenix, you can use:
 
-      conn
-      |> put_view(UsersView)
-      |> render("show.json", %{data: user})
+      render(conn, "show.json", %{data: user})
 
   in your controller functions to render the document in the same way.
 
   ## Attributes
 
   By default, the resulting JSON document consists of resources taken from your data.
-  Only resource  attributes defined on the view will be (de)serialized. You can customize
+  Only resource  attributes defined on the resource will be (de)serialized. You can customize
   how attributes are handled by passing a keyword list of options:
 
-      defmodule MyApp.UsersView do
-        use JSONAPIPlug.View,
+      defmodule MyApp.UsersResource do
+        use JSONAPIPlug.Resource,
           type: "user",
           attributes: [
             username: nil,
@@ -45,25 +43,25 @@ defmodule JSONAPIPlug.View do
 
   ## Relationships
 
-  Relationships are defined by passing the `relationships` option to `use JSONAPIPlug.View`.
+  Relationships are defined by passing the `relationships` option to `use JSONAPIPlug.Resource`.
 
-      defmodule MyApp.PostsView do
-        use JSONAPIPlug.View,
+      defmodule MyApp.PostResource do
+        use JSONAPIPlug.Resource,
           type: "post",
           attributes: [:text, :body]
           relationships: [
-            author: [view: MyApp.UsersView],
-            comments: [many: true, view: MyApp.CommentsView]
+            author: [resource: MyApp.UsersResource],
+            comments: [many: true, resource: MyApp.CommentsResource]
           ]
       end
 
-      defmodule MyApp.CommentsView do
-        alias MyApp.UsersView
+      defmodule MyApp.CommentsResource do
+        alias MyApp.UsersResource
 
-        use JSONAPIPlug.View,
+        use JSONAPIPlug.Resource,
           type: "comment",
           attributes: [:text]
-          relationships: [post: [view: MyApp.PostsView]]
+          relationships: [post: [resource: MyApp.PostResource]]
       end
 
   When requesting `GET /posts?include=author`, if the author key is present on the data you pass from the
@@ -110,8 +108,8 @@ defmodule JSONAPIPlug.View do
       type: :boolean,
       default: false
     ],
-    view: [
-      doc: "Specifies the view to be used to serialize the relationship",
+    resource: [
+      doc: "Specifies the resource to be used to serialize the relationship",
       type: :atom,
       required: true
     ]
@@ -155,14 +153,14 @@ defmodule JSONAPIPlug.View do
           )
 
   @typedoc """
-  View module
+  Resource module
 
-  A Module adopting the `JSONAPIPlug.View` behaviour
+  A Module adopting the `JSONAPIPlug.Resource` behaviour
   """
   @type t :: module()
 
   @typedoc """
-  View options
+  Resource options
 
   #{NimbleOptions.docs(@schema)}
   """
@@ -176,23 +174,23 @@ defmodule JSONAPIPlug.View do
   @type resource :: term()
 
   @typedoc """
-  View data
+  Resource data
 
-  View data is either a resource or a list of resources
+  Resource data is either a resource or a list of resources
   """
   @type data :: resource() | [resource()]
 
   @typedoc """
-  View meta
+  Resource meta
 
   A free form map containing metadata to be rendered
   """
   @type meta :: Document.meta()
 
   @typedoc """
-  View field name
+  Resource field name
 
-  The name of a View field (attribute or relationship)
+  The name of a Resource field (attribute or relationship)
   """
   @type field_name :: atom()
 
@@ -206,7 +204,7 @@ defmodule JSONAPIPlug.View do
         ]
 
   @typedoc """
-  View attributes
+  Resource attributes
 
   A keyword list composed of attribute names and their options
   """
@@ -217,10 +215,10 @@ defmodule JSONAPIPlug.View do
 
   #{NimbleOptions.docs(NimbleOptions.new!(@relationship_schema))}
   """
-  @type relationship_options :: [many: boolean(), name: field_name(), view: t()]
+  @type relationship_options :: [many: boolean(), name: field_name(), resource: t()]
 
   @typedoc """
-  View attributes
+  Resource attributes
 
   A keyword list composed of relationship names and their options
   """
@@ -232,56 +230,56 @@ defmodule JSONAPIPlug.View do
   @doc """
   Resource Id Attribute
 
-  Returns the attribute used to fetch resource ids for resources by the view.
+  Returns the attribute used to fetch resource ids for resources by the resource.
   """
   @callback id_attribute :: field_name()
 
   @doc """
   Resource attributes
 
-  Returns the keyword list of resource attributes for the view.
+  Returns the keyword list of resource attributes for the resource.
   """
   @callback attributes :: attributes()
 
   @doc """
   Resource links
 
-  Returns the resource links to be returned for resources by the view.
+  Returns the resource links to be returned for resources by the resource.
   """
   @callback links(resource(), Conn.t() | nil) :: Document.links()
 
   @doc """
   Resource normalizer
 
-  Returns the resource normalizer for resources by the view.
+  Returns the resource normalizer for resources by the resource.
   """
   @callback normalizer :: Normalizer.t()
 
   @doc """
   Resource meta
 
-  Returns the resource meta to be returned for resources by the view.
+  Returns the resource meta to be returned for resources by the resource.
   """
   @callback meta(resource(), Conn.t() | nil) :: Document.meta()
 
   @doc """
-  View path
+  Resource path
 
-  Returns the path to prepend to resources for the view.
+  Returns the path to prepend to resources for the resource.
   """
   @callback path :: String.t() | nil
 
   @doc """
   Resource relationships
 
-  Returns the keyword list of resource relationships for the view.
+  Returns the keyword list of resource relationships for the resource.
   """
   @callback relationships :: relationships()
 
   @doc """
   Resource Type
 
-  Returns the Resource Type of resources for the view.
+  Returns the Resource Type of resources for the resource.
   """
   @callback type :: ResourceObject.type()
 
@@ -300,57 +298,57 @@ defmodule JSONAPIPlug.View do
 
     if field =
          Stream.concat(attributes, relationships)
-         |> Enum.find(&(JSONAPIPlug.View.field_name(&1) in [:id, :type])) do
-      name = JSONAPIPlug.View.field_name(field)
-      view = Module.split(__CALLER__.module) |> List.last()
+         |> Enum.find(&(JSONAPIPlug.Resource.field_name(&1) in [:id, :type])) do
+      name = JSONAPIPlug.Resource.field_name(field)
+      resource = Module.split(__CALLER__.module) |> List.last()
 
-      raise "Illegal field name '#{name}' for view #{view}. See https://jsonapi.org/format/#document-resource-object-fields for more information."
+      raise "Illegal field name '#{name}' for resource #{resource}. See https://jsonapi.org/format/#document-resource-object-fields for more information."
     end
 
     quote do
-      @behaviour JSONAPIPlug.View
+      @behaviour JSONAPIPlug.Resource
 
-      @impl JSONAPIPlug.View
+      @impl JSONAPIPlug.Resource
       def id_attribute, do: unquote(id_attribute)
 
-      @impl JSONAPIPlug.View
+      @impl JSONAPIPlug.Resource
       def attributes, do: unquote(attributes)
 
-      @impl JSONAPIPlug.View
+      @impl JSONAPIPlug.Resource
       def links(_resource, _conn), do: %{}
 
-      @impl JSONAPIPlug.View
+      @impl JSONAPIPlug.Resource
       def meta(_resource, _conn), do: %{}
 
-      @impl JSONAPIPlug.View
+      @impl JSONAPIPlug.Resource
       def path, do: unquote(path)
 
-      @impl JSONAPIPlug.View
+      @impl JSONAPIPlug.Resource
       def normalizer, do: unquote(normalizer)
 
-      @impl JSONAPIPlug.View
+      @impl JSONAPIPlug.Resource
       def relationships, do: unquote(relationships)
 
-      @impl JSONAPIPlug.View
+      @impl JSONAPIPlug.Resource
       def type, do: unquote(type)
 
-      defoverridable JSONAPIPlug.View
+      defoverridable JSONAPIPlug.Resource
 
       if Code.ensure_loaded?(Phoenix) do
         @doc """
-        JSONAPIPlug generated view render function
+        JSONAPIPlug generated resource render function
 
         This render function is autogenerated by JSONAPIPlug because it detected Phoenix
-        to be present in your project. It allows you to use the `JSONAPIPlug.View` as a
-        standard phoenix view by calling `Phoenix.Controller.render/2` with your assigns:
+        to be present in your project. It allows you to use the `JSONAPIPlug.Resource` as a
+        standard phoenix resource by calling `Phoenix.Controller.render/2` with your assigns:
 
           ...
           conn
-          |> put_view(MyApp.PostsView)
+          |> put_resource(MyApp.PostResource)
           |> render("update.json", %{data: post})
           ...
 
-        instead of calling `JSONAPIPlug.View.render/5` directly in your controllers.
+        instead of calling `JSONAPIPlug.Resource.render/5` directly in your controllers.
         It takes the action (one of "create.json", "index.json", "show.json", "update.json") and
         the assings as a keyword list or map with atom keys.
         """
@@ -358,7 +356,7 @@ defmodule JSONAPIPlug.View do
                 Document.t() | no_return()
         def render(action, assigns)
             when action in ["create.json", "index.json", "show.json", "update.json"] do
-          JSONAPIPlug.View.render(
+          JSONAPIPlug.Resource.render(
             __MODULE__,
             assigns[:conn],
             assigns[:data],
@@ -405,17 +403,17 @@ defmodule JSONAPIPlug.View do
   end
 
   @doc """
-  Related View based on JSON:API type
+  Related Resource based on JSON:API type
 
-  Returns the view used to handle relationships of the requested type by the passed view.
+  Returns the resource used to handle relationships of the requested type by the passed resource.
   """
   @spec for_related_type(t(), ResourceObject.type()) :: t() | nil
-  def for_related_type(view, type) do
-    Enum.find_value(view.relationships(), fn {_relationship, options} ->
-      relationship_view = Keyword.fetch!(options, :view)
+  def for_related_type(resource, type) do
+    Enum.find_value(resource.relationships(), fn {_relationship, options} ->
+      relationship_resource = Keyword.fetch!(options, :resource)
 
-      if relationship_view.type() == type do
-        relationship_view
+      if relationship_resource.type() == type do
+        relationship_resource
       else
         nil
       end
@@ -425,18 +423,18 @@ defmodule JSONAPIPlug.View do
   @doc """
   Render JSON:API response
 
-  Renders the JSON:API response for the specified View.
+  Renders the JSON:API response for the specified Resource.
   """
   @spec render(t(), Conn.t(), data() | nil, Document.meta() | nil, options()) ::
           Document.t() | no_return()
   def render(
-        view,
+        resource,
         conn,
         data \\ nil,
         meta \\ nil,
         options \\ []
       ) do
-    view
+    resource
     |> Normalizer.normalize(conn, data, meta, options)
     |> Document.serialize()
   end
@@ -447,8 +445,8 @@ defmodule JSONAPIPlug.View do
   Generates the relationships link for a resource.
   """
   @spec url_for_relationship(t(), resource(), Conn.t() | nil, ResourceObject.type()) :: String.t()
-  def url_for_relationship(view, resource, conn, relationship_type) do
-    Enum.join([url_for(view, resource, conn), "relationships", relationship_type], "/")
+  def url_for_relationship(resource, data, conn, relationship_type) do
+    Enum.join([url_for(resource, data, conn), "relationships", relationship_type], "/")
   end
 
   @doc """
@@ -456,24 +454,24 @@ defmodule JSONAPIPlug.View do
 
   Generates the resource link for a resource.
   """
-  @spec url_for(t(), data() | nil, Conn.t() | nil) :: String.t()
-  def url_for(view, resource, conn) when is_nil(resource) or is_list(resource) do
+  @spec url_for(t(), data(), Conn.t() | nil) :: String.t()
+  def url_for(resource, data, conn) when is_nil(resource) or is_list(data) do
     conn
-    |> render_uri([view.path() || view.type()])
+    |> render_uri([resource.path() || resource.type()])
     |> to_string()
   end
 
   def url_for(
-        view,
         resource,
+        data,
         %Conn{private: %{jsonapi_plug: %JSONAPIPlug{} = jsonapi_plug}} = conn
       ) do
-    normalizer = view.normalizer() || API.get_config(jsonapi_plug.api, [:normalizer])
+    normalizer = resource.normalizer() || API.get_config(jsonapi_plug.api, [:normalizer])
 
     conn
     |> render_uri([
-      view.path() || view.type(),
-      normalizer.normalize_attribute(resource, view.id_attribute())
+      resource.path() || resource.type(),
+      normalizer.normalize_attribute(data, resource.id_attribute())
     ])
     |> to_string()
   end

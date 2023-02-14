@@ -8,30 +8,28 @@ defmodule JSONAPIPlug do
   """
 
   alias Plug.Conn
-  alias JSONAPIPlug.{API, Document, View}
+  alias JSONAPIPlug.{API, Resource}
 
   @type case :: :camelize | :dasherize | :underscore
 
   @type t :: %__MODULE__{
           api: API.t(),
-          document: Document.t() | nil,
           fields: term(),
           filter: term(),
           include: term(),
           params: Conn.params(),
           page: term(),
           sort: term(),
-          view: View.t()
+          resource: Resource.t()
         }
   defstruct api: nil,
-            document: nil,
             fields: nil,
             filter: nil,
             include: nil,
             page: nil,
             params: nil,
             sort: nil,
-            view: nil
+            resource: nil
 
   @doc """
   JSON:API MIME type
@@ -88,7 +86,7 @@ defmodule JSONAPIPlug do
       iex> recase("corgiAge", :underscore)
       "corgi_age"
   """
-  @spec recase(View.field_name() | String.t(), case()) :: String.t()
+  @spec recase(Resource.field_name() | String.t(), case()) :: String.t()
   def recase(field, case) when is_atom(field) do
     field
     |> to_string()

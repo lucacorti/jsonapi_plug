@@ -7,17 +7,17 @@ defmodule JSONAPIPlug.QueryParser.Ecto.Fields do
   use with `select` option to `Ecto.Repo` functions.
   """
 
-  alias JSONAPIPlug.{Exceptions.InvalidQuery, QueryParser, View}
+  alias JSONAPIPlug.{Exceptions.InvalidQuery, QueryParser, Resource}
 
   @behaviour QueryParser
 
   @impl QueryParser
   def parse(_jsonapi_plug, nil), do: %{}
 
-  def parse(%JSONAPIPlug{view: view}, fields) when is_map(fields) do
+  def parse(%JSONAPIPlug{resource: resource}, fields) when is_map(fields) do
     Enum.reduce(fields, %{}, fn {type, value}, fields ->
       valid_fields =
-        view
+        resource
         |> attributes_for_type(type)
         |> Enum.into(MapSet.new())
 
@@ -32,7 +32,7 @@ defmodule JSONAPIPlug.QueryParser.Ecto.Fields do
         rescue
           ArgumentError ->
             reraise InvalidQuery.exception(
-                      type: view.type(),
+                      type: resource.type(),
                       param: "fields",
                       value: value
                     ),
@@ -44,7 +44,7 @@ defmodule JSONAPIPlug.QueryParser.Ecto.Fields do
       case MapSet.subset?(requested_fields, valid_fields) do
         false when size > 0 ->
           raise InvalidQuery,
-            type: view.type(),
+            type: resource.type(),
             param: "fields",
             value:
               requested_fields
@@ -58,17 +58,17 @@ defmodule JSONAPIPlug.QueryParser.Ecto.Fields do
     end)
   end
 
-  def parse(%JSONAPIPlug{view: view}, fields) do
-    raise InvalidQuery, type: view.type(), param: "fields", value: fields
+  def parse(%JSONAPIPlug{resource: resource}, fields) do
+    raise InvalidQuery, type: resource.type(), param: "fields", value: fields
   end
 
-  defp attributes_for_type(view, type) do
-    if type == view.type() do
-      Enum.map(view.attributes(), &View.field_name/1)
+  defp attributes_for_type(resource, type) do
+    if type == resource.type() do
+      Enum.map(resource.attributes(), &Resource.field_name/1)
     else
-      case View.for_related_type(view, type) do
-        nil -> raise InvalidQuery, type: view.type(), param: "fields", value: type
-        related_view -> Enum.map(related_view.attributes(), &View.field_name/1)
+      case Resource.for_related_type(resource, type) do
+        nil -> raise InvalidQuery, type: resource.type(), param: "fields", value: type
+        related_resource -> Enum.map(related_resource.attributes(), &Resource.field_name/1)
       end
     end
   end
