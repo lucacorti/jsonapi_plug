@@ -136,7 +136,7 @@ defmodule JSONAPIPlug.Plug do
       ) do
     send_error(conn, exception.status, %Document.ErrorObject{
       detail: "#{exception.message}. See #{exception.reference} for more information.",
-      source: %{pointer: "/header/" <> exception.header}
+      source: %{pointer: "/header/#{exception.header}"}
     })
   end
 
@@ -146,7 +146,7 @@ defmodule JSONAPIPlug.Plug do
       ) do
     send_error(conn, :bad_request, %Document.ErrorObject{
       detail: exception.message,
-      source: %{pointer: "/query/" <> exception.param}
+      source: %{pointer: "/query/#{exception.param}"}
     })
   end
 
