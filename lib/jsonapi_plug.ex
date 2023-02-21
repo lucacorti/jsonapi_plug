@@ -17,10 +17,10 @@ defmodule JSONAPIPlug do
           fields: term(),
           filter: term(),
           include: term(),
-          params: Conn.params(),
           page: term(),
-          sort: term(),
-          resource: Resource.t()
+          params: Conn.params(),
+          resource: Resource.t(),
+          sort: term()
         }
   defstruct api: nil,
             fields: nil,
@@ -28,8 +28,8 @@ defmodule JSONAPIPlug do
             include: nil,
             page: nil,
             params: nil,
-            sort: nil,
-            resource: nil
+            resource: nil,
+            sort: nil
 
   @doc """
   JSON:API MIME type
