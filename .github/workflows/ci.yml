@@ -44,6 +44,7 @@ jobs:
         with:
           otp-version: ${{ matrix.otp }}
           elixir-version: ${{ matrix.elixir }}
+        id: beam
       - name: PLT cache
         uses: actions/cache@v3
         with:
