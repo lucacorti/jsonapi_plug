@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.0.1 (2023-03-15)
+
+Allow nimble options 1.0
+
+Contributors: @lucacorti
+
 ## 1.0.0 "Garetto Basso" (2023-02-18)
 
 First release of `jsonapi_plug`: `JSON:API` library for Plug and Phoenix applications.
@@ -13,6 +19,4 @@ What `jsonapi_plug` has to offer to users of Phoenix/Plug for building `JSON:API
 - Ability to have multiple APIs with different configurations sourced from the hosting application configuration to avoid single global configuration rigidity. This allows to serve multiple different APIs from a single Phoenix/Plug application instance.
 - A declarative resource system allowing users to control rendering, rename fields between `JSON:API` payloads and internal data, customize (de)serialization of fields values and more without writing additional business logic code.
 
-### Contributors
-
-@lucacorti
+Contributors: @lucacorti
