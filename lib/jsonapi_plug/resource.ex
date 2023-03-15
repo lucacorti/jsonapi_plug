@@ -8,7 +8,7 @@ defmodule JSONAPIPlug.Resource do
       defmodule MyApp.UsersResource do
         use JSONAPIPlug.Resource,
           type: "user",
-          attributes: [:id, :username]
+          attributes: [:name, :surname, :username]
       end
 
   See `t:options/0` for all available options you can pass to `use JSONAPIPlug.Resource`.
@@ -129,13 +129,12 @@ defmodule JSONAPIPlug.Resource do
               default: []
             ],
             id_attribute: [
-              doc:
-                "Attribute on your data to be used as the JSON:API resource id. Defaults to :id",
+              doc: "Attribute on your data to be used as the JSON:API resource id.",
               type: :atom,
               default: :id
             ],
             path: [
-              doc: "A custom path to be used for the resource. Defaults to the type value.",
+              doc: "A custom path to be used for the resource. Defaults to the resource type.",
               type: :string
             ],
             relationships: [
