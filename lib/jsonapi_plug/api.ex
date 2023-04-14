@@ -147,14 +147,18 @@ defmodule JSONAPIPlug.API do
   def get_config(nil = _api, _path, default), do: default
 
   def get_config(api, path, default) do
-    api
-    |> get_all_config()
-    |> NimbleOptions.validate!(@config_schema)
-    |> get_in(path) || default
-  end
+    config = :persistent_term.get(api, nil)
 
-  defp get_all_config(api) do
-    api.__otp_app__()
-    |> Application.get_env(api, [])
+    if is_nil(config) do
+      config =
+        api.__otp_app__()
+        |> Application.get_env(api, [])
+        |> NimbleOptions.validate!(@config_schema)
+
+      :persistent_term.put(api, config)
+      get_in(config, path) || default
+    else
+      get_in(config, path) || default
+    end
   end
 end
