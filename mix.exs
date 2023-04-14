@@ -4,7 +4,7 @@ defmodule JSONAPIPlug.Mixfile do
   def project do
     [
       app: :jsonapi_plug,
-      version: "1.0.1",
+      version: "1.0.2",
       package: package(),
       description: "JSON:API library for Plug and Phoenix applications",
       elixir: "~> 1.11",
