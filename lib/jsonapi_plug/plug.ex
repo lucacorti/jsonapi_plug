@@ -90,16 +90,16 @@ defmodule JSONAPIPlug.Plug do
   """
   @type options :: keyword()
 
-  use Plug.Builder
+  use Plug.Builder, copy_opts_to_assign: :jsonapi_plug
   use Plug.ErrorHandler
 
   require Logger
 
   alias JSONAPIPlug.{Document, Exceptions}
   alias JSONAPIPlug.Plug.{ContentTypeNegotiation, Params, QueryParam, ResponseContentType}
-  alias Plug.Conn.Status
+  alias Plug.Conn
 
-  plug :config_request, builder_opts()
+  plug :config
   plug ContentTypeNegotiation
   plug ResponseContentType
   plug QueryParam, :fields
@@ -110,12 +110,13 @@ defmodule JSONAPIPlug.Plug do
   plug Params
 
   @doc false
-  def config_request(conn, options) do
+  def config(conn, _options) do
+    {options, assigns} = Map.pop!(conn.assigns, :jsonapi_plug)
     options = NimbleOptions.validate!(options, @options_schema)
     api = Keyword.fetch!(options, :api)
     resource = Keyword.fetch!(options, :resource)
 
-    conn
+    %Conn{conn | assigns: assigns}
     |> fetch_query_params()
     |> put_private(:jsonapi_plug, %JSONAPIPlug{api: api, resource: resource})
   end
@@ -164,8 +165,8 @@ defmodule JSONAPIPlug.Plug do
         errors: [
           %Document.ErrorObject{
             error
-            | status: to_string(Status.code(code)),
-              title: Status.reason_phrase(Status.code(code))
+            | status: to_string(Conn.Status.code(code)),
+              title: Conn.Status.reason_phrase(Conn.Status.code(code))
           }
         ]
       })
