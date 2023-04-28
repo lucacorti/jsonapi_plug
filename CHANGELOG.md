@@ -1,10 +1,18 @@
 # Changelog
 
+## 1.0.3 (2023-04-28)
+
+Accept id along with attributes in default sort parser implementation (@agos)
+Remove deprecated builder_opts() usage from Plug.Builder (@lucacorti)
+
+## 1.0.2 (2023-04-14)
+
+Cache configuration (profiling by @treere, @lucacorti)
+Relax :nimble_options dependency (@lucacorti)
+
 ## 1.0.1 (2023-03-15)
 
-Allow nimble options 1.0
-
-Contributors: @lucacorti
+Allow nimble options 1.0 (@lucacorti)
 
 ## 1.0.0 "Garetto Basso" (2023-02-18)
 
