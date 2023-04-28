@@ -37,7 +37,7 @@ defmodule JSONAPIPlug.QueryParser.Ecto.Sort do
   defp parse_sort_components([field_name], resource, components) do
     valid_attributes =
       Enum.map(
-        resource.attributes(),
+        [resource.id_attribute() | resource.attributes()],
         &to_string(Resource.field_option(&1, :name) || Resource.field_name(&1))
       )
 
