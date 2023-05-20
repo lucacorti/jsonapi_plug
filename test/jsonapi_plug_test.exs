@@ -6,9 +6,9 @@ defmodule JSONAPIPlugTest do
 
   doctest JSONAPIPlug
 
-  alias JSONAPIPlug.Resource
-  alias JSONAPIPlug.TestSupport.Resources.PostResource
+  alias JSONAPIPlug.TestSupport.Views.PostView
   alias JSONAPIPlug.TestSupport.Schemas.{Company, Industry, Post, Tag, User}
+  alias JSONAPIPlug.View
   alias Plug.{Conn, Parsers}
 
   @default_data %Post{
@@ -23,13 +23,13 @@ defmodule JSONAPIPlugTest do
     use Plug.Builder
 
     plug Parsers, parsers: [:json], pass: ["text/*"], json_decoder: Jason
-    plug JSONAPIPlug.Plug, api: JSONAPIPlug.TestSupport.APIs.DefaultAPI, resource: PostResource
+    plug JSONAPIPlug.Plug, api: JSONAPIPlug.TestSupport.APIs.DefaultAPI, resource: PostView
     plug :passthrough
 
     defp passthrough(conn, _) do
       resp =
-        PostResource
-        |> Resource.render(conn, conn.assigns[:data], conn.assigns[:meta])
+        PostView
+        |> View.render(conn, conn.assigns[:data], conn.assigns[:meta])
         |> Jason.encode!()
 
       send_resp(conn, 200, resp)

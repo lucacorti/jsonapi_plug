@@ -7,7 +7,7 @@ defmodule JSONAPIPlug.QueryParser.Ecto.Fields do
   use with `select` option to `Ecto.Repo` functions.
   """
 
-  alias JSONAPIPlug.{Exceptions.InvalidQuery, QueryParser, Resource}
+  alias JSONAPIPlug.{Exceptions.InvalidQuery, QueryParser, View}
 
   @behaviour QueryParser
 
@@ -64,11 +64,11 @@ defmodule JSONAPIPlug.QueryParser.Ecto.Fields do
 
   defp attributes_for_type(resource, type) do
     if type == resource.type() do
-      Enum.map(resource.attributes(), &Resource.field_name/1)
+      Enum.map(resource.attributes(), &View.field_name/1)
     else
-      case Resource.for_related_type(resource, type) do
+      case View.for_related_type(resource, type) do
         nil -> raise InvalidQuery, type: resource.type(), param: "fields", value: type
-        related_resource -> Enum.map(related_resource.attributes(), &Resource.field_name/1)
+        related_resource -> Enum.map(related_resource.attributes(), &View.field_name/1)
       end
     end
   end

@@ -6,7 +6,7 @@ defmodule JSONAPIPlug.QueryParser.Ecto.Sort do
   format and converts them to Ecto `order_by` format for ease of use.
   """
 
-  alias JSONAPIPlug.{Exceptions.InvalidQuery, QueryParser, Resource}
+  alias JSONAPIPlug.{Exceptions.InvalidQuery, QueryParser, View}
 
   @behaviour QueryParser
 
@@ -38,7 +38,7 @@ defmodule JSONAPIPlug.QueryParser.Ecto.Sort do
     valid_attributes =
       Enum.map(
         [resource.id_attribute() | resource.attributes()],
-        &to_string(Resource.field_option(&1, :name) || Resource.field_name(&1))
+        &to_string(View.field_option(&1, :name) || View.field_name(&1))
       )
 
     unless field_name in valid_attributes do
@@ -57,7 +57,7 @@ defmodule JSONAPIPlug.QueryParser.Ecto.Sort do
     valid_relationships =
       Enum.map(
         relationships,
-        &to_string(Resource.field_option(&1, :name) || Resource.field_name(&1))
+        &to_string(View.field_option(&1, :name) || View.field_name(&1))
       )
 
     unless field_name in valid_relationships do
@@ -66,8 +66,8 @@ defmodule JSONAPIPlug.QueryParser.Ecto.Sort do
 
     related_resource =
       Enum.find_value(relationships, fn relationship ->
-        String.to_existing_atom(field_name) == Resource.field_name(relationship) &&
-          Resource.field_option(relationship, :resource)
+        String.to_existing_atom(field_name) == View.field_name(relationship) &&
+          View.field_option(relationship, :resource)
       end)
 
     parse_sort_components(rest, related_resource, [field_name | components])

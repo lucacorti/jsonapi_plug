@@ -8,7 +8,7 @@ defmodule JSONAPIPlug do
   """
 
   alias Plug.Conn
-  alias JSONAPIPlug.{API, Resource}
+  alias JSONAPIPlug.{API, View}
 
   @type case :: :camelize | :dasherize | :underscore
 
@@ -19,7 +19,7 @@ defmodule JSONAPIPlug do
           include: term(),
           page: term(),
           params: Conn.params(),
-          resource: Resource.t(),
+          resource: View.t(),
           sort: term()
         }
   defstruct api: nil,
@@ -86,7 +86,7 @@ defmodule JSONAPIPlug do
       iex> recase("corgiAge", :underscore)
       "corgi_age"
   """
-  @spec recase(Resource.field_name() | String.t(), case()) :: String.t()
+  @spec recase(View.field_name() | String.t(), case()) :: String.t()
   def recase(field, case) when is_atom(field) do
     field
     |> to_string()

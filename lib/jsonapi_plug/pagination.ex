@@ -9,7 +9,7 @@ defmodule JSONAPIPlug.Pagination do
 
   ```elixir
   defmodule MyApp.MyController do
-    plug JSONAPIPlug.Plug, api: MyApp.MyApi, resource: MyApp.MyResource
+    plug JSONAPIPlug.Plug, api: MyApp.MyApi, resource: MyApp.MyView
   end
   ```
 
@@ -25,7 +25,7 @@ defmodule JSONAPIPlug.Pagination do
   See the tests for an example implementation of page based pagination strategy.
   """
 
-  alias JSONAPIPlug.{Document.LinkObject, Resource}
+  alias JSONAPIPlug.{Document.LinkObject, View}
   alias Plug.Conn
 
   @type t :: module()
@@ -35,16 +35,16 @@ defmodule JSONAPIPlug.Pagination do
   @type params :: %{String.t() => String.t()}
 
   @callback paginate(
-              Resource.t(),
-              [Resource.resource()],
+              View.t(),
+              [View.resource()],
               Conn.t() | nil,
               params(),
-              Resource.options()
+              View.options()
             ) :: links()
 
   @spec url_for(
-          Resource.t(),
-          [Resource.resource()],
+          View.t(),
+          [View.resource()],
           Conn.t() | nil,
           params() | nil
         ) ::
@@ -78,11 +78,11 @@ defmodule JSONAPIPlug.Pagination do
   end
 
   defp prepare_url(resource, data, conn, "" = _query),
-    do: Resource.url_for(resource, data, conn)
+    do: View.url_for(resource, data, conn)
 
   defp prepare_url(resource, data, conn, query) do
     resource
-    |> Resource.url_for(data, conn)
+    |> View.url_for(data, conn)
     |> URI.parse()
     |> struct(query: query)
     |> URI.to_string()

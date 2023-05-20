@@ -39,7 +39,7 @@ defmodule JSONAPIPlug.Normalizer do
     Document.ResourceObject,
     Exceptions.InvalidDocument,
     Pagination,
-    Resource
+    View
   }
 
   alias Plug.Conn
@@ -51,21 +51,21 @@ defmodule JSONAPIPlug.Normalizer do
   @callback resource_params :: params() | no_return()
   @callback denormalize_attribute(
               params(),
-              Resource.field_name(),
+              View.field_name(),
               term()
             ) ::
               params() | no_return()
   @callback denormalize_relationship(
               params(),
               RelationshipObject.t() | [RelationshipObject.t()],
-              Resource.field_name(),
+              View.field_name(),
               term()
             ) ::
               params() | no_return()
-  @callback normalize_attribute(params(), Resource.field_name()) :: value() | no_return()
+  @callback normalize_attribute(params(), View.field_name()) :: value() | no_return()
 
   @doc "Transforms a JSON:API Document user data"
-  @spec denormalize(Document.t(), Resource.t(), Conn.t()) :: Conn.params() | no_return()
+  @spec denormalize(Document.t(), View.t(), Conn.t()) :: Conn.params() | no_return()
   def denormalize(%Document{data: nil}, _resource, _conn), do: %{}
 
   def denormalize(%Document{data: resource_objects} = document, resource, conn)
@@ -102,7 +102,7 @@ defmodule JSONAPIPlug.Normalizer do
        ) do
     if API.get_config(jsonapi_plug.api, [:client_generated_ids], false) do
       raise InvalidDocument,
-        message: "Resource ID not received in request and API requires Client-Generated IDs",
+        message: "View ID not received in request and API requires Client-Generated IDs",
         reference: "https://jsonapi.org/format/1.0/#crud-creating-client-ids"
     end
 
@@ -120,9 +120,9 @@ defmodule JSONAPIPlug.Normalizer do
          normalizer
        ) do
     Enum.reduce(resource.attributes(), params, fn attribute, params ->
-      name = Resource.field_name(attribute)
-      deserialize = Resource.field_option(attribute, :deserialize)
-      key = to_string(Resource.field_option(attribute, :name) || name)
+      name = View.field_name(attribute)
+      deserialize = View.field_option(attribute, :deserialize)
+      key = to_string(View.field_option(attribute, :name) || name)
 
       case Map.fetch(resource_object.attributes, recase_field(conn, name)) do
         {:ok, _value} when deserialize == false ->
@@ -149,10 +149,10 @@ defmodule JSONAPIPlug.Normalizer do
          normalizer
        ) do
     Enum.reduce(resource.relationships(), params, fn relationship, params ->
-      name = Resource.field_name(relationship)
-      key = to_string(Resource.field_option(relationship, :name) || name)
-      related_resource = Resource.field_option(relationship, :resource)
-      related_many = Resource.field_option(relationship, :many)
+      name = View.field_name(relationship)
+      key = to_string(View.field_option(relationship, :name) || name)
+      related_resource = View.field_option(relationship, :resource)
+      related_many = View.field_option(relationship, :many)
       related_relationships = Map.get(relationships, to_string(name))
 
       case {related_many, related_relationships} do
@@ -217,11 +217,11 @@ defmodule JSONAPIPlug.Normalizer do
 
   @doc "Transforms user data into a JSON:API Document"
   @spec normalize(
-          Resource.t(),
+          View.t(),
           Conn.t() | nil,
-          Resource.data() | nil,
-          Resource.meta() | nil,
-          Resource.options()
+          View.data() | nil,
+          View.meta() | nil,
+          View.options()
         ) ::
           Document.t() | no_return()
   def normalize(resource, conn, data, meta, options) do
@@ -279,10 +279,10 @@ defmodule JSONAPIPlug.Normalizer do
           resource.attributes()
           |> requested_fields(resource, conn)
           |> Enum.reduce(%{}, fn attribute, attributes ->
-            name = Resource.field_name(attribute)
-            key = Resource.field_option(attribute, :name) || Resource.field_name(attribute)
+            name = View.field_name(attribute)
+            key = View.field_option(attribute, :name) || View.field_name(attribute)
 
-            case Resource.field_option(attribute, :serialize) do
+            case View.field_option(attribute, :serialize) do
               false ->
                 attributes
 
@@ -307,11 +307,11 @@ defmodule JSONAPIPlug.Normalizer do
           resource.relationships()
           |> Enum.filter(&relationship_loaded?(Map.get(data, elem(&1, 0))))
           |> Enum.into(%{}, fn relationship ->
-            name = Resource.field_name(relationship)
-            key = Resource.field_option(relationship, :name) || Resource.field_name(relationship)
+            name = View.field_name(relationship)
+            key = View.field_option(relationship, :name) || View.field_name(relationship)
             related_data = Map.get(data, key)
-            related_resource = Resource.field_option(relationship, :resource)
-            related_many = Resource.field_option(relationship, :many)
+            related_resource = View.field_option(relationship, :resource)
+            related_many = View.field_option(relationship, :many)
 
             case {related_many, related_data} do
               {false, related_data} when is_list(related_data) ->
@@ -331,7 +331,7 @@ defmodule JSONAPIPlug.Normalizer do
                     data:
                       normalize_relationship(related_resource, conn, related_data, normalizer),
                     links: %{
-                      self: Resource.url_for_relationship(resource, data, conn, resource.type())
+                      self: View.url_for_relationship(resource, data, conn, resource.type())
                     },
                     meta: resource.meta(data, conn)
                   }
@@ -373,7 +373,7 @@ defmodule JSONAPIPlug.Normalizer do
     links =
       data
       |> resource.links(conn)
-      |> Map.merge(%{self: Resource.url_for(resource, data, conn)})
+      |> Map.merge(%{self: View.url_for(resource, data, conn)})
 
     %Document{document | links: links}
   end
@@ -431,11 +431,11 @@ defmodule JSONAPIPlug.Normalizer do
          options,
          relationship
        ) do
-    name = Resource.field_name(relationship)
+    name = View.field_name(relationship)
     related_data = Map.get(data, name)
     related_loaded? = relationship_loaded?(related_data)
-    related_resource = Resource.field_option(relationship, :resource)
-    related_many = Resource.field_option(relationship, :many)
+    related_resource = View.field_option(relationship, :resource)
+    related_many = View.field_option(relationship, :many)
 
     included =
       case {related_loaded?, related_many, related_data} do
@@ -507,7 +507,7 @@ defmodule JSONAPIPlug.Normalizer do
         attributes
 
       fields when is_list(fields) ->
-        Enum.filter(attributes, fn attribute -> Resource.field_name(attribute) in fields end)
+        Enum.filter(attributes, fn attribute -> View.field_name(attribute) in fields end)
     end
   end
 
