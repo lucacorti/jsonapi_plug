@@ -4,10 +4,10 @@ defprotocol JSONAPIPlug.Resource.Links do
 
   @fallback_to_any true
 
-  @spec links(t(), Conn.t()) :: Document.links()
+  @spec links(t(), Conn.t()) :: Document.links() | nil
   def links(_t, _conn)
 end
 
 defimpl JSONAPIPlug.Resource.Links, for: Any do
-  def links(_t, _conn), do: %{}
+  def links(_t, _conn), do: nil
 end

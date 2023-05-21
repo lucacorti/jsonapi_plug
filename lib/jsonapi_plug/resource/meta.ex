@@ -4,10 +4,10 @@ defprotocol JSONAPIPlug.Resource.Meta do
 
   @fallback_to_any true
 
-  @spec meta(t(), Conn.t()) :: Document.meta()
+  @spec meta(t(), Conn.t()) :: Document.meta() | nil
   def meta(_t, _conn)
 end
 
 defimpl JSONAPIPlug.Resource.Meta, for: Any do
-  def meta(_t, _conn), do: %{}
+  def meta(_t, _conn), do: nil
 end
