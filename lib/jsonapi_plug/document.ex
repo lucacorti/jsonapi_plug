@@ -13,8 +13,7 @@ defmodule JSONAPIPlug.Document do
     Document.JSONAPIObject,
     Document.LinkObject,
     Document.ResourceObject,
-    Exceptions.InvalidDocument,
-    View
+    Exceptions.InvalidDocument
   }
 
   @type value :: String.t() | integer() | float() | [value()] | %{String.t() => value()} | nil
@@ -69,7 +68,7 @@ defmodule JSONAPIPlug.Document do
   https://jsonapi.org/format/#document-structure
   """
   @type t :: %__MODULE__{
-          data: data() | View.data() | nil,
+          data: data() | nil,
           errors: errors() | nil,
           included: included() | nil,
           jsonapi: jsonapi() | nil,

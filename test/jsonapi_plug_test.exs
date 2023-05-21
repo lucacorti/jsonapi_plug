@@ -2,13 +2,8 @@ defmodule JSONAPIPlugTest do
   use ExUnit.Case
   use Plug.Test
 
-  import JSONAPIPlug, only: [recase: 2]
-
-  doctest JSONAPIPlug
-
-  alias JSONAPIPlug.TestSupport.Views.PostView
-  alias JSONAPIPlug.TestSupport.Schemas.{Company, Industry, Post, Tag, User}
-  alias JSONAPIPlug.View
+  alias JSONAPIPlug.Resource
+  alias JSONAPIPlug.TestSupport.Resources.{Company, Industry, Post, Tag, User}
   alias Plug.{Conn, Parsers}
 
   @default_data %Post{
@@ -19,17 +14,16 @@ defmodule JSONAPIPlugTest do
     other_user: %User{username: "josh", id: 3}
   }
 
-  defmodule MyPostPlug do
+  defmodule PostPlug do
     use Plug.Builder
 
     plug Parsers, parsers: [:json], pass: ["text/*"], json_decoder: Jason
-    plug JSONAPIPlug.Plug, api: JSONAPIPlug.TestSupport.APIs.DefaultAPI, resource: PostView
+    plug JSONAPIPlug.Plug, api: JSONAPIPlug.TestSupport.APIs.DefaultAPI, resource: Post
     plug :passthrough
 
     defp passthrough(conn, _) do
       resp =
-        PostView
-        |> View.render(conn, conn.assigns[:data], conn.assigns[:meta])
+        Resource.render(conn, conn.assigns[:data], conn.assigns[:links], conn.assigns[:meta])
         |> Jason.encode!()
 
       send_resp(conn, 200, resp)
@@ -40,41 +34,24 @@ defmodule JSONAPIPlugTest do
     conn =
       conn(:get, "/posts?include=author")
       |> Conn.assign(:data, [@default_data])
-      |> Conn.assign(:meta, %{total_pages: 1})
-      |> MyPostPlug.call([])
+      |> PostPlug.call([])
 
     assert %{
              "data" => [
                %{
                  "id" => "1",
                  "type" => "post",
-                 "attributes" => %{
-                   "body" => "Hi",
-                   "text" => "Hello",
-                   "excerpt" => "He"
-                 },
+                 "attributes" => %{"body" => "Hi", "text" => "Hello", "excerpt" => "He"},
                  "relationships" =>
                    %{
-                     "author" => %{
-                       "data" => %{
-                         "id" => "2",
-                         "type" => "user"
-                       }
-                     },
-                     "otherUser" => _other_user
+                     "author" => %{"data" => %{"id" => "2", "type" => "user"}},
+                     "otherUser" => %{"data" => %{"id" => "3", "type" => "user"}}
                    } = relationships
                }
              ],
              "included" => [
-               %{
-                 "id" => "2",
-                 "type" => "user"
-               }
-             ],
-             "links" => _links,
-             "meta" => %{
-               "total_pages" => 1
-             }
+               %{"id" => "2", "type" => "user"}
+             ]
            } = Jason.decode!(conn.resp_body)
 
     assert map_size(relationships) == 3
@@ -84,7 +61,7 @@ defmodule JSONAPIPlugTest do
     conn =
       conn(:get, "/posts?include=author,other_user")
       |> Conn.assign(:data, [@default_data])
-      |> MyPostPlug.call([])
+      |> PostPlug.call([])
 
     assert %{
              "data" => [
@@ -109,8 +86,7 @@ defmodule JSONAPIPlugTest do
                    } = relationships
                }
              ],
-             "included" => [_ | _] = included,
-             "links" => _links
+             "included" => [_ | _] = included
            } = Jason.decode!(conn.resp_body)
 
     assert map_size(relationships) == 3
@@ -130,7 +106,7 @@ defmodule JSONAPIPlugTest do
     conn =
       conn(:get, "/posts?include=")
       |> Plug.Conn.assign(:data, [@default_data])
-      |> MyPostPlug.call([])
+      |> PostPlug.call([])
 
     json = conn.resp_body |> Jason.decode!()
 
@@ -188,7 +164,7 @@ defmodule JSONAPIPlugTest do
     conn =
       conn(:get, "/posts?include=other_user.company.industry.tags")
       |> Conn.assign(:data, posts)
-      |> MyPostPlug.call([])
+      |> PostPlug.call([])
 
     assert %{
              "data" => [
@@ -211,8 +187,7 @@ defmodule JSONAPIPlugTest do
                  }
                }
              ],
-             "included" => [_ | _] = included,
-             "links" => _links
+             "included" => [_ | _] = included
            } = Jason.decode!(conn.resp_body)
 
     assert Enum.find(included, fn
@@ -301,7 +276,7 @@ defmodule JSONAPIPlugTest do
       conn =
         conn(:get, "/posts?include=other_user.company&fields[post]=text,excerpt,first_character")
         |> Conn.assign(:data, [@default_data])
-        |> MyPostPlug.call([])
+        |> PostPlug.call([])
 
       assert %{
                "data" => [
@@ -322,7 +297,7 @@ defmodule JSONAPIPlugTest do
       conn =
         conn(:get, "/posts?include=other_user.company&fields[post]=text,first-character")
         |> Conn.assign(:data, [@default_data])
-        |> MyPostPlug.call([])
+        |> PostPlug.call([])
 
       assert %{
                "data" => [
@@ -340,7 +315,7 @@ defmodule JSONAPIPlugTest do
       conn =
         conn(:get, "/posts?include=other_user.company&fields[post]=")
         |> Plug.Conn.assign(:data, [@default_data])
-        |> MyPostPlug.call([])
+        |> PostPlug.call([])
 
       assert %{"data" => [resource]} = Jason.decode!(conn.resp_body)
 
@@ -353,7 +328,7 @@ defmodule JSONAPIPlugTest do
       conn(:get, "/posts")
       |> Conn.assign(:data, [@default_data])
       |> Conn.assign(:meta, nil)
-      |> MyPostPlug.call([])
+      |> PostPlug.call([])
 
     json = conn.resp_body |> Jason.decode!()
 
@@ -364,7 +339,7 @@ defmodule JSONAPIPlugTest do
     conn =
       conn(:get, "/posts")
       |> Conn.assign(:data, [@default_data])
-      |> MyPostPlug.call([])
+      |> PostPlug.call([])
 
     json = conn.resp_body |> Jason.decode!()
 

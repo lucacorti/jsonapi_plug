@@ -55,7 +55,8 @@ defmodule JSONAPIPlug.Mixfile do
         Plugs: [~r/JSONAPIPlug\.Plug\..*/],
         Ecto: [~r/JSONAPIPlug\.(Normalizer|QueryParser)\.Ecto\.*/],
         Parsers: [~r/JSONAPIPlug\.QueryParser\..*/],
-        Behaviours: [~r/JSONAPIPlug\.(Normalizer|Pagination|QueryParser)/]
+        Behaviours: [~r/JSONAPIPlug\.(Normalizer|QueryParser)/],
+        Protocols: [~r/JSONAPIPlug\.Resource\..*/]
       ]
     ]
   end

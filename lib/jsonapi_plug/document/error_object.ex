@@ -28,10 +28,9 @@ defmodule JSONAPIPlug.Document.ErrorObject do
 
   @spec deserialize(Document.payload()) :: t() | no_return()
   def deserialize(data) do
-    error = %__MODULE__{}
-
-    attrs =
-      error
+    struct(
+      %__MODULE__{},
+      %__MODULE__{}
       |> Map.from_struct()
       |> Map.keys()
       |> Enum.reduce([], fn key, attrs ->
@@ -40,8 +39,7 @@ defmodule JSONAPIPlug.Document.ErrorObject do
           :error -> attrs
         end
       end)
-
-    struct(%__MODULE__{}, attrs)
+    )
   end
 
   @spec serialize(t()) :: t()

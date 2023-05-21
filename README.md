@@ -46,7 +46,7 @@ In order to parse `JSON:API` requests from clients you need to add the `JSONAPIP
 ```elixir
 defmodule MyApp.PostsController do
   ...
-  plug JSONAPIPlug.Plug, api: MyApp.API, resource: MyApp.PostView
+  plug JSONAPIPlug.Plug, api: MyApp.API, resource: MyApp.Post
   ...
 end
 ```
@@ -55,7 +55,7 @@ This will take care of ensuring `JSON:API` specification compliance and will ret
 
 The `:api` option expects a module using `JSONAPI.API` for configuration.
 
-The `:resource` option expects a module using `JSONAPIPlug.View` to convert to/from `JSON:API` format.
+The `:resource` option expects a module using `JSONAPIPlug.Resource` to convert to/from `JSON:API` format.
 
 When requests are processed, the `:jsonapi_plug` connection private field is populated with the parsed request.
 
@@ -67,18 +67,7 @@ To start serving responses, you need to have some data to return to clients:
 
 ```elixir
 defmodule MyApp.Post do
-  @type t :: %__MODULE__{id: pos_integer(), body: String.t(), title: String.t()}
-
-  @enforce_keys [:id, :body, :title]
-  defstruct [:id, :body, :title]
-end
-```
-
-and define a resource module to render your resource:
-
-```elixir
-defmodule MyApp.PostView do
-  use JSONAPIPlug.View,
+ use JSONAPIPlug.Resource,
     type: "post",
     attributes: [
       title: nil,
@@ -86,8 +75,10 @@ defmodule MyApp.PostView do
       excerpt: [serialize: fn %Post{} = post, _conn -> String.slice(post.body, 0..5) end]
     ]
 
-  @impl JSONAPIPlug.View
-  def meta(%Post{} = post, _conn), do: %{slug: to_slug(post.title)}
+  @type t :: %__MODULE__{id: pos_integer(), body: String.t(), title: String.t()}
+
+  @enforce_keys [:id, :body, :title]
+  defstruct [:id, :body, :title]
 end
 ```
 
@@ -96,7 +87,7 @@ To use the resource module in Phoenix, just call render and pass the data from y
 ```elixir
   defmodule MyAppWeb.PostsController do
     ...
-    plug JSONAPIPlug.Plug, api: MyApp.API, resource: MyApp.PostView
+    plug JSONAPIPlug.Plug, api: MyApp.API, resource: MyApp.Post
     ...
 
     def create(%Conn{private: %{jsonapi_plug: jsonapi_plug}} = conn, params) do
@@ -121,9 +112,9 @@ To use the resource module in Phoenix, just call render and pass the data from y
   end
 ```
 
-If you have a `Plug` application, you can call `JSONAPIPlug.View.render/5` to generate a `JSONAPI.Document` with your data for the client. The structure is serializable to JSON with `Jason`.
+If you have a `Plug` application, you can call `JSONAPIPlug.Resource.render/4` to generate a `JSONAPI.Document` with your data for the client. The structure is serializable to JSON with `Jason`.
 
-See the `JSONAPIPlug.Plug` and `JSONAPIPlug.View` modules documentation for more information.
+See the `JSONAPIPlug.Plug` and `JSONAPIPlug.Resource` modules documentation for more information.
 
 ## Contributing
 

@@ -51,11 +51,6 @@ defmodule JSONAPIPlug.API do
         "Namespace for all resources in your API. if you want your resources to live under \".../api/v1\", pass `namespace: \"api/v1\"`.",
       type: :string
     ],
-    normalizer: [
-      doc: "Normalizer for transformation of `JSON:API` document to and from user data.",
-      type: :atom,
-      default: JSONAPIPlug.Normalizer.Ecto
-    ],
     query_parsers: [
       doc: "Parsers for transformation of `JSON:API` request query parameters to user data.",
       type: :keyword_list,
@@ -93,11 +88,6 @@ defmodule JSONAPIPlug.API do
         page: JSONAPIPlug.QueryParser.Page,
         sort: JSONAPIPlug.QueryParser.Ecto.Sort
       ]
-    ],
-    pagination: [
-      doc: "A module adopting the `JSONAPIPlug.Pagination` behaviour for pagination.",
-      type: :atom,
-      default: nil
     ],
     port: [
       doc: "Port used for link generation instead of deriving it from the connection.",

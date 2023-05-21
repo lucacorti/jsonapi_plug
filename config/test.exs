@@ -6,12 +6,11 @@ alias JSONAPIPlug.TestSupport.{
   APIs.OtherHostAPI,
   APIs.OtherNamespaceAPI,
   APIs.OtherSchemeAPI,
-  APIs.UnderscoringAPI,
-  Pagination.PageBasedPagination
+  APIs.UnderscoringAPI
 }
 
 config :jsonapi_plug, DasherizingAPI, case: :dasherize
-config :jsonapi_plug, DefaultAPI, pagination: PageBasedPagination
+config :jsonapi_plug, DefaultAPI, case: :camelize
 config :jsonapi_plug, OtherHostAPI, host: "www.otherhost.com"
 config :jsonapi_plug, OtherNamespaceAPI, namespace: "somespace"
 config :jsonapi_plug, OtherPortAPI, port: 42
