@@ -11,7 +11,12 @@ defmodule JSONAPIPlug.TestSupport.Resources do
   defmodule Industry do
     @moduledoc false
 
-    use JSONAPIPlug.Resource, resource: __MODULE__, type: "industry", attributes: [name: nil]
+    use JSONAPIPlug.Resource,
+      resource: __MODULE__,
+      type: "industry",
+      attributes: [name: nil],
+      relationships: [tags: [many: true, resource: Tag]]
+
     defstruct id: nil, name: nil, tags: []
   end
 
