@@ -366,25 +366,22 @@ defmodule JSONAPIPlug.Resource do
   "corgi_age"
   """
   @spec field_recase(field_name() | String.t(), field_case()) :: String.t()
-  def field_recase(field, case) when is_atom(field) do
+  def field_recase(field, field_case) when is_atom(field) do
     field
-    |> to_string()
-    |> field_recase(case)
+    |> Atom.to_string()
+    |> field_recase(field_case)
   end
 
   def field_recase("", :camelize), do: ""
 
   def field_recase(field, :camelize) do
-    [h | t] =
-      Regex.split(~r{(?<=[a-zA-Z0-9])[-_](?=[a-zA-Z0-9])}, field)
-      |> Enum.filter(&(&1 != ""))
+    [h | t] = String.split(field, ~r/(?<=[a-zA-Z0-9])[-_](?=[a-zA-Z0-9])/, trim: true)
 
-    Enum.join([String.downcase(h) | camelize_list(t)])
+    Enum.join([String.downcase(h) | Enum.map(t, &String.capitalize/1)])
   end
 
-  def field_recase(field, :dasherize) do
-    String.replace(field, ~r/([a-zA-Z0-9])_([a-zA-Z0-9])/, "\\1-\\2")
-  end
+  def field_recase(field, :dasherize),
+    do: String.replace(field, ~r/([a-zA-Z0-9])_([a-zA-Z0-9])/, "\\1-\\2")
 
   def field_recase(field, :underscore) do
     field
@@ -392,9 +389,6 @@ defmodule JSONAPIPlug.Resource do
     |> String.replace(~r/([a-z\d])([A-Z])/, "\\1_\\2")
     |> String.downcase()
   end
-
-  defp camelize_list([]), do: []
-  defp camelize_list([h | t]), do: [String.capitalize(h) | camelize_list(t)]
 
   @doc """
   Render JSON:API response
