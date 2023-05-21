@@ -124,14 +124,22 @@ defmodule JSONAPIPlug.Resource do
                  ]},
               default: []
             ],
+            case: [
+              doc:
+                "This option controls how your API's field names will be cased. The current `JSON:API Specification v1.0` recommends dasherizing (e.g. `\"favorite-color\": \"blue\"`), while the upcoming `JSON:API Specification v1.1` recommends camelCase (e.g. `\"favoriteColor\": \"blue\"`).",
+              type: {:in, [:camelize, :dasherize, :underscore]},
+              default: :camelize
+            ],
+            client_generated_ids: [
+              doc:
+                "Enable support for Client-Generated IDs. When enabled, the resources received in requests are supposed to contain a valid 'id'.",
+              type: :boolean,
+              default: false
+            ],
             id_attribute: [
               doc: "Attribute on your data to be used as the JSON:API resource id.",
               type: :atom,
               default: :id
-            ],
-            path: [
-              doc: "A custom path to be used for the resource. Defaults to the resource type.",
-              type: :string
             ],
             relationships: [
               doc:
@@ -161,6 +169,7 @@ defmodule JSONAPIPlug.Resource do
       |> Macro.prewalk(&Macro.expand(&1, __CALLER__))
       |> NimbleOptions.validate!(@schema)
 
+    client_generated_ids = Keyword.get(options, :client_generated_ids)
     id_attribute = Keyword.get(options, :id_attribute)
     attributes = Keyword.get(options, :attributes)
     relationships = Keyword.get(options, :relationships)
@@ -216,7 +225,12 @@ defmodule JSONAPIPlug.Resource do
         def relationships(_t), do: unquote(relationships)
       end
 
+      defimpl JSONAPIPlug.Resource.Case, for: unquote(resource) do
+        def fields_case(_t), do: unquote(options[:case])
+      end
+
       defimpl JSONAPIPlug.Resource.Identity, for: unquote(resource) do
+        def client_generated_ids?(_t), do: unquote(client_generated_ids)
         def id_attribute(_t), do: unquote(id_attribute)
         def type(_t), do: unquote(type)
       end
@@ -231,7 +245,7 @@ defmodule JSONAPIPlug.Resource do
   @typedoc "Resource"
   @type t :: struct()
 
-  @type case :: :camelize | :dasherize | :underscore
+  @type field_case :: :camelize | :dasherize | :underscore
 
   @type data :: t() | [t()]
 
@@ -358,7 +372,7 @@ defmodule JSONAPIPlug.Resource do
   iex> field_recase("corgiAge", :underscore)
   "corgi_age"
   """
-  @spec field_recase(field_name() | String.t(), case()) :: String.t()
+  @spec field_recase(field_name() | String.t(), field_case()) :: String.t()
   def field_recase(field, case) when is_atom(field) do
     field
     |> to_string()

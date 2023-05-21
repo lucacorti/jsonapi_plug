@@ -13,9 +13,7 @@ defmodule JSONAPIPlug.API do
     API module configuration can be customized via your application configuration:
 
     ```elixir
-    config :my_app, MyApp.API,
-      namespace: "api",
-      case: :dasherize
+    config :my_app, MyApp.API, namespace: "api"
     ```
 
     See `t:options/0` for all available configuration options.
@@ -30,18 +28,6 @@ defmodule JSONAPIPlug.API do
   ]
 
   @config_schema [
-    case: [
-      doc:
-        "This option controls how your API's field names will be cased. The current `JSON:API Specification v1.0` recommends dasherizing (e.g. `\"favorite-color\": \"blue\"`), while the upcoming `JSON:API Specification v1.1` recommends camelCase (e.g. `\"favoriteColor\": \"blue\"`).",
-      type: {:in, [:camelize, :dasherize, :underscore]},
-      default: :camelize
-    ],
-    client_generated_ids: [
-      doc:
-        "Enable support for Client-Generated IDs. When enabled, the resources received in requests are supposed to contain a valid 'id'.",
-      type: :boolean,
-      default: false
-    ],
     host: [
       doc: "Hostname used for link generation instead of deriving it from the connection.",
       type: :string

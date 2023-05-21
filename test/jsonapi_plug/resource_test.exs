@@ -88,8 +88,6 @@ defmodule JSONAPIPlug.ResourceTest do
   end
 
   test "resource returns all field names by default" do
-    conn = conn(:get, "/") |> UnderscoringPostPlug.call([])
-
     assert %Document{
              data: %ResourceObject{
                id: "1",
@@ -97,14 +95,17 @@ defmodule JSONAPIPlug.ResourceTest do
                attributes:
                  %{
                    "age" => _age,
-                   "first_name" => _first_name,
-                   "full_name" => _full_name,
-                   "last_name" => _last_name,
+                   "firstName" => _first_name,
+                   "fullName" => _full_name,
+                   "lastName" => _last_name,
                    "password" => _password,
                    "username" => _username
                  } = attributes
              }
-           } = Resource.render(conn, %User{id: 1})
+           } =
+             conn(:get, "/")
+             |> UnderscoringPostPlug.call([])
+             |> Resource.render(%User{id: 1})
 
     assert map_size(attributes) == 6
   end

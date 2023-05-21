@@ -16,7 +16,6 @@ defmodule JSONAPIPlug.Normalizer do
   """
 
   alias JSONAPIPlug.{
-    API,
     Document,
     Document.RelationshipObject,
     Document.ResourceIdentifierObject,
@@ -24,6 +23,7 @@ defmodule JSONAPIPlug.Normalizer do
     Exceptions.InvalidDocument,
     Resource,
     Resource.Attributes,
+    Resource.Case,
     Resource.Identity,
     Resource.Links,
     Resource.Meta,
@@ -67,10 +67,10 @@ defmodule JSONAPIPlug.Normalizer do
   defp denormalize_id(
          params,
          %ResourceObject{id: nil},
-         _resource,
-         %Conn{private: %{jsonapi_plug: %JSONAPIPlug{} = jsonapi_plug}}
+         resource,
+         _conn
        ) do
-    if API.get_config(jsonapi_plug.api, [:client_generated_ids], false) do
+    if Identity.client_generated_ids?(resource) do
       raise InvalidDocument,
         message: "Resource ID not received in request and API requires Client-Generated IDs",
         reference: "https://jsonapi.org/format/1.0/#crud-creating-client-ids"
@@ -101,7 +101,7 @@ defmodule JSONAPIPlug.Normalizer do
       deserialize = Resource.field_option(attribute, :deserialize)
       key = to_string(Resource.field_option(attribute, :name) || name)
 
-      case Map.fetch(resource_object.attributes, recase_field(conn, name)) do
+      case Map.fetch(resource_object.attributes, recase_field(resource, name)) do
         {:ok, _value} when deserialize == false ->
           params
 
@@ -252,12 +252,12 @@ defmodule JSONAPIPlug.Normalizer do
               serialize when serialize in [true, nil] ->
                 value = Params.normalize_attribute(resource, key)
 
-                Map.put(attributes, recase_field(conn, name), value)
+                Map.put(attributes, recase_field(resource, name), value)
 
               serialize when is_function(serialize, 2) ->
                 value = serialize.(resource, conn)
 
-                Map.put(attributes, recase_field(conn, name), value)
+                Map.put(attributes, recase_field(resource, name), value)
             end
           end)
     }
@@ -298,7 +298,7 @@ defmodule JSONAPIPlug.Normalizer do
 
               {_related_many, related_resources} ->
                 {
-                  recase_field(conn, name),
+                  recase_field(resource, name),
                   %RelationshipObject{
                     data: normalize_relationship(related_resources, conn),
                     meta: Meta.meta(resource, conn)
@@ -395,11 +395,8 @@ defmodule JSONAPIPlug.Normalizer do
   defp included_to_list(%Document{included: included} = document),
     do: %{document | included: MapSet.to_list(included)}
 
-  defp recase_field(%Conn{private: %{jsonapi_plug: %JSONAPIPlug{} = jsonapi_plug}}, field),
-    do: Resource.field_recase(field, API.get_config(jsonapi_plug.api, [:case], :camelize))
-
-  defp recase_field(_conn, field),
-    do: Resource.field_recase(field, :camelize)
+  defp recase_field(resource, field),
+    do: Resource.field_recase(field, Case.fields_case(resource))
 
   defp relationship_loaded?(nil), do: false
   defp relationship_loaded?(%{__struct__: Ecto.Association.NotLoaded}), do: false
