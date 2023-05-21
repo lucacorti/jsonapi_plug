@@ -33,7 +33,7 @@ defmodule JSONAPIPlug.Normalizer do
 
   alias Plug.Conn
 
-  @doc "Transforms a JSON:API Document user data"
+  @doc "Transforms a JSON:API Document into params"
   @spec denormalize(Document.t(), Resource.data(), Conn.t()) :: Conn.params() | no_return()
   def denormalize(document, resource, conn), do: denormalize_data(document, resource, conn)
 
