@@ -33,10 +33,8 @@ defmodule JSONAPIPlug.Normalizer do
 
   alias Plug.Conn
 
-  @type data :: Resource.t() | [Resource.t()]
-
   @doc "Transforms a JSON:API Document user data"
-  @spec denormalize(Document.t(), data(), Conn.t()) :: Conn.params() | no_return()
+  @spec denormalize(Document.t(), Resource.data(), Conn.t()) :: Conn.params() | no_return()
   def denormalize(document, resource, conn), do: denormalize_data(document, resource, conn)
 
   defp denormalize_data(%Document{data: nil}, _resource, _conn), do: %{}
@@ -153,7 +151,7 @@ defmodule JSONAPIPlug.Normalizer do
             message: "List of resources for one-to-one relationship during normalization",
             reference: nil
 
-        {true, _related_data} ->
+        {true, _related_relationships} ->
           raise InvalidDocument,
             message: "Single resource for many relationship during normalization",
             reference: nil
@@ -196,7 +194,7 @@ defmodule JSONAPIPlug.Normalizer do
   end
 
   @doc "Transforms user data into a JSON:API Document"
-  @spec normalize(Conn.t() | nil, data(), Document.links(), Document.meta()) ::
+  @spec normalize(Conn.t(), Resource.data(), Document.links(), Document.meta()) ::
           Document.t() | no_return()
   def normalize(conn, resources, links, meta) do
     %Document{links: links, meta: meta}
