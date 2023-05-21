@@ -28,15 +28,6 @@ defmodule JSONAPIPlug.API do
   ]
 
   @config_schema [
-    host: [
-      doc: "Hostname used for link generation instead of deriving it from the connection.",
-      type: :string
-    ],
-    namespace: [
-      doc:
-        "Namespace for all resources in your API. if you want your resources to live under \".../api/v1\", pass `namespace: \"api/v1\"`.",
-      type: :string
-    ],
     query_parsers: [
       doc: "Parsers for transformation of `JSON:API` request query parameters to user data.",
       type: :keyword_list,
@@ -74,19 +65,6 @@ defmodule JSONAPIPlug.API do
         page: JSONAPIPlug.QueryParser.Page,
         sort: JSONAPIPlug.QueryParser.Ecto.Sort
       ]
-    ],
-    port: [
-      doc: "Port used for link generation instead of deriving it from the connection.",
-      type: :pos_integer
-    ],
-    scheme: [
-      doc: "Scheme used for link generation instead of deriving it from the connection.",
-      type: {:in, [:http, :https]}
-    ],
-    version: [
-      doc: "`JSON:API` version advertised in the document",
-      type: {:in, [:"1.0"]},
-      default: :"1.0"
     ]
   ]
 
@@ -100,14 +78,11 @@ defmodule JSONAPIPlug.API do
   @type options :: keyword()
 
   defmacro __using__(options) do
-    otp_app =
-      options
-      |> NimbleOptions.validate!(@options_schema)
-      |> Keyword.fetch!(:otp_app)
+    options = NimbleOptions.validate!(options, @options_schema)
 
     quote do
       @doc false
-      def __otp_app__, do: unquote(otp_app)
+      def __otp_app__, do: unquote(options[:otp_app])
     end
   end
 

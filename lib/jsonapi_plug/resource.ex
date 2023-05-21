@@ -169,19 +169,12 @@ defmodule JSONAPIPlug.Resource do
       |> Macro.prewalk(&Macro.expand(&1, __CALLER__))
       |> NimbleOptions.validate!(@schema)
 
-    client_generated_ids = Keyword.get(options, :client_generated_ids)
-    id_attribute = Keyword.get(options, :id_attribute)
-    attributes = Keyword.get(options, :attributes)
-    relationships = Keyword.get(options, :relationships)
-    type = Keyword.get(options, :type)
-    resource = Keyword.get(options, :resource)
-
     if field =
-         Stream.concat(attributes, relationships)
+         Stream.concat(options[:attributes], options[:relationships])
          |> Enum.find(&(field_name(&1) in [:id, :type])) do
       name = field_name(field)
 
-      raise "Illegal field name '#{name}' for resource '#{resource}'. See https://jsonapi.org/format/#document-resource-object-fields for more information."
+      raise "Illegal field name '#{name}' for resource '#{options[:resource]}'. See https://jsonapi.org/format/#document-resource-object-fields for more information."
     end
 
     quote do
@@ -220,24 +213,24 @@ defmodule JSONAPIPlug.Resource do
         end
       end
 
-      defimpl JSONAPIPlug.Resource.Attributes, for: unquote(resource) do
-        def attributes(_t), do: unquote(attributes)
-        def relationships(_t), do: unquote(relationships)
+      defimpl JSONAPIPlug.Resource.Attributes, for: unquote(options[:resource]) do
+        def attributes(_t), do: unquote(options[:attributes])
+        def relationships(_t), do: unquote(options[:relationships])
       end
 
-      defimpl JSONAPIPlug.Resource.Case, for: unquote(resource) do
+      defimpl JSONAPIPlug.Resource.Case, for: unquote(options[:resource]) do
         def fields_case(_t), do: unquote(options[:case])
       end
 
-      defimpl JSONAPIPlug.Resource.Identity, for: unquote(resource) do
-        def client_generated_ids?(_t), do: unquote(client_generated_ids)
-        def id_attribute(_t), do: unquote(id_attribute)
-        def type(_t), do: unquote(type)
+      defimpl JSONAPIPlug.Resource.Identity, for: unquote(options[:resource]) do
+        def client_generated_ids?(_t), do: unquote(options[:client_generated_ids])
+        def id_attribute(_t), do: unquote(options[:id_attribute])
+        def type(_t), do: unquote(options[:type])
       end
 
-      defimpl JSONAPIPlug.Resource.Relationships, for: unquote(resource) do
-        def attributes(_t), do: unquote(attributes)
-        def relationships(_t), do: unquote(relationships)
+      defimpl JSONAPIPlug.Resource.Relationships, for: unquote(options[:resource]) do
+        def attributes(_t), do: unquote(options[:attributes])
+        def relationships(_t), do: unquote(options[:relationships])
       end
     end
   end
