@@ -10,26 +10,23 @@ defmodule JSONAPIPlug.Document.LinkObject do
   @type t :: %__MODULE__{href: String.t(), meta: Document.meta() | nil} | String.t()
   defstruct [:href, :meta]
 
-  @spec deserialize(Document.payload()) :: t() | no_return()
-  def deserialize(data) when is_binary(data), do: data
+  @spec parse(Document.payload()) :: t() | no_return()
+  def parse(data) when is_binary(data), do: data
 
-  def deserialize(data) when is_map(data) do
+  def parse(data) when is_map(data) do
     %__MODULE__{}
-    |> deserialize_href(data)
-    |> deserialize_meta(data)
+    |> parse_href(data)
+    |> parse_meta(data)
   end
 
-  defp deserialize_href(%__MODULE__{} = link_object, %{"href" => href})
+  defp parse_href(%__MODULE__{} = link_object, %{"href" => href})
        when is_binary(href) and byte_size(href) > 0,
-       do: %__MODULE__{link_object | href: href}
+       do: %{link_object | href: href}
 
-  defp deserialize_href(link_object, _data), do: link_object
+  defp parse_href(link_object, _data), do: link_object
 
-  defp deserialize_meta(link_object, %{"meta" => meta}) when is_map(meta),
-    do: %__MODULE__{link_object | meta: meta}
+  defp parse_meta(%__MODULE__{} = link_object, %{"meta" => meta}) when is_map(meta),
+    do: %{link_object | meta: meta}
 
-  defp deserialize_meta(link_object, _data), do: link_object
-
-  @spec serialize(t()) :: t()
-  def serialize(link_object), do: link_object
+  defp parse_meta(link_object, _data), do: link_object
 end

@@ -26,8 +26,8 @@ defmodule JSONAPIPlug.Document.ErrorObject do
             status: nil,
             title: nil
 
-  @spec deserialize(Document.payload()) :: t() | no_return()
-  def deserialize(data) do
+  @spec parse(Document.payload()) :: t() | no_return()
+  def parse(data) do
     struct(
       %__MODULE__{},
       %__MODULE__{}
@@ -41,7 +41,4 @@ defmodule JSONAPIPlug.Document.ErrorObject do
       end)
     )
   end
-
-  @spec serialize(t()) :: t()
-  def serialize(error_object), do: error_object
 end

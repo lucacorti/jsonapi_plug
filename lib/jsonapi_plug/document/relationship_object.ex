@@ -22,49 +22,49 @@ defmodule JSONAPIPlug.Document.RelationshipObject do
 
   defstruct [:data, :links, :meta]
 
-  @spec deserialize(Document.payload()) :: t() | no_return()
-  def deserialize(data) do
+  @spec parse(Document.payload()) :: t() | no_return()
+  def parse(data) do
     %__MODULE__{}
-    |> deserialize_data(data)
-    |> deserialize_links(data)
-    |> deserialize_meta(data)
+    |> parse_data(data)
+    |> parse_links(data)
+    |> parse_meta(data)
   end
 
-  defp deserialize_data(relationship_object, %{"data" => resource_identifier})
+  defp parse_data(%__MODULE__{} = relationship_object, %{"data" => resource_identifier})
        when is_map(resource_identifier),
-       do: %__MODULE__{
+       do: %{
          relationship_object
-         | data: ResourceIdentifierObject.deserialize(resource_identifier)
+         | data: ResourceIdentifierObject.parse(resource_identifier)
        }
 
-  defp deserialize_data(relationship_object, %{"data" => resource_identifiers})
+  defp parse_data(%__MODULE__{} = relationship_object, %{"data" => resource_identifiers})
        when is_list(resource_identifiers),
-       do: %__MODULE__{
+       do: %{
          relationship_object
-         | data: Enum.map(resource_identifiers, &ResourceIdentifierObject.deserialize/1)
+         | data: Enum.map(resource_identifiers, &ResourceIdentifierObject.parse/1)
        }
 
-  defp deserialize_data(relationship_object, _data), do: relationship_object
+  defp parse_data(relationship_object, _data), do: relationship_object
 
-  defp deserialize_links(relationship_object, %{"links" => links}),
-    do: %__MODULE__{
+  defp parse_links(%__MODULE__{} = relationship_object, %{"links" => links}),
+    do: %{
       relationship_object
       | links:
           Enum.into(links, %{}, fn {name, link} ->
-            {name, LinkObject.deserialize(link)}
+            {name, LinkObject.parse(link)}
           end)
     }
 
-  defp deserialize_links(relationship_object, _data), do: relationship_object
+  defp parse_links(relationship_object, _data), do: relationship_object
 
-  defp deserialize_meta(relationship_object, %{"meta" => meta}) when is_map(meta),
-    do: %__MODULE__{relationship_object | meta: meta}
+  defp parse_meta(%__MODULE__{} = relationship_object, %{"meta" => meta}) when is_map(meta),
+    do: %{relationship_object | meta: meta}
 
-  defp deserialize_meta(_relationship_object, %{"meta" => _meta}) do
+  defp parse_meta(_relationship_object, %{"meta" => _meta}) do
     raise InvalidDocument,
       message: "Relationship object 'meta' must be an object",
       reference: "https://jsonapi.org/format/#document-resource-object-relationships"
   end
 
-  defp deserialize_meta(relationship_object, _data), do: relationship_object
+  defp parse_meta(relationship_object, _data), do: relationship_object
 end

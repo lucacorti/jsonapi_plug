@@ -10,36 +10,36 @@ defmodule JSONAPIPlug.DocumentTest do
 
   describe "Document serialization" do
     test "serialize nil data works" do
-      assert %Document{data: nil} = Document.serialize(%Document{data: nil})
-      assert %Document{data: []} = Document.serialize(%Document{data: []})
+      assert %{"data" => nil} = Jason.encode!(%Document{data: nil}) |> Jason.decode!()
+      assert %{"data" => []} = Jason.encode!(%Document{data: []}) |> Jason.decode!()
     end
 
     test "serialize includes meta as top level member" do
-      assert %Document{meta: %{"total_pages" => 10}} =
-               Document.serialize(%Document{
-                 data: %ResourceObject{id: "1", type: "post", attributes: %{"text" => "Hello"}},
-                 meta: %{"total_pages" => 10}
-               })
-
-      assert %Document{meta: nil} =
-               Document.serialize(%Document{data: %ResourceObject{id: "1", type: "comment"}})
+      assert %{"data" => nil, "meta" => %{"total_pages" => 10}} =
+               %Document{meta: %{"total_pages" => 10}}
+               |> Jason.encode!()
+               |> Jason.decode!()
     end
 
     test "serialize includes meta only if provided" do
-      assert %Document{data: %ResourceObject{meta: %{"meta_text" => "meta_Hello"}}} =
-               Document.serialize(%Document{
+      assert %{"data" => %{"meta" => %{"meta_text" => "meta_Hello"}}} =
+               %Document{
                  data: %ResourceObject{
                    id: "1",
                    attributes: %{"text" => "Hello"},
                    meta: %{"meta_text" => "meta_Hello"}
                  }
-               })
+               }
+               |> Jason.encode!()
+               |> Jason.decode!()
 
-      assert %Document{data: %ResourceObject{id: "1", type: "comment"}, meta: %{"cool" => true}} =
-               Document.serialize(%Document{
+      assert %{"data" => %{"id" => "1", "type" => "comment"}, "meta" => %{"cool" => true}} =
+               %Document{
                  data: %ResourceObject{id: "1", type: "comment"},
                  meta: %{"cool" => true}
-               })
+               }
+               |> Jason.encode!()
+               |> Jason.decode!()
     end
 
     test "serialize handles singular objects" do
@@ -98,15 +98,18 @@ defmodule JSONAPIPlug.DocumentTest do
         }
       ]
 
-      assert %Document{
-               data: %ResourceObject{
-                 id: id,
-                 type: type,
-                 attributes: %{"text" => text, "body" => body},
-                 relationships: relationships
+      assert %{
+               "data" => %{
+                 "id" => id,
+                 "type" => type,
+                 "attributes" => %{"text" => text, "body" => body},
+                 "relationships" => relationships
                },
-               included: included
-             } = Document.serialize(%Document{data: post, included: included})
+               "included" => included
+             } =
+               %Document{data: post, included: included}
+               |> Jason.encode!()
+               |> Jason.decode!()
 
       assert ^id = post.id
       assert ^type = post.type
@@ -172,19 +175,22 @@ defmodule JSONAPIPlug.DocumentTest do
         }
       ]
 
-      assert %Document{
-               data: data,
-               included: included
-             } = Document.serialize(%Document{data: [post, post, post], included: included})
+      assert %{
+               "data" => data,
+               "included" => included
+             } =
+               %Document{data: [post, post, post], included: included}
+               |> Jason.encode!()
+               |> Jason.decode!()
 
       assert Enum.count(data) == 3
       assert Enum.count(included) == 4
 
-      Enum.each(data, fn %ResourceObject{
-                           id: id,
-                           type: type,
-                           attributes: attributes,
-                           relationships: relationships
+      Enum.each(data, fn %{
+                           "id" => id,
+                           "type" => type,
+                           "attributes" => attributes,
+                           "relationships" => relationships
                          } ->
         assert ^id = post.id
         assert ^type = post.type
@@ -218,15 +224,18 @@ defmodule JSONAPIPlug.DocumentTest do
         }
       ]
 
-      assert %Document{
-               data: %ResourceObject{
-                 id: id,
-                 type: type,
-                 attributes: attributes,
-                 relationships: relationships
+      assert %{
+               "data" => %{
+                 "id" => id,
+                 "type" => type,
+                 "attributes" => attributes,
+                 "relationships" => relationships
                },
-               included: included
-             } = Document.serialize(%Document{data: post, included: included})
+               "included" => included
+             } =
+               %Document{data: post, included: included}
+               |> Jason.encode!()
+               |> Jason.decode!()
 
       assert ^id = post.id
       assert ^type = post.type
@@ -263,15 +272,18 @@ defmodule JSONAPIPlug.DocumentTest do
         }
       ]
 
-      assert %Document{
-               data: %ResourceObject{
-                 id: id,
-                 type: type,
-                 attributes: attributes,
-                 relationships: relationships
+      assert %{
+               "data" => %{
+                 "id" => id,
+                 "type" => type,
+                 "attributes" => attributes,
+                 "relationships" => relationships
                },
-               included: included
-             } = Document.serialize(%Document{data: post, included: included})
+               "included" => included
+             } =
+               %Document{data: post, included: included}
+               |> Jason.encode!()
+               |> Jason.decode!()
 
       assert ^id = post.id
       assert ^type = post.type
@@ -284,25 +296,25 @@ defmodule JSONAPIPlug.DocumentTest do
 
   describe "document deserialization" do
     test "deserialize empty document" do
-      assert %Document{data: nil} = Document.deserialize(%{})
+      assert %Document{data: nil} = Document.parse(%{})
     end
 
     test "deserialize null data" do
-      assert %Document{data: nil} = Document.deserialize(%{"data" => nil})
+      assert %Document{data: nil} = Document.parse(%{"data" => nil})
     end
 
     test "deserialize empty list" do
-      assert %Document{data: []} = Document.deserialize(%{"data" => []})
+      assert %Document{data: []} = Document.parse(%{"data" => []})
     end
 
     test "deserialize single resource object" do
       assert %Document{data: %ResourceObject{id: "1", type: "post"}} =
-               Document.deserialize(%{"data" => %{"type" => "post", "id" => "1"}})
+               Document.parse(%{"data" => %{"type" => "post", "id" => "1"}})
     end
 
     test "deserialize one element resource list" do
       assert %Document{data: [%ResourceObject{id: "1", type: "post"}]} =
-               Document.deserialize(%{"data" => [%{"type" => "post", "id" => "1"}]})
+               Document.parse(%{"data" => [%{"type" => "post", "id" => "1"}]})
     end
 
     test "deserialize multiple element resource list" do
@@ -313,7 +325,7 @@ defmodule JSONAPIPlug.DocumentTest do
                  %ResourceObject{id: "3", type: "post"}
                ]
              } =
-               Document.deserialize(%{
+               Document.parse(%{
                  "data" => [
                    %{"type" => "post", "id" => "1"},
                    %{"type" => "post", "id" => "2"},
@@ -348,7 +360,7 @@ defmodule JSONAPIPlug.DocumentTest do
                  %ResourceObject{id: "1", type: "comment", attributes: %{"text" => "Hello"}}
                ]
              } =
-               Document.deserialize(%{
+               Document.parse(%{
                  "data" => %{
                    "type" => "post",
                    "id" => "1",
@@ -417,7 +429,7 @@ defmodule JSONAPIPlug.DocumentTest do
                %ResourceObject{id: "1", type: "company"}
              ]
            } =
-             Document.deserialize(%{
+             Document.parse(%{
                "data" => [
                  %{
                    "type" => "post",

@@ -26,7 +26,7 @@ defmodule JSONAPIPlug.Plug.Params do
       ) do
     body_params =
       body_params
-      |> Document.deserialize()
+      |> Document.parse()
       |> Normalizer.denormalize(jsonapi_plug.resource, conn)
 
     Conn.put_private(conn, :jsonapi_plug, %JSONAPIPlug{jsonapi_plug | params: body_params})

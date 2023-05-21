@@ -78,156 +78,94 @@ defmodule JSONAPIPlug.Document do
   defstruct [:data, :errors, :included, :jsonapi, :links, :meta]
 
   @doc """
-  Deserialize JSON:API Document
+  Parses JSON:API Document
 
-  Takes a map representing a JSON:API Document as input, validates it
-  and parses it into a `t:t/0` struct.
+  Takes a map representing a JSON:API Document as input and parses it.
   """
-  @spec deserialize(payload()) :: t() | no_return()
-  def deserialize(data) do
+  @spec parse(payload()) :: t() | no_return()
+  def parse(data) do
     %__MODULE__{}
-    |> deserialize_data(data)
-    |> deserialize_errors(data)
-    |> deserialize_included(data)
-    |> deserialize_jsonapi(data)
-    |> deserialize_links(data)
-    |> deserialize_meta(data)
+    |> parse_data(data)
+    |> parse_errors(data)
+    |> parse_included(data)
+    |> parse_jsonapi(data)
+    |> parse_links(data)
+    |> parse_meta(data)
   end
 
-  defp deserialize_data(_document, %{"data" => _data, "errors" => _errors}) do
+  defp parse_data(_document, %{"data" => _data, "errors" => _errors}) do
     raise InvalidDocument,
       message: "Document cannot contain both 'data' and 'errors' members",
       reference: "https://jsonapi.org/format/#document-top-level"
   end
 
-  defp deserialize_data(document, %{"data" => resources}) when is_list(resources),
-    do: %__MODULE__{
+  defp parse_data(%__MODULE__{} = document, %{"data" => resources}) when is_list(resources),
+    do: %{
       document
-      | data: Enum.map(resources, &ResourceObject.deserialize/1)
+      | data: Enum.map(resources, &ResourceObject.parse/1)
     }
 
-  defp deserialize_data(document, %{"data" => resource_object}) when is_map(resource_object),
-    do: %__MODULE__{document | data: ResourceObject.deserialize(resource_object)}
+  defp parse_data(%__MODULE__{} = document, %{"data" => resource_object})
+       when is_map(resource_object),
+       do: %{document | data: ResourceObject.parse(resource_object)}
 
-  defp deserialize_data(document, _data), do: document
+  defp parse_data(document, _data), do: document
 
-  defp deserialize_errors(document, %{"errors" => errors}) when is_list(errors),
-    do: %__MODULE__{document | errors: Enum.map(errors, &ErrorObject.deserialize/1)}
+  defp parse_errors(%__MODULE__{} = document, %{"errors" => errors}) when is_list(errors),
+    do: %{document | errors: Enum.map(errors, &ErrorObject.parse/1)}
 
-  defp deserialize_errors(document, _data), do: document
+  defp parse_errors(document, _data), do: document
 
-  defp deserialize_included(document, %{"data" => _data, "included" => included})
+  defp parse_included(%__MODULE__{} = document, %{"data" => _data, "included" => included})
        when is_list(included) do
-    %__MODULE__{
+    %{
       document
-      | included: Enum.map(included, &ResourceObject.deserialize/1)
+      | included: Enum.map(included, &ResourceObject.parse/1)
     }
   end
 
-  defp deserialize_included(_document, %{"included" => included})
+  defp parse_included(_document, %{"included" => included})
        when is_list(included) do
     raise InvalidDocument,
       message: "Document 'included' cannot be present if 'data' isn't also present",
       reference: "https://jsonapi.org/format/#document-top-level"
   end
 
-  defp deserialize_included(_document, %{"included" => included})
+  defp parse_included(_document, %{"included" => included})
        when not is_nil(included) do
     raise InvalidDocument,
       message: "Document 'included' must be a list",
       reference: "https://jsonapi.org/format/#document-top-level"
   end
 
-  defp deserialize_included(document, _data), do: document
+  defp parse_included(document, _data), do: document
 
-  defp deserialize_jsonapi(document, %{"jsonapi" => jsonapi}) when is_map(jsonapi),
-    do: %__MODULE__{document | jsonapi: JSONAPIObject.deserialize(jsonapi)}
+  defp parse_jsonapi(%__MODULE__{} = document, %{"jsonapi" => jsonapi}) when is_map(jsonapi),
+    do: %{document | jsonapi: JSONAPIObject.parse(jsonapi)}
 
-  defp deserialize_jsonapi(document, _data), do: document
+  defp parse_jsonapi(document, _data), do: document
 
-  defp deserialize_links(document, %{"links" => links}) when is_map(links),
-    do: %__MODULE__{
+  defp parse_links(%__MODULE__{} = document, %{"links" => links}) when is_map(links),
+    do: %{
       document
       | links:
           Enum.into(links, %{}, fn {name, link} ->
-            {name, LinkObject.deserialize(link)}
+            {name, LinkObject.parse(link)}
           end)
     }
 
-  defp deserialize_links(document, _data), do: document
+  defp parse_links(document, _data), do: document
 
-  defp deserialize_meta(document, %{"meta" => meta}) when is_map(meta),
-    do: %__MODULE__{document | meta: meta}
+  defp parse_meta(%__MODULE__{} = document, %{"meta" => meta}) when is_map(meta),
+    do: %{document | meta: meta}
 
-  defp deserialize_meta(_document, %{"meta" => meta}) when not is_nil(meta) do
+  defp parse_meta(_document, %{"meta" => meta}) when not is_nil(meta) do
     raise InvalidDocument,
       message: "Document 'meta' must be an object",
       reference: "https://jsonapi.org/format/#document-meta"
   end
 
-  defp deserialize_meta(document, _data), do: document
-
-  @doc """
-  Serialize a Document struct representing a JSON:API Document
-
-  Takes a `t:t/0` struct representing a JSON:API Document as input, validates
-  it and returns the struct if valid.
-  """
-  @spec serialize(t()) :: t() | no_return()
-  def serialize(document) do
-    document
-    |> serialize_data()
-    |> serialize_errors()
-    |> serialize_meta()
-    |> serialize_included()
-  end
-
-  defp serialize_data(%__MODULE__{data: %ResourceObject{} = resource} = document),
-    do: %__MODULE__{document | data: ResourceObject.serialize(resource)}
-
-  defp serialize_data(%__MODULE__{data: resources} = document) when is_list(resources),
-    do: %__MODULE__{document | data: Enum.map(resources, &ResourceObject.serialize/1)}
-
-  defp serialize_data(%__MODULE__{data: nil} = document), do: document
-
-  defp serialize_errors(%__MODULE__{data: data, errors: errors})
-       when not is_nil(data) and not is_nil(errors) do
-    raise InvalidDocument,
-      message: "Document cannot contain both 'data' and 'errors' members",
-      reference: "https://jsonapi.org/format/#document-top-level"
-  end
-
-  defp serialize_errors(%__MODULE__{errors: errors})
-       when not is_nil(errors) and not is_list(errors) do
-    raise InvalidDocument,
-      message: "Document 'errors' must be a list",
-      reference: "https://jsonapi.org/format/#document-top-level"
-  end
-
-  defp serialize_errors(%__MODULE__{errors: errors} = document) when is_list(errors),
-    do: %__MODULE__{document | errors: Enum.map(errors, &ErrorObject.serialize/1)}
-
-  defp serialize_errors(document), do: document
-
-  defp serialize_included(%__MODULE__{included: included})
-       when not is_nil(included) and not is_list(included) do
-    raise InvalidDocument,
-      message: "Document 'included' must be a list resource objects",
-      reference: "https://jsonapi.org/format/#document-top-level"
-  end
-
-  defp serialize_included(%__MODULE__{included: included} = document) when is_list(included),
-    do: %__MODULE__{document | included: Enum.map(included, &ResourceObject.serialize/1)}
-
-  defp serialize_included(document), do: document
-
-  defp serialize_meta(%__MODULE__{meta: meta}) when not is_nil(meta) and not is_map(meta) do
-    raise InvalidDocument,
-      message: "Document 'meta' must be a map",
-      reference: "https://jsonapi.org/format/#document-top-level"
-  end
-
-  defp serialize_meta(document), do: document
+  defp parse_meta(document, _data), do: document
 end
 
 defimpl Jason.Encoder,
@@ -240,10 +178,11 @@ defimpl Jason.Encoder,
     JSONAPIPlug.Document.ResourceIdentifierObject,
     JSONAPIPlug.Document.ResourceObject
   ] do
-  def encode(document, options) do
-    document
+  def encode(object, options) do
+    object
     |> Map.from_struct()
     |> Enum.reduce(%{}, fn
+      {:data = key, nil}, data -> Map.put(data, key, nil)
       {_key, nil}, data -> data
       {_key, %{} = map}, data when map_size(map) == 0 -> data
       {key, value}, data -> Map.put(data, key, value)

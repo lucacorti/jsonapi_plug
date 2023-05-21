@@ -14,41 +14,41 @@ defmodule JSONAPIPlug.Document.ResourceIdentifierObject do
         }
   defstruct [:id, :type, :meta]
 
-  @spec deserialize(Document.payload()) :: t() | no_return()
-  def deserialize(data) do
+  @spec parse(Document.payload()) :: t() | no_return()
+  def parse(data) do
     %__MODULE__{}
-    |> deserialize_id(data)
-    |> deserialize_type(data)
-    |> deserialize_meta(data)
+    |> parse_id(data)
+    |> parse_type(data)
+    |> parse_meta(data)
   end
 
-  defp deserialize_type(resource_identifier_object, %{"type" => type})
+  defp parse_type(%__MODULE__{} = resource_identifier_object, %{"type" => type})
        when is_binary(type) and byte_size(type) > 0,
-       do: %__MODULE__{resource_identifier_object | type: type}
+       do: %{resource_identifier_object | type: type}
 
-  defp deserialize_type(_resource_identifier_object, type) do
+  defp parse_type(_resource_identifier_object, type) do
     raise InvalidDocument,
       message: "Resource Identifier object type (#{type}) is invalid",
       reference: "https://jsonapi.org/format/#document-resource-objects"
   end
 
-  defp deserialize_id(resource_identifier_object, %{"id" => id})
+  defp parse_id(%__MODULE__{} = resource_identifier_object, %{"id" => id})
        when is_binary(id) and byte_size(id) > 0,
-       do: %__MODULE__{resource_identifier_object | id: id}
+       do: %{resource_identifier_object | id: id}
 
-  defp deserialize_id(resource_identifier_object, _data),
+  defp parse_id(resource_identifier_object, _data),
     do: resource_identifier_object
 
-  defp deserialize_meta(resource_identifier_object, %{"meta" => meta})
+  defp parse_meta(%__MODULE__{} = resource_identifier_object, %{"meta" => meta})
        when is_map(meta),
-       do: %__MODULE__{resource_identifier_object | meta: meta}
+       do: %{resource_identifier_object | meta: meta}
 
-  defp deserialize_meta(_resource_identifier_object, %{"meta" => _meta}) do
+  defp parse_meta(_resource_identifier_object, %{"meta" => _meta}) do
     raise InvalidDocument,
       message: "Resource Identifier object 'meta' must be an object",
       reference: "https://jsonapi.org/format/#document-resource-identifier-objects"
   end
 
-  defp deserialize_meta(resource_identifier_object, _payload),
+  defp parse_meta(resource_identifier_object, _payload),
     do: resource_identifier_object
 end
