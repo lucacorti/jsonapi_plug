@@ -25,6 +25,7 @@ defmodule JSONAPIPlug.TestSupport.Resources do
     use JSONAPIPlug.Resource,
       resource: __MODULE__,
       type: "company",
+      attributes: [name: nil],
       relationships: [industry: [resource: Industry]]
 
     defstruct id: nil, name: nil, industry: nil
