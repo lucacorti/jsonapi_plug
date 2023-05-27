@@ -331,7 +331,7 @@ defmodule JSONAPIPlug.Resource do
   @spec field_recase(t(), field_name() | String.t(), field_case() | nil) :: String.t()
   def field_recase(resource, field_name, field_case \\ nil)
 
-  def field_recase(resource, field, _field_case = nil),
+  def field_recase(resource, field, nil = _field_case),
     do: recase(field, Fields.fields_case(resource))
 
   def field_recase(_resource, field, field_case), do: recase(field, field_case)
@@ -407,7 +407,7 @@ defmodule JSONAPIPlug.Resource do
   end
 
   @spec fields(t()) :: [field()]
-  def fields(resource), do: Enum.flat_map([attributes(resource), relationships(resource)], & &1)
+  def fields(resource), do: Enum.concat([attributes(resource), relationships(resource)])
 
   @spec attributes(t()) :: [field()]
   def attributes(resource), do: Fields.attributes(resource)
@@ -417,7 +417,7 @@ defmodule JSONAPIPlug.Resource do
 
   @spec fields_names(t()) :: [field()]
   def fields_names(resource),
-    do: Enum.flat_map([attributes(resource), relationships(resource)], &field_name/1)
+    do: Enum.concat([attributes_names(resource), relationships_names(resource)])
 
   @spec attributes_names(t) :: [field_name()]
   def attributes_names(resource), do: Enum.map(attributes(resource), &field_name/1)
