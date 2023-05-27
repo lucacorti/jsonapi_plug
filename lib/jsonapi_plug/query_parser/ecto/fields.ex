@@ -7,13 +7,7 @@ defmodule JSONAPIPlug.QueryParser.Ecto.Fields do
   use with `select` option to `Ecto.Repo` functions.
   """
 
-  alias JSONAPIPlug.{
-    Exceptions.InvalidQuery,
-    QueryParser,
-    Resource,
-    Resource.Fields,
-    Resource.Identity
-  }
+  alias JSONAPIPlug.{Exceptions.InvalidQuery, QueryParser, Resource}
 
   @behaviour QueryParser
 
@@ -33,12 +27,12 @@ defmodule JSONAPIPlug.QueryParser.Ecto.Fields do
           |> String.split(",", trim: true)
           |> Enum.into(
             MapSet.new(),
-            &String.to_existing_atom(Resource.field_recase(&1, :underscore))
+            &String.to_existing_atom(Resource.recase(&1, :underscore))
           )
         rescue
           ArgumentError ->
             reraise InvalidQuery.exception(
-                      type: Identity.type(resource),
+                      type: Resource.type(resource),
                       param: "fields",
                       value: value
                     ),
@@ -50,7 +44,7 @@ defmodule JSONAPIPlug.QueryParser.Ecto.Fields do
       case MapSet.subset?(requested_fields, valid_fields) do
         false when size > 0 ->
           raise InvalidQuery,
-            type: Identity.type(resource),
+            type: Resource.type(resource),
             param: "fields",
             value:
               requested_fields
@@ -66,22 +60,21 @@ defmodule JSONAPIPlug.QueryParser.Ecto.Fields do
 
   def parse(%JSONAPIPlug{resource: resource}, fields) do
     raise InvalidQuery,
-      type: Identity.type(resource),
+      type: Resource.type(resource),
       param: "fields",
       value: fields
   end
 
   defp attributes_for_type(resource, type) do
-    if type == Identity.type(resource) do
-      Fields.attributes(resource) |> Enum.map(&Resource.field_name/1)
+    if type == Resource.type(resource) do
+      Resource.attributes_names(resource)
     else
-      case Enum.find_value(Fields.relationships(resource), &(Identity.type(&1) == type)) do
+      case Enum.find_value(Resource.relationships(resource), &(Resource.type(&1) == type)) do
         nil ->
-          raise InvalidQuery, type: Identity.type(resource), param: "fields", value: type
+          raise InvalidQuery, type: Resource.type(resource), param: "fields", value: type
 
         related_resource ->
-          Fields.attributes(related_resource)
-          |> Enum.map(&Resource.field_name/1)
+          Resource.attributes_names(related_resource)
       end
     end
   end

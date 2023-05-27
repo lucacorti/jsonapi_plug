@@ -6,13 +6,7 @@ defmodule JSONAPIPlug.QueryParser.Ecto.Include do
   format and converts them to Ecto `preload` optio to `Ecto.Repo` functions.
   """
 
-  alias JSONAPIPlug.{
-    Exceptions.InvalidQuery,
-    QueryParser,
-    Resource,
-    Resource.Fields,
-    Resource.Identity
-  }
+  alias JSONAPIPlug.{Exceptions.InvalidQuery, QueryParser, Resource}
 
   @behaviour QueryParser
 
@@ -23,8 +17,7 @@ defmodule JSONAPIPlug.QueryParser.Ecto.Include do
     include
     |> String.split(",", trim: true)
     |> Enum.map(fn include ->
-      include
-      |> Resource.field_recase(:underscore)
+      Resource.recase(include, :underscore)
       |> String.split(".", trim: true)
     end)
     |> valid_includes(resource)
@@ -32,13 +25,13 @@ defmodule JSONAPIPlug.QueryParser.Ecto.Include do
 
   def parse(%JSONAPIPlug{resource: resource}, include) do
     raise InvalidQuery,
-      type: Identity.type(resource),
+      type: Resource.type(resource),
       param: "include",
       value: include
   end
 
   defp valid_includes(includes, resource) do
-    relationships = Fields.relationships(resource)
+    relationships = Resource.relationships(resource)
     valid_relationships_includes = Enum.map(relationships, &to_string(Resource.field_name(&1)))
 
     Enum.reduce(
@@ -85,7 +78,7 @@ defmodule JSONAPIPlug.QueryParser.Ecto.Include do
           relationship_includes
         else
           raise InvalidQuery,
-            type: Identity.type(resource),
+            type: Resource.type(resource),
             param: "include",
             value: Enum.join(path, ".")
         end

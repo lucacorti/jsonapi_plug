@@ -233,7 +233,7 @@ defmodule JSONAPIPlug.Resource do
 
       defimpl JSONAPIPlug.Resource.Fields, for: unquote(options[:resource]) do
         def attributes(_t), do: unquote(options[:attributes])
-        def case(_t), do: unquote(options[:case])
+        def fields_case(_t), do: unquote(options[:case])
         def relationships(_t), do: unquote(options[:relationships])
       end
     end
@@ -293,6 +293,12 @@ defmodule JSONAPIPlug.Resource do
   @type type :: String.t()
 
   @doc """
+  Id attribute
+  """
+  @spec id_attribute(t()) :: field_name()
+  def id_attribute(resource), do: Identity.id_attribute(resource)
+
+  @doc """
   Field option
 
   Returns the name of the attribute or relationship for the field definition.
@@ -322,6 +328,14 @@ defmodule JSONAPIPlug.Resource do
     raise "invalid field definition: #{inspect(field)}"
   end
 
+  @spec field_recase(t(), field_name() | String.t(), field_case() | nil) :: String.t()
+  def field_recase(resource, field_name, field_case \\ nil)
+
+  def field_recase(resource, field, _field_case = nil),
+    do: recase(field, Fields.fields_case(resource))
+
+  def field_recase(_resource, field, field_case), do: recase(field, field_case)
+
   @doc """
   Recase resource fields
 
@@ -330,70 +344,89 @@ defmodule JSONAPIPlug.Resource do
 
   ## Examples
     ```
-    iex> field_recase("top_posts", :camelize)
+    iex> recase("top_posts", :camelize)
     "topPosts"
 
-    iex> field_recase(:top_posts, :camelize)
+    iex> recase(:top_posts, :camelize)
     "topPosts"
 
-    iex> field_recase("_top_posts", :camelize)
+    iex> recase("_top_posts", :camelize)
     "_topPosts"
 
-    iex> field_recase("_top__posts_", :camelize)
+    iex> recase("_top__posts_", :camelize)
     "_top__posts_"
 
-    iex> field_recase("", :camelize)
+    iex> recase("", :camelize)
     ""
 
-    iex> field_recase("top_posts", :dasherize)
+    iex> recase("top_posts", :dasherize)
     "top-posts"
 
-    iex> field_recase("_top_posts", :dasherize)
+    iex> recase("_top_posts", :dasherize)
     "_top-posts"
 
-    iex> field_recase("_top__posts_", :dasherize)
+    iex> recase("_top__posts_", :dasherize)
     "_top__posts_"
 
-    iex> field_recase("top-posts", :underscore)
+    iex> recase("top-posts", :underscore)
     "top_posts"
 
-    iex> field_recase(:top_posts, :underscore)
+    iex> recase(:top_posts, :underscore)
     "top_posts"
 
-    iex> field_recase("-top-posts", :underscore)
+    iex> recase("-top-posts", :underscore)
     "-top_posts"
 
-    iex> field_recase("-top--posts-", :underscore)
+    iex> recase("-top--posts-", :underscore)
     "-top--posts-"
 
-    iex> field_recase("corgiAge", :underscore)
+    iex> recase("corgiAge", :underscore)
     "corgi_age"
     ```
   """
-  @spec field_recase(field_name() | String.t(), field_case()) :: String.t()
-  def field_recase(field, field_case) when is_atom(field) do
-    field
-    |> Atom.to_string()
-    |> field_recase(field_case)
-  end
+  @spec recase(field_name() | String.t(), field_case()) :: String.t()
+  def recase(field_name, field_case) when is_atom(field_name),
+    do: recase(Atom.to_string(field_name), field_case)
 
-  def field_recase("", :camelize), do: ""
+  def recase("", :camelize), do: ""
 
-  def field_recase(field, :camelize) do
+  def recase(field, :camelize) do
     [h | t] = String.split(field, ~r/(?<=[a-zA-Z0-9])[-_](?=[a-zA-Z0-9])/, trim: true)
 
     Enum.join([String.downcase(h) | Enum.map(t, &String.capitalize/1)])
   end
 
-  def field_recase(field, :dasherize),
+  def recase(field, :dasherize),
     do: String.replace(field, ~r/([a-zA-Z0-9])_([a-zA-Z0-9])/, "\\1-\\2")
 
-  def field_recase(field, :underscore) do
+  def recase(field, :underscore) do
     field
     |> String.replace(~r/([a-zA-Z\d])-([a-zA-Z\d])/, "\\1_\\2")
     |> String.replace(~r/([a-z\d])([A-Z])/, "\\1_\\2")
     |> String.downcase()
   end
+
+  @spec fields(t()) :: [field()]
+  def fields(resource), do: Enum.flat_map([attributes(resource), relationships(resource)], & &1)
+
+  @spec attributes(t()) :: [field()]
+  def attributes(resource), do: Fields.attributes(resource)
+
+  @spec relationships(t()) :: [field()]
+  def relationships(resource), do: Fields.relationships(resource)
+
+  @spec fields_names(t()) :: [field()]
+  def fields_names(resource),
+    do: Enum.flat_map([attributes(resource), relationships(resource)], &field_name/1)
+
+  @spec attributes_names(t) :: [field_name()]
+  def attributes_names(resource), do: Enum.map(attributes(resource), &field_name/1)
+
+  @spec relationships_names(t) :: [field_name()]
+  def relationships_names(resource), do: Enum.map(relationships(resource), &field_name/1)
+
+  @spec type(t()) :: type()
+  def type(resource), do: Identity.type(resource)
 
   @doc """
   Render JSON:API response
@@ -461,7 +494,7 @@ defmodule JSONAPIPlug.Resource do
     %{
       resource_object
       | attributes:
-          Fields.attributes(resource)
+          attributes(resource)
           |> requested_fields(resource, conn)
           |> Enum.reduce(%{}, fn attribute, attributes ->
             name = field_name(attribute)
@@ -474,12 +507,12 @@ defmodule JSONAPIPlug.Resource do
               serialize when serialize in [true, nil] ->
                 value = Params.render_attribute(resource, key)
 
-                Map.put(attributes, field_recase(name, Fields.case(resource)), value)
+                Map.put(attributes, field_recase(resource, name), value)
 
               serialize when is_function(serialize, 2) ->
                 value = serialize.(resource, conn)
 
-                Map.put(attributes, field_recase(name, Fields.case(resource)), value)
+                Map.put(attributes, field_recase(resource, name), value)
             end
           end)
     }
@@ -495,7 +528,7 @@ defmodule JSONAPIPlug.Resource do
     %{
       resource_object
       | relationships:
-          Fields.relationships(resource)
+          relationships(resource)
           |> Enum.filter(&relationship_loaded?(Map.get(resource, elem(&1, 0))))
           |> Enum.into(%{}, fn relationship ->
             name = field_name(relationship)
@@ -520,7 +553,7 @@ defmodule JSONAPIPlug.Resource do
 
               {_related_many, related_resources} ->
                 {
-                  field_recase(name, Fields.case(resource)),
+                  field_recase(resource, name),
                   %RelationshipObject{
                     data: render_resource_relationship(related_resources, conn),
                     meta: Meta.meta(resource, conn)
@@ -535,7 +568,7 @@ defmodule JSONAPIPlug.Resource do
     do: Enum.map(related_resources, &render_resource_relationship(&1, conn))
 
   defp render_resource_relationship(related_resource, conn) do
-    id = Identity.id_attribute(related_resource)
+    id = id_attribute(related_resource)
 
     %ResourceIdentifierObject{
       id: to_string(Params.render_attribute(related_resource, id)),
@@ -556,7 +589,7 @@ defmodule JSONAPIPlug.Resource do
          resource
        ) do
     resource
-    |> Fields.relationships()
+    |> relationships()
     |> Enum.filter(&get_in(jsonapi_plug.include, [elem(&1, 0)]))
     |> Enum.reduce(
       document,
@@ -684,7 +717,7 @@ defmodule JSONAPIPlug.Resource do
       Params.attribute_to_params(
         resource,
         params,
-        to_string(Identity.id_attribute(resource)),
+        to_string(id_attribute(resource)),
         resource_object.id
       )
 
@@ -695,16 +728,13 @@ defmodule JSONAPIPlug.Resource do
          conn
        ) do
     resource
-    |> Fields.attributes()
+    |> attributes()
     |> Enum.reduce(params, fn attribute, params ->
       name = field_name(attribute)
       deserialize = field_option(attribute, :deserialize)
       key = to_string(field_option(attribute, :name) || name)
 
-      case Map.fetch(
-             resource_object.attributes,
-             field_recase(name, Fields.case(resource))
-           ) do
+      case Map.fetch(resource_object.attributes, field_recase(resource, name)) do
         {:ok, _value} when deserialize == false ->
           params
 
@@ -727,8 +757,7 @@ defmodule JSONAPIPlug.Resource do
          resource,
          conn
        ) do
-    resource
-    |> Fields.relationships()
+    relationships(resource)
     |> Enum.reduce(params, fn relationship, params ->
       name = field_name(relationship)
       key = to_string(field_option(relationship, :name) || name)

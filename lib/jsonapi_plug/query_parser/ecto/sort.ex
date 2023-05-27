@@ -6,13 +6,7 @@ defmodule JSONAPIPlug.QueryParser.Ecto.Sort do
   format and converts them to Ecto `order_by` format for ease of use.
   """
 
-  alias JSONAPIPlug.{
-    Exceptions.InvalidQuery,
-    QueryParser,
-    Resource,
-    Resource.Fields,
-    Resource.Identity
-  }
+  alias JSONAPIPlug.{Exceptions.InvalidQuery, QueryParser, Resource}
 
   @behaviour QueryParser
 
@@ -30,14 +24,14 @@ defmodule JSONAPIPlug.QueryParser.Ecto.Sort do
 
   def parse(%JSONAPIPlug{} = jsonapi_plug, sort) do
     raise InvalidQuery,
-      type: Identity.type(jsonapi_plug.resource),
+      type: Resource.type(jsonapi_plug.resource),
       param: "sort",
       value: inspect(sort)
   end
 
   defp parse_sort_field(field_name, resource) do
     field_name
-    |> Resource.field_recase(:underscore)
+    |> Resource.recase(:underscore)
     |> String.trim_leading("-")
     |> String.split(".", trim: true)
     |> parse_sort_components(resource, [])
@@ -46,12 +40,12 @@ defmodule JSONAPIPlug.QueryParser.Ecto.Sort do
   defp parse_sort_components([field_name], resource, components) do
     valid_attributes =
       Enum.map(
-        [Identity.id_attribute(resource) | Fields.attributes(resource)],
+        [Resource.id_attribute(resource) | Resource.attributes(resource)],
         &to_string(Resource.field_option(&1, :name) || Resource.field_name(&1))
       )
 
     unless field_name in valid_attributes do
-      raise InvalidQuery, type: Identity.type(resource), param: "sort", value: field_name
+      raise InvalidQuery, type: Resource.type(resource), param: "sort", value: field_name
     end
 
     [field_name | components]
@@ -61,23 +55,17 @@ defmodule JSONAPIPlug.QueryParser.Ecto.Sort do
   end
 
   defp parse_sort_components([field_name | rest], resource, components) do
-    relationships = Fields.relationships(resource)
-
-    valid_relationships =
-      Enum.map(
-        relationships,
-        &to_string(Resource.field_option(&1, :name) || Resource.field_name(&1))
-      )
-
-    unless field_name in valid_relationships do
-      raise InvalidQuery, type: Identity.type(resource), param: "sort", value: field_name
-    end
-
     related_resource =
-      Enum.find_value(relationships, fn relationship ->
-        String.to_existing_atom(field_name) == Resource.field_name(relationship) &&
+      Resource.relationships(resource)
+      |> Enum.find_value(fn relationship ->
+        relationship_name =
+          to_string(
+            Resource.field_option(relationship, :name) || Resource.field_name(relationship)
+          )
+
+        field_name == relationship_name &&
           struct(Resource.field_option(relationship, :resource))
-      end)
+      end) || raise InvalidQuery, type: Resource.type(resource), param: "sort", value: field_name
 
     parse_sort_components(rest, related_resource, [field_name | components])
   end

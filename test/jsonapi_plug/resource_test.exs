@@ -2,7 +2,7 @@ defmodule JSONAPIPlug.ResourceTest do
   use ExUnit.Case
   use Plug.Test
 
-  import JSONAPIPlug.Resource, only: [field_recase: 2]
+  import JSONAPIPlug.Resource, only: [recase: 2]
 
   doctest JSONAPIPlug.Resource
 
