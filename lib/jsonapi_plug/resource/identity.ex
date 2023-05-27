@@ -12,7 +12,7 @@ defprotocol JSONAPIPlug.Resource.Identity do
 end
 
 defimpl JSONAPIPlug.Resource.Identity, for: Any do
-  alias JSONAPIPlug.Resource.Case
+  alias JSONAPIPlug.Resource.Fields
   alias JSONAPIPlug.Resource
 
   def client_generated_ids?(_t), do: false
@@ -20,5 +20,5 @@ defimpl JSONAPIPlug.Resource.Identity, for: Any do
   def id_attribute(_t), do: :id
 
   def type(%module{} = t),
-    do: Module.split(module) |> List.last() |> Resource.field_recase(Case.fields_case(t))
+    do: Module.split(module) |> List.last() |> Resource.field_recase(Fields.case(t))
 end

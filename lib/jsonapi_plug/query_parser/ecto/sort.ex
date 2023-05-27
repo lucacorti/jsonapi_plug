@@ -10,9 +10,8 @@ defmodule JSONAPIPlug.QueryParser.Ecto.Sort do
     Exceptions.InvalidQuery,
     QueryParser,
     Resource,
-    Resource.Attributes,
-    Resource.Identity,
-    Resource.Relationships
+    Resource.Fields,
+    Resource.Identity
   }
 
   @behaviour QueryParser
@@ -47,7 +46,7 @@ defmodule JSONAPIPlug.QueryParser.Ecto.Sort do
   defp parse_sort_components([field_name], resource, components) do
     valid_attributes =
       Enum.map(
-        [Identity.id_attribute(resource) | Attributes.attributes(resource)],
+        [Identity.id_attribute(resource) | Fields.attributes(resource)],
         &to_string(Resource.field_option(&1, :name) || Resource.field_name(&1))
       )
 
@@ -62,7 +61,7 @@ defmodule JSONAPIPlug.QueryParser.Ecto.Sort do
   end
 
   defp parse_sort_components([field_name | rest], resource, components) do
-    relationships = Relationships.relationships(resource)
+    relationships = Fields.relationships(resource)
 
     valid_relationships =
       Enum.map(

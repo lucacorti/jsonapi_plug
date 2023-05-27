@@ -10,8 +10,8 @@ defmodule JSONAPIPlug.QueryParser.Ecto.Include do
     Exceptions.InvalidQuery,
     QueryParser,
     Resource,
-    Resource.Identity,
-    Resource.Relationships
+    Resource.Fields,
+    Resource.Identity
   }
 
   @behaviour QueryParser
@@ -38,7 +38,7 @@ defmodule JSONAPIPlug.QueryParser.Ecto.Include do
   end
 
   defp valid_includes(includes, resource) do
-    relationships = Relationships.relationships(resource)
+    relationships = Fields.relationships(resource)
     valid_relationships_includes = Enum.map(relationships, &to_string(Resource.field_name(&1)))
 
     Enum.reduce(

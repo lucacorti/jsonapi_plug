@@ -22,13 +22,11 @@ defmodule JSONAPIPlug.Normalizer do
     Document.ResourceObject,
     Exceptions.InvalidDocument,
     Resource,
-    Resource.Attributes,
-    Resource.Case,
+    Resource.Fields,
     Resource.Identity,
     Resource.Links,
     Resource.Meta,
-    Resource.Params,
-    Resource.Relationships
+    Resource.Params
   }
 
   alias Plug.Conn
@@ -95,7 +93,7 @@ defmodule JSONAPIPlug.Normalizer do
          conn
        ) do
     resource
-    |> Attributes.attributes()
+    |> Fields.attributes()
     |> Enum.reduce(params, fn attribute, params ->
       name = Resource.field_name(attribute)
       deserialize = Resource.field_option(attribute, :deserialize)
@@ -125,7 +123,7 @@ defmodule JSONAPIPlug.Normalizer do
          conn
        ) do
     resource
-    |> Relationships.relationships()
+    |> Fields.relationships()
     |> Enum.reduce(params, fn relationship, params ->
       name = Resource.field_name(relationship)
       key = to_string(Resource.field_option(relationship, :name) || name)
@@ -239,7 +237,7 @@ defmodule JSONAPIPlug.Normalizer do
     %{
       resource_object
       | attributes:
-          Attributes.attributes(resource)
+          Fields.attributes(resource)
           |> requested_fields(resource, conn)
           |> Enum.reduce(%{}, fn attribute, attributes ->
             name = Resource.field_name(attribute)
@@ -273,7 +271,7 @@ defmodule JSONAPIPlug.Normalizer do
     %{
       resource_object
       | relationships:
-          Relationships.relationships(resource)
+          Fields.relationships(resource)
           |> Enum.filter(&relationship_loaded?(Map.get(resource, elem(&1, 0))))
           |> Enum.into(%{}, fn relationship ->
             name = Resource.field_name(relationship)
@@ -334,7 +332,7 @@ defmodule JSONAPIPlug.Normalizer do
          resource
        ) do
     resource
-    |> Relationships.relationships()
+    |> Fields.relationships()
     |> Enum.filter(&get_in(jsonapi_plug.include, [elem(&1, 0)]))
     |> Enum.reduce(
       document,
@@ -396,7 +394,7 @@ defmodule JSONAPIPlug.Normalizer do
     do: %{document | included: MapSet.to_list(included)}
 
   defp recase_field(resource, field),
-    do: Resource.field_recase(field, Case.fields_case(resource))
+    do: Resource.field_recase(field, Fields.case(resource))
 
   defp relationship_loaded?(nil), do: false
   defp relationship_loaded?(%{__struct__: Ecto.Association.NotLoaded}), do: false

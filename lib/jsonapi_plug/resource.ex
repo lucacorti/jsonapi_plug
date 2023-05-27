@@ -213,23 +213,15 @@ defmodule JSONAPIPlug.Resource do
         end
       end
 
-      defimpl JSONAPIPlug.Resource.Attributes, for: unquote(options[:resource]) do
-        def attributes(_t), do: unquote(options[:attributes])
-        def relationships(_t), do: unquote(options[:relationships])
-      end
-
-      defimpl JSONAPIPlug.Resource.Case, for: unquote(options[:resource]) do
-        def fields_case(_t), do: unquote(options[:case])
-      end
-
       defimpl JSONAPIPlug.Resource.Identity, for: unquote(options[:resource]) do
         def client_generated_ids?(_t), do: unquote(options[:client_generated_ids])
         def id_attribute(_t), do: unquote(options[:id_attribute])
         def type(_t), do: unquote(options[:type])
       end
 
-      defimpl JSONAPIPlug.Resource.Relationships, for: unquote(options[:resource]) do
+      defimpl JSONAPIPlug.Resource.Fields, for: unquote(options[:resource]) do
         def attributes(_t), do: unquote(options[:attributes])
+        def case(_t), do: unquote(options[:case])
         def relationships(_t), do: unquote(options[:relationships])
       end
     end

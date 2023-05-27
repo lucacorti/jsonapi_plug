@@ -11,9 +11,8 @@ defmodule JSONAPIPlug.QueryParser.Ecto.Fields do
     Exceptions.InvalidQuery,
     QueryParser,
     Resource,
-    Resource.Attributes,
-    Resource.Identity,
-    Resource.Relationships
+    Resource.Fields,
+    Resource.Identity
   }
 
   @behaviour QueryParser
@@ -74,14 +73,14 @@ defmodule JSONAPIPlug.QueryParser.Ecto.Fields do
 
   defp attributes_for_type(resource, type) do
     if type == Identity.type(resource) do
-      Attributes.attributes(resource) |> Enum.map(&Resource.field_name/1)
+      Fields.attributes(resource) |> Enum.map(&Resource.field_name/1)
     else
-      case Enum.find_value(Relationships.relationships(resource), &(Identity.type(&1) == type)) do
+      case Enum.find_value(Fields.relationships(resource), &(Identity.type(&1) == type)) do
         nil ->
           raise InvalidQuery, type: Identity.type(resource), param: "fields", value: type
 
         related_resource ->
-          Attributes.attributes(related_resource)
+          Fields.attributes(related_resource)
           |> Enum.map(&Resource.field_name/1)
       end
     end
