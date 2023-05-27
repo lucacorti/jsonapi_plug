@@ -68,7 +68,13 @@ defmodule JSONAPIPlug.API do
     ]
   ]
 
+  alias JSONAPIPlug.Document
+  alias Plug.Conn
+
   @type t :: module()
+
+  @callback links(Conn.t()) :: Document.links()
+  @callback meta(Conn.t()) :: Document.meta()
 
   @typedoc """
   API configuration options:
@@ -83,6 +89,16 @@ defmodule JSONAPIPlug.API do
     quote do
       @doc false
       def __otp_app__, do: unquote(options[:otp_app])
+
+      @behaviour JSONAPIPlug.API
+
+      @impl JSONAPIPlug.API
+      def links(_conn), do: %{}
+
+      @impl JSONAPIPlug.API
+      def meta(_conn), do: %{}
+
+      defoverridable JSONAPIPlug.API
     end
   end
 

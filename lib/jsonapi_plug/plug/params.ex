@@ -6,7 +6,8 @@ defmodule JSONAPIPlug.Plug.Params do
   notmalizes it and stores params in the `Plug.Conn` private assigns for later use.
   """
 
-  alias JSONAPIPlug.{Document, Normalizer}
+  alias JSONAPIPlug.{Document, Resource}
+
   alias Plug.Conn
 
   @behaviour Plug
@@ -27,7 +28,7 @@ defmodule JSONAPIPlug.Plug.Params do
     body_params =
       body_params
       |> Document.parse()
-      |> Normalizer.denormalize(jsonapi_plug.resource, conn)
+      |> Resource.to_params(jsonapi_plug.resource, conn)
 
     Conn.put_private(conn, :jsonapi_plug, %JSONAPIPlug{jsonapi_plug | params: body_params})
   end

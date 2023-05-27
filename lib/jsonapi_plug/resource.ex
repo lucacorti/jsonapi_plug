@@ -12,7 +12,7 @@ defmodule JSONAPIPlug.Resource do
 
   See `t:options/0` for all available options you can pass to `use JSONAPIPlug.Resource`.
 
-  You can now call `UsersResource.render("show.json", %{data: user})` or `Resource.render(UsersResource, conn, user)`
+  You can now call `Usersrender("show.json", %{data: user})` or `render(UsersResource, conn, user)`
   to render a valid JSON:API document from your data. If you use phoenix, you can use:
 
       render(conn, "show.json", %{data: user})
@@ -160,7 +160,19 @@ defmodule JSONAPIPlug.Resource do
             ]
           )
 
-  alias JSONAPIPlug.{Document, Normalizer}
+  alias JSONAPIPlug.{
+    Document,
+    Document.RelationshipObject,
+    Document.ResourceIdentifierObject,
+    Document.ResourceObject,
+    Exceptions.InvalidDocument,
+    Resource.Fields,
+    Resource.Identity,
+    Resource.Links,
+    Resource.Meta,
+    Resource.Params
+  }
+
   alias Plug.Conn
 
   defmacro __using__(options) do
@@ -192,7 +204,7 @@ defmodule JSONAPIPlug.Resource do
           |> render("update.json", %{data: post})
           ...
 
-        instead of calling `JSONAPIPlug.Resource.render/5` directly in your controllers.
+        instead of calling `JSONAPIPlug.render/5` directly in your controllers.
         It takes the action (one of "create.json", "index.json", "show.json", "update.json") and
         the assings as a keyword list or map with atom keys.
         """
@@ -200,7 +212,7 @@ defmodule JSONAPIPlug.Resource do
                 Document.t() | no_return()
         def render(action, assigns)
             when action in ["create.json", "index.json", "show.json", "update.json"] do
-          JSONAPIPlug.Resource.render(
+          JSONAPIPlug.render(
             assigns[:conn],
             assigns[:data],
             assigns[:links],
@@ -390,6 +402,397 @@ defmodule JSONAPIPlug.Resource do
   """
   @spec render(Conn.t(), data(), Document.links(), Document.meta()) ::
           Document.t() | no_return()
-  def render(conn, data, links \\ %{}, meta \\ %{}),
-    do: Normalizer.normalize(conn, data, links, meta)
+  def render(conn, resources, links \\ %{}, meta \\ %{}) do
+    %Document{}
+    |> render_links(conn, links)
+    |> render_meta(conn, meta)
+    |> render_data(conn, resources)
+    |> render_included(conn, resources)
+    |> included_to_list()
+  end
+
+  defp render_links(
+         %Document{} = document,
+         %Conn{private: %{jsonapi_plug: %JSONAPIPlug{} = jsonapi_plug}} = conn,
+         links
+       ),
+       do: %{document | links: Map.merge(jsonapi_plug.api.links(conn), links || %{})}
+
+  defp render_meta(
+         %Document{} = document,
+         %Conn{private: %{jsonapi_plug: %JSONAPIPlug{} = jsonapi_plug}} = conn,
+         meta
+       ),
+       do: %{document | links: Map.merge(jsonapi_plug.api.links(conn), meta || %{})}
+
+  defp render_data(document, _conn, nil = _resources),
+    do: document
+
+  defp render_data(%Document{} = document, conn, resources)
+       when is_list(resources),
+       do: %{
+         document
+         | data: Enum.map(resources, &render_resource(conn, &1))
+       }
+
+  defp render_data(%Document{} = document, conn, resource),
+    do: %{document | data: render_resource(conn, resource)}
+
+  defp render_resource(conn, resource) do
+    %ResourceObject{}
+    |> render_resource_id(conn, resource)
+    |> render_resource_type(conn, resource)
+    |> render_resource_attributes(conn, resource)
+    |> render_resource_links(conn, resource)
+    |> render_resource_meta(conn, resource)
+    |> render_resource_relationships(conn, resource)
+  end
+
+  defp render_resource_id(%ResourceObject{} = resource_object, _conn, resource),
+    do: %{
+      resource_object
+      | id: to_string(Params.render_attribute(resource, Identity.id_attribute(resource)))
+    }
+
+  defp render_resource_type(%ResourceObject{} = resource_object, _conn, resource),
+    do: %{resource_object | type: Identity.type(resource)}
+
+  defp render_resource_attributes(%ResourceObject{} = resource_object, conn, resource) do
+    %{
+      resource_object
+      | attributes:
+          Fields.attributes(resource)
+          |> requested_fields(resource, conn)
+          |> Enum.reduce(%{}, fn attribute, attributes ->
+            name = field_name(attribute)
+            key = field_option(attribute, :name) || field_name(attribute)
+
+            case field_option(attribute, :serialize) do
+              false ->
+                attributes
+
+              serialize when serialize in [true, nil] ->
+                value = Params.render_attribute(resource, key)
+
+                Map.put(attributes, field_recase(name, Fields.case(resource)), value)
+
+              serialize when is_function(serialize, 2) ->
+                value = serialize.(resource, conn)
+
+                Map.put(attributes, field_recase(name, Fields.case(resource)), value)
+            end
+          end)
+    }
+  end
+
+  defp render_resource_links(%ResourceObject{} = resource_object, conn, resource),
+    do: %{resource_object | links: Links.links(resource, conn)}
+
+  defp render_resource_meta(%ResourceObject{} = resource_object, conn, resource),
+    do: %{resource_object | meta: Meta.meta(resource, conn)}
+
+  defp render_resource_relationships(%ResourceObject{} = resource_object, conn, resource) do
+    %{
+      resource_object
+      | relationships:
+          Fields.relationships(resource)
+          |> Enum.filter(&relationship_loaded?(Map.get(resource, elem(&1, 0))))
+          |> Enum.into(%{}, fn relationship ->
+            name = field_name(relationship)
+
+            key =
+              field_option(relationship, :name) ||
+                field_name(relationship)
+
+            related_resources = Map.get(resource, key)
+            related_many = field_option(relationship, :many)
+
+            case {related_many, related_resources} do
+              {false, related_resources} when is_list(related_resources) ->
+                raise InvalidDocument,
+                  message: "List of resources given to render for one-to-one relationship",
+                  reference: nil
+
+              {true, related_resources} when not is_list(related_resources) ->
+                raise InvalidDocument,
+                  message: "Single resource given to render for many relationship",
+                  reference: nil
+
+              {_related_many, related_resources} ->
+                {
+                  field_recase(name, Fields.case(resource)),
+                  %RelationshipObject{
+                    data: render_resource_relationship(related_resources, conn),
+                    meta: Meta.meta(resource, conn)
+                  }
+                }
+            end
+          end)
+    }
+  end
+
+  defp render_resource_relationship(related_resources, conn) when is_list(related_resources),
+    do: Enum.map(related_resources, &render_resource_relationship(&1, conn))
+
+  defp render_resource_relationship(related_resource, conn) do
+    id = Identity.id_attribute(related_resource)
+
+    %ResourceIdentifierObject{
+      id: to_string(Params.render_attribute(related_resource, id)),
+      type: Identity.type(related_resource),
+      meta: Meta.meta(related_resource, conn)
+    }
+  end
+
+  defp render_included(document, _conn, nil = _resources),
+    do: document
+
+  defp render_included(document, conn, resources) when is_list(resources),
+    do: Enum.reduce(resources, document, &render_included(&2, conn, &1))
+
+  defp render_included(
+         document,
+         %Conn{private: %{jsonapi_plug: %JSONAPIPlug{} = jsonapi_plug}} = conn,
+         resource
+       ) do
+    resource
+    |> Fields.relationships()
+    |> Enum.filter(&get_in(jsonapi_plug.include, [elem(&1, 0)]))
+    |> Enum.reduce(
+      document,
+      &render_resource_included(&2, conn, resource, &1)
+    )
+  end
+
+  defp render_included(document, _conn, _resource), do: document
+
+  defp render_resource_included(
+         %Document{} = document,
+         conn,
+         resource,
+         relationship
+       ) do
+    name = field_name(relationship)
+    related_resource = Map.get(resource, name)
+    related_loaded? = relationship_loaded?(related_resource)
+    related_many = field_option(relationship, :many)
+
+    included =
+      case {related_loaded?, related_many, related_resource} do
+        {true, true, related_resource} when is_list(related_resource) ->
+          MapSet.union(
+            document.included || MapSet.new(),
+            MapSet.new(Enum.map(related_resource, &render_resource(conn, &1)))
+          )
+
+        {true, _related_many, related_resource} when is_list(related_resource) ->
+          raise InvalidDocument,
+            message: "List of resources given to render for one-to-one relationship",
+            reference: nil
+
+        {true, true, _related_resource} ->
+          raise InvalidDocument,
+            message: "Single resource given to render for many relationship",
+            reference: nil
+
+        {true, _related_many, related_resource} ->
+          MapSet.put(
+            document.included || MapSet.new(),
+            render_resource(conn, related_resource)
+          )
+
+        {false, _related_many, _related_resource} ->
+          document.included
+      end
+
+    render_included(
+      %{document | included: included},
+      update_in(conn.private.jsonapi_plug.include, & &1[name]),
+      related_resource
+    )
+  end
+
+  defp included_to_list(%Document{included: nil} = document), do: document
+
+  defp included_to_list(%Document{included: included} = document),
+    do: %{document | included: MapSet.to_list(included)}
+
+  defp relationship_loaded?(nil), do: false
+  defp relationship_loaded?(%{__struct__: Ecto.Association.NotLoaded}), do: false
+  defp relationship_loaded?(_value), do: true
+
+  defp requested_fields(attributes, resource, %Conn{
+         private: %{jsonapi_plug: %JSONAPIPlug{fields: fields}}
+       })
+       when is_map(fields) do
+    case fields[Identity.type(resource)] do
+      nil ->
+        attributes
+
+      fields when is_list(fields) ->
+        Enum.filter(attributes, fn attribute -> field_name(attribute) in fields end)
+    end
+  end
+
+  defp requested_fields(attributes, _resource, _conn), do: attributes
+
+  @spec to_params(Document.t(), data(), Conn.t()) :: Conn.params()
+  def to_params(%Document{data: nil}, _resource, _conn), do: %{}
+
+  def to_params(%Document{data: resource_objects} = document, resource, conn)
+      when is_list(resource_objects) do
+    Enum.map(resource_objects, &resource_to_params(document, &1, resource, conn))
+  end
+
+  def to_params(
+        %Document{data: %ResourceObject{} = resource_object} = document,
+        resource,
+        conn
+      ) do
+    resource_to_params(document, resource_object, resource, conn)
+  end
+
+  defp resource_to_params(
+         document,
+         %ResourceObject{} = resource_object,
+         resource,
+         conn
+       ) do
+    Params.init(resource)
+    |> resource_id_to_params(resource_object, resource, conn)
+    |> resource_attributes_to_params(resource_object, resource, conn)
+    |> resource_relationships_to_params(resource_object, document, resource, conn)
+  end
+
+  defp resource_id_to_params(
+         params,
+         %ResourceObject{id: nil},
+         resource,
+         _conn
+       ) do
+    if Identity.client_generated_ids?(resource) do
+      raise InvalidDocument,
+        message: "Resource ID not received in request and API requires Client-Generated IDs",
+        reference: "https://jsonapi.org/format/1.0/#crud-creating-client-ids"
+    end
+
+    params
+  end
+
+  defp resource_id_to_params(params, %ResourceObject{} = resource_object, resource, _conn),
+    do:
+      Params.attribute_to_params(
+        resource,
+        params,
+        to_string(Identity.id_attribute(resource)),
+        resource_object.id
+      )
+
+  defp resource_attributes_to_params(
+         params,
+         %ResourceObject{} = resource_object,
+         resource,
+         conn
+       ) do
+    resource
+    |> Fields.attributes()
+    |> Enum.reduce(params, fn attribute, params ->
+      name = field_name(attribute)
+      deserialize = field_option(attribute, :deserialize)
+      key = to_string(field_option(attribute, :name) || name)
+
+      case Map.fetch(
+             resource_object.attributes,
+             field_recase(name, Fields.case(resource))
+           ) do
+        {:ok, _value} when deserialize == false ->
+          params
+
+        {:ok, value} when is_function(deserialize, 2) ->
+          Params.attribute_to_params(resource, params, key, deserialize.(value, conn))
+
+        {:ok, value} ->
+          Params.attribute_to_params(resource, params, key, value)
+
+        :error ->
+          params
+      end
+    end)
+  end
+
+  defp resource_relationships_to_params(
+         params,
+         %ResourceObject{relationships: relationships},
+         %Document{} = document,
+         resource,
+         conn
+       ) do
+    resource
+    |> Fields.relationships()
+    |> Enum.reduce(params, fn relationship, params ->
+      name = field_name(relationship)
+      key = to_string(field_option(relationship, :name) || name)
+      related_resource = field_option(relationship, :resource)
+      related_many = field_option(relationship, :many)
+      related_relationships = Map.get(relationships, to_string(name))
+
+      case {related_many, related_relationships} do
+        {_many, nil} ->
+          params
+
+        {true, related_relationships} when is_list(related_relationships) ->
+          value =
+            Enum.map(
+              related_relationships,
+              &find_related_relationship(document, &1, struct(related_resource), conn)
+            )
+
+          Params.relationship_to_params(resource, params, related_relationships, key, value)
+
+        {_many, related_relationships} when is_list(related_relationships) ->
+          raise InvalidDocument,
+            message: "List of resources for one-to-one relationship during normalization",
+            reference: nil
+
+        {true, _related_relationships} ->
+          raise InvalidDocument,
+            message: "Single resource for many relationship during normalization",
+            reference: nil
+
+        {_many, %RelationshipObject{data: nil}} ->
+          Map.put(params, key <> "_id", nil)
+
+        {_many, related_relationship} ->
+          value =
+            find_related_relationship(
+              document,
+              related_relationship,
+              struct(related_resource),
+              conn
+            )
+
+          Params.relationship_to_params(resource, params, related_relationship, key, value)
+      end
+    end)
+  end
+
+  defp find_related_relationship(
+         %Document{} = document,
+         %RelationshipObject{
+           data: %ResourceIdentifierObject{
+             id: id,
+             type: type
+           }
+         },
+         resource,
+         conn
+       ) do
+    Enum.find_value(document.included || [], fn
+      %ResourceObject{id: ^id, type: ^type} = resource_object ->
+        resource_to_params(document, resource_object, resource, conn)
+
+      %ResourceObject{} ->
+        nil
+    end)
+  end
 end
