@@ -306,7 +306,7 @@ defmodule JSONAPIPlug.Resource do
   def field_option({_name, options}, option) when is_list(options),
     do: Keyword.get(options, option)
 
-  def field_option(field, _option, _default) do
+  def field_option(field, _option) do
     raise "invalid field definition: #{inspect(field)}"
   end
 
@@ -317,45 +317,46 @@ defmodule JSONAPIPlug.Resource do
   or dashes that are not between letters/numbers.
 
   ## Examples
+    ```
+    iex> field_recase("top_posts", :camelize)
+    "topPosts"
 
-  iex> field_recase("top_posts", :camelize)
-  "topPosts"
+    iex> field_recase(:top_posts, :camelize)
+    "topPosts"
 
-  iex> field_recase(:top_posts, :camelize)
-  "topPosts"
+    iex> field_recase("_top_posts", :camelize)
+    "_topPosts"
 
-  iex> field_recase("_top_posts", :camelize)
-  "_topPosts"
+    iex> field_recase("_top__posts_", :camelize)
+    "_top__posts_"
 
-  iex> field_recase("_top__posts_", :camelize)
-  "_top__posts_"
+    iex> field_recase("", :camelize)
+    ""
 
-  iex> field_recase("", :camelize)
-  ""
+    iex> field_recase("top_posts", :dasherize)
+    "top-posts"
 
-  iex> field_recase("top_posts", :dasherize)
-  "top-posts"
+    iex> field_recase("_top_posts", :dasherize)
+    "_top-posts"
 
-  iex> field_recase("_top_posts", :dasherize)
-  "_top-posts"
+    iex> field_recase("_top__posts_", :dasherize)
+    "_top__posts_"
 
-  iex> field_recase("_top__posts_", :dasherize)
-  "_top__posts_"
+    iex> field_recase("top-posts", :underscore)
+    "top_posts"
 
-  iex> field_recase("top-posts", :underscore)
-  "top_posts"
+    iex> field_recase(:top_posts, :underscore)
+    "top_posts"
 
-  iex> field_recase(:top_posts, :underscore)
-  "top_posts"
+    iex> field_recase("-top-posts", :underscore)
+    "-top_posts"
 
-  iex> field_recase("-top-posts", :underscore)
-  "-top_posts"
+    iex> field_recase("-top--posts-", :underscore)
+    "-top--posts-"
 
-  iex> field_recase("-top--posts-", :underscore)
-  "-top--posts-"
-
-  iex> field_recase("corgiAge", :underscore)
-  "corgi_age"
+    iex> field_recase("corgiAge", :underscore)
+    "corgi_age"
+    ```
   """
   @spec field_recase(field_name() | String.t(), field_case()) :: String.t()
   def field_recase(field, field_case) when is_atom(field) do
