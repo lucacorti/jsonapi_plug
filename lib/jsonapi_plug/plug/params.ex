@@ -20,16 +20,12 @@ defmodule JSONAPIPlug.Plug.Params do
     raise "Body unfetched when trying to parse JSON:API Document"
   end
 
-  def call(
-        %Conn{body_params: body_params, private: %{jsonapi_plug: %JSONAPIPlug{} = jsonapi_plug}} =
-          conn,
-        _opts
-      ) do
-    body_params =
-      body_params
+  def call(%Conn{private: %{jsonapi_plug: %JSONAPIPlug{} = jsonapi_plug}} = conn, _opts) do
+    params =
+      conn.body_params
       |> Document.parse()
       |> Resource.to_params(jsonapi_plug.resource, conn)
 
-    Conn.put_private(conn, :jsonapi_plug, %JSONAPIPlug{jsonapi_plug | params: body_params})
+    Conn.put_private(conn, :jsonapi_plug, %JSONAPIPlug{jsonapi_plug | params: params})
   end
 end
