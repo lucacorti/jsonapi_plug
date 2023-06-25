@@ -16,21 +16,16 @@ defmodule JSONAPIPlug.QueryParser.Ecto.Include do
   def parse(%JSONAPIPlug{resource: resource}, include) when is_binary(include) do
     include
     |> String.split(",", trim: true)
-    |> Enum.map(fn include ->
-      Resource.recase(include, :underscore)
-      |> String.split(".", trim: true)
-    end)
-    |> valid_includes(resource)
+    |> Enum.map(&Resource.recase(&1, :underscore))
+    |> Enum.map(&String.split(&1, ".", trim: true))
+    |> parse_includes(resource)
   end
 
   def parse(%JSONAPIPlug{resource: resource}, include) do
-    raise InvalidQuery,
-      type: Resource.type(resource),
-      param: "include",
-      value: include
+    raise InvalidQuery, type: Resource.type(resource), param: "include", value: include
   end
 
-  defp valid_includes(includes, resource) do
+  defp parse_includes(includes, resource) do
     relationships = Resource.relationships(resource)
     valid_relationships_includes = Enum.map(relationships, &to_string(Resource.field_name(&1)))
 
@@ -69,11 +64,11 @@ defmodule JSONAPIPlug.QueryParser.Ecto.Include do
             update_in(
               relationship_includes,
               [name],
-              &Keyword.merge(&1 || [], valid_includes([rest], struct(related_resource)))
+              &Keyword.merge(&1 || [], parse_includes([rest], struct(related_resource)))
             )
         end
 
-      [include_name | _] = path, relationship_includes ->
+      [include_name | _rest] = path, relationship_includes ->
         if include_name in valid_relationships_includes do
           relationship_includes
         else

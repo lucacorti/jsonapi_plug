@@ -212,7 +212,7 @@ defmodule JSONAPIPlug.Resource do
                 Document.t() | no_return()
         def render(action, assigns)
             when action in ["create.json", "index.json", "show.json", "update.json"] do
-          JSONAPIPlug.render(
+          JSONAPIPlug.Resource.render(
             assigns[:conn],
             assigns[:data],
             assigns[:links],
