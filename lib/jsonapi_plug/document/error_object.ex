@@ -32,8 +32,7 @@ defmodule JSONAPIPlug.Document.ErrorObject do
       %__MODULE__{},
       %__MODULE__{}
       |> Map.from_struct()
-      |> Map.keys()
-      |> Enum.reduce([], fn key, attrs ->
+      |> Enum.reduce([], fn {key, _value}, attrs ->
         case Map.fetch(data, Atom.to_string(key)) do
           {:ok, value} -> Map.put(attrs, key, value)
           :error -> attrs
