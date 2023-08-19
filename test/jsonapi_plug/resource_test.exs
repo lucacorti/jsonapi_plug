@@ -22,42 +22,42 @@ defmodule JSONAPIPlug.ResourceTest do
   defmodule PostPlug do
     use Plug.Builder
 
-    plug Plug.Parsers, parsers: [:json], pass: ["text/*"], json_decoder: Jason
+    plug Plug.Parsers, parsers: [:json], json_decoder: Jason
     plug JSONAPIPlug.Plug, api: DasherizingAPI, resource: Post
   end
 
   defmodule OtherNamespacePostPlug do
     use Plug.Builder
 
-    plug Plug.Parsers, parsers: [:json], pass: ["text/*"], json_decoder: Jason
+    plug Plug.Parsers, parsers: [:json], json_decoder: Jason
     plug JSONAPIPlug.Plug, api: OtherNamespaceAPI, resource: Post
   end
 
   defmodule OtherHostPostPlug do
     use Plug.Builder
 
-    plug Plug.Parsers, parsers: [:json], pass: ["text/*"], json_decoder: Jason
+    plug Plug.Parsers, parsers: [:json], json_decoder: Jason
     plug JSONAPIPlug.Plug, api: OtherHostAPI, resource: Post
   end
 
   defmodule OtherPortPostPlug do
     use Plug.Builder
 
-    plug Plug.Parsers, parsers: [:json], pass: ["text/*"], json_decoder: Jason
+    plug Plug.Parsers, parsers: [:json], json_decoder: Jason
     plug JSONAPIPlug.Plug, api: OtherPortAPI, resource: Post
   end
 
   defmodule OtherSchemePostPlug do
     use Plug.Builder
 
-    plug Plug.Parsers, parsers: [:json], pass: ["text/*"], json_decoder: Jason
+    plug Plug.Parsers, parsers: [:json], json_decoder: Jason
     plug JSONAPIPlug.Plug, api: OtherSchemeAPI, resource: Post
   end
 
   defmodule UnderscoringPostPlug do
     use Plug.Builder
 
-    plug Plug.Parsers, parsers: [:json], pass: ["text/*"], json_decoder: Jason
+    plug Plug.Parsers, parsers: [:json], json_decoder: Jason
     plug JSONAPIPlug.Plug, api: UnderscoringAPI, resource: Post
   end
 

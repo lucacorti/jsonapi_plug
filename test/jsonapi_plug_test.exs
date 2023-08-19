@@ -17,7 +17,7 @@ defmodule JSONAPIPlugTest do
   defmodule PostPlug do
     use Plug.Builder
 
-    plug Parsers, parsers: [:json], pass: ["text/*"], json_decoder: Jason
+    plug Parsers, parsers: [:json], json_decoder: Jason
     plug JSONAPIPlug.Plug, api: JSONAPIPlug.TestSupport.APIs.DefaultAPI, resource: Post
     plug :passthrough
 
