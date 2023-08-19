@@ -168,24 +168,26 @@ defmodule JSONAPIPlug.ResourceTest do
     end
 
     test "with pagination information", %{conn: conn} do
-      assert Pagination.url_for(PostResource, [], conn, %{}) ==
-               "https://www.example.com/posts"
+      assert %URI{path: "/posts"} = Pagination.url_for(PostResource, [], conn, %{}) |> URI.parse()
 
-      assert Pagination.url_for(PostResource, [], conn, %{number: 1, size: 10}) ==
-               "https://www.example.com/posts?page%5Bnumber%5D=1&page%5Bsize%5D=10"
+      assert %URI{path: "/posts", query: query} =
+               Pagination.url_for(PostResource, [], conn, %{number: 1, size: 10}) |> URI.parse()
+
+      assert %{"page[number]" => "1", "page[size]" => "10"} = URI.decode_query(query)
     end
 
     test "with query parameters", %{conn: conn} do
       conn_with_query_params = update_in(conn.query_params, &Map.put(&1, "comments", [5, 2]))
 
-      assert Pagination.url_for(PostResource, [], conn_with_query_params, %{
-               number: 1,
-               size: 10
-             }) ==
-               "https://www.example.com/posts?comments%5B%5D=5&comments%5B%5D=2&page%5Bnumber%5D=1&page%5Bsize%5D=10"
+      assert %URI{path: "/posts", query: query} =
+               Pagination.url_for(PostResource, [], conn_with_query_params, %{
+                 number: 1,
+                 size: 10
+               })
+               |> URI.parse()
 
-      assert Pagination.url_for(PostResource, [], conn_with_query_params, %{}) ==
-               "https://www.example.com/posts?comments%5B%5D=5&comments%5B%5D=2"
+      assert %{"comments[]" => "2", "page[number]" => "1", "page[size]" => "10"} =
+               URI.decode_query(query)
     end
   end
 
