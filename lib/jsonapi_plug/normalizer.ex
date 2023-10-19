@@ -397,6 +397,9 @@ defmodule JSONAPIPlug.Normalizer do
   defp normalize_included(%Document{data: nil} = document, _resource, _conn, _data, _options),
     do: document
 
+  defp normalize_included(%Document{} = document, _resource, _conn, nil, _options),
+    do: document
+
   defp normalize_included(
          document,
          resource,
