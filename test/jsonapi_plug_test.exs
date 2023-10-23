@@ -241,6 +241,61 @@ defmodule JSONAPIPlugTest do
            end)
   end
 
+  test "handles deep nested includes properly when an include is unreachable" do
+    posts = [
+      %Post{
+        id: 1,
+        text: "Hello",
+        body: "Hi",
+        author: %User{username: "jason", id: 2}
+      }
+    ]
+
+    conn =
+      conn(:get, "/posts?include=author.company.industry")
+      |> Conn.assign(:data, posts)
+      |> MyPostPlug.call([])
+
+    assert %{
+             "data" => [
+               %{
+                 "id" => "1",
+                 "relationships" => %{
+                   "author" => %{
+                     "data" => %{"id" => "2", "type" => "user"}
+                   },
+                   "bestComments" => %{
+                     "data" => []
+                   }
+                 },
+                 "type" => "post",
+                 "attributes" => %{
+                   "body" => "Hi",
+                   "excerpt" => "He",
+                   "firstCharacter" => "H",
+                   "fullDescription" => nil,
+                   "insertedAt" => nil,
+                   "text" => "Hello"
+                 }
+               }
+             ],
+             "included" => [
+               %{
+                 "attributes" => %{
+                   "age" => nil,
+                   "firstName" => nil,
+                   "fullName" => " ",
+                   "lastName" => nil,
+                   "password" => nil,
+                   "username" => "jason"
+                 },
+                 "id" => "2",
+                 "type" => "user"
+               }
+             ]
+           } = Jason.decode!(conn.resp_body)
+  end
+
   describe "with an underscored API" do
     test "handles sparse fields properly" do
       conn =

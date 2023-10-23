@@ -394,7 +394,7 @@ defmodule JSONAPIPlug.Normalizer do
 
   defp pagination_links(_resource, _resources, _conn, _page, _options), do: %{}
 
-  defp normalize_included(%Document{data: nil} = document, _resource, _conn, _data, _options),
+  defp normalize_included(%Document{} = document, _resource, _conn, nil, _options),
     do: document
 
   defp normalize_included(
