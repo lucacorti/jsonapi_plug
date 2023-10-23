@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.0.4 (2023-10-23)
+
+Fix deeply nested includes not always serialized correctly (@treere)
+
 ## 1.0.3 (2023-04-28)
 
 Accept id along with attributes in default sort parser implementation (@agos)
