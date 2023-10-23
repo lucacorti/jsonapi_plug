@@ -2,21 +2,21 @@
 
 ## 1.0.4 (2023-10-23)
 
-Fix deeply nested includes not always serialized correctly (@treere)
+- Fix deeply nested includes not always serialized correctly (@treere)
 
 ## 1.0.3 (2023-04-28)
 
-Accept id along with attributes in default sort parser implementation (@agos)
-Remove deprecated builder_opts() usage from Plug.Builder (@lucacorti)
+- Accept id along with attributes in default sort parser implementation (@agos)
+- Remove deprecated builder_opts() usage from Plug.Builder (@lucacorti)
 
 ## 1.0.2 (2023-04-14)
 
-Cache configuration (profiling by @treere, @lucacorti)
-Relax :nimble_options dependency (@lucacorti)
+- Cache configuration (profiling by @treere, @lucacorti)
+- Relax :nimble_options dependency (@lucacorti)
 
 ## 1.0.1 (2023-03-15)
 
-Allow nimble options 1.0 (@lucacorti)
+- Allow nimble options 1.0 (@lucacorti)
 
 ## 1.0.0 "Garetto Basso" (2023-02-18)
 
