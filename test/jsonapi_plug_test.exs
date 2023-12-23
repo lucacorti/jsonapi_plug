@@ -229,7 +229,7 @@ defmodule JSONAPIPlugTest do
     conn =
       conn(:get, "/posts?include=author.company.industry")
       |> Conn.assign(:data, posts)
-      |> MyPostPlug.call([])
+      |> PostPlug.call([])
 
     assert %{
              "data" => [
