@@ -330,14 +330,44 @@ defmodule JSONAPIPlug.Normalizer do
                   %RelationshipObject{
                     data:
                       normalize_relationship(related_resource, conn, related_data, normalizer),
-                    links: %{
-                      self: Resource.url_for_relationship(resource, data, conn, resource.type())
-                    },
                     meta: resource.meta(data, conn)
                   }
+                  |> relationship_links(resource, data, conn)
                 }
             end
           end)
+    }
+  end
+
+  defp relationship_links(
+         %RelationshipObject{} = relationship_object,
+         resource,
+         data,
+         %Conn{private: %{jsonapi_plug: %JSONAPIPlug{} = jsonapi_plug}} = conn
+       ) do
+    if API.get_config(jsonapi_plug.api, [:links]) do
+      %{
+        relationship_object
+        | links: %{
+            self: Resource.url_for_relationship(resource, data, conn, resource.type())
+          }
+      }
+    else
+      relationship_object
+    end
+  end
+
+  defp relationship_links(
+         %RelationshipObject{} = relationship_object,
+         resource,
+         data,
+         conn
+       ) do
+    %{
+      relationship_object
+      | links: %{
+          self: Resource.url_for_relationship(resource, data, conn, resource.type())
+        }
     }
   end
 
@@ -360,13 +390,17 @@ defmodule JSONAPIPlug.Normalizer do
          options
        )
        when is_list(data) do
-    links =
-      data
-      |> resource.links(conn)
-      |> Map.merge(pagination_links(resource, conn, data, jsonapi_plug.page, options))
-      |> Map.merge(%{self: Pagination.url_for(resource, data, conn, jsonapi_plug.page)})
+    if API.get_config(jsonapi_plug.api, [:links]) do
+      links =
+        data
+        |> resource.links(conn)
+        |> Map.merge(pagination_links(resource, conn, data, jsonapi_plug.page, options))
+        |> Map.merge(%{self: Pagination.url_for(resource, data, conn, jsonapi_plug.page)})
 
-    %Document{document | links: links}
+      %Document{document | links: links}
+    else
+      document
+    end
   end
 
   defp normalize_links(%Document{} = document, resource, conn, data, _options) do
