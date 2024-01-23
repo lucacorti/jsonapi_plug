@@ -124,7 +124,7 @@ defmodule JSONAPIPlug.Normalizer do
       deserialize = Resource.field_option(attribute, :deserialize)
       key = to_string(Resource.field_option(attribute, :name) || name)
 
-      case Map.fetch(resource_object.attributes, recase_field(conn, name)) do
+      case Map.fetch(resource_object.attributes, resource.recase_field(conn, name)) do
         {:ok, _value} when deserialize == false ->
           params
 
@@ -289,12 +289,12 @@ defmodule JSONAPIPlug.Normalizer do
               serialize when serialize in [true, nil] ->
                 value = normalizer.normalize_attribute(data, key)
 
-                Map.put(attributes, recase_field(conn, name), value)
+                Map.put(attributes, resource.recase_field(conn, name), value)
 
               serialize when is_function(serialize, 2) ->
                 value = serialize.(data, conn)
 
-                Map.put(attributes, recase_field(conn, name), value)
+                Map.put(attributes, resource.recase_field(conn, name), value)
             end
           end)
     }
@@ -326,7 +326,7 @@ defmodule JSONAPIPlug.Normalizer do
 
               {_related_many, related_data} ->
                 {
-                  recase_field(conn, name),
+                  resource.recase_field(conn, name),
                   %RelationshipObject{
                     data:
                       normalize_relationship(related_resource, conn, related_data, normalizer),
@@ -487,12 +487,6 @@ defmodule JSONAPIPlug.Normalizer do
       options
     )
   end
-
-  defp recase_field(%Conn{private: %{jsonapi_plug: %JSONAPIPlug{} = jsonapi_plug}}, field),
-    do: JSONAPIPlug.recase(field, API.get_config(jsonapi_plug.api, [:case], :camelize))
-
-  defp recase_field(_conn, field),
-    do: JSONAPIPlug.recase(field, :camelize)
 
   defp relationship_loaded?(nil), do: false
   defp relationship_loaded?(%{__struct__: Ecto.Association.NotLoaded}), do: false
