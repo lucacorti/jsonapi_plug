@@ -116,7 +116,7 @@ defmodule JSONAPIPlug.Plug do
   def config(%Conn{} = conn, _options) do
     {options, assigns} = Map.pop!(conn.assigns, :jsonapi_plug)
 
-    %Conn{conn | assigns: assigns}
+    %{conn | assigns: assigns}
     |> fetch_query_params()
     |> put_private(:jsonapi_plug, %JSONAPIPlug{api: options[:api], resource: options[:resource]})
   end
