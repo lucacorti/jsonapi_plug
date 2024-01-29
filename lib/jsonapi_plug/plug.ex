@@ -113,7 +113,7 @@ defmodule JSONAPIPlug.Plug do
   def init(opts), do: NimbleOptions.validate!(opts, @options_schema)
 
   @doc false
-  def config(conn, _options) do
+  def config(%Conn{} = conn, _options) do
     {options, assigns} = Map.pop!(conn.assigns, :jsonapi_plug)
 
     %Conn{conn | assigns: assigns}
