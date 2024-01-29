@@ -109,16 +109,16 @@ defmodule JSONAPIPlug.Plug do
   plug QueryParam, :sort
   plug Params
 
+  @impl Plug
+  def init(opts), do: NimbleOptions.validate!(opts, @options_schema)
+
   @doc false
   def config(conn, _options) do
     {options, assigns} = Map.pop!(conn.assigns, :jsonapi_plug)
-    options = NimbleOptions.validate!(options, @options_schema)
-    api = Keyword.fetch!(options, :api)
-    resource = Keyword.fetch!(options, :resource)
 
     %Conn{conn | assigns: assigns}
     |> fetch_query_params()
-    |> put_private(:jsonapi_plug, %JSONAPIPlug{api: api, resource: resource})
+    |> put_private(:jsonapi_plug, %JSONAPIPlug{api: options[:api], resource: options[:resource]})
   end
 
   @impl Plug.ErrorHandler
