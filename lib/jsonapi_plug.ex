@@ -13,6 +13,7 @@ defmodule JSONAPIPlug do
   @type case :: :camelize | :dasherize | :underscore
 
   @type t :: %__MODULE__{
+          allowed_includes: keyword(keyword()),
           api: API.t(),
           fields: term(),
           filter: term(),
@@ -22,7 +23,8 @@ defmodule JSONAPIPlug do
           resource: Resource.t(),
           sort: term()
         }
-  defstruct api: nil,
+  defstruct allowed_includes: nil,
+            api: nil,
             fields: nil,
             filter: nil,
             include: nil,

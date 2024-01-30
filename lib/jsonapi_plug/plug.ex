@@ -77,6 +77,11 @@ defmodule JSONAPIPlug.Plug do
                       type: :atom,
                       required: true
                     ],
+                    includes: [
+                      doc: "A nested keyword list of allowed includes for this endpoint",
+                      type: :keyword_list,
+                      keys: [*: [type: :keyword_list]]
+                    ],
                     resource: [
                       doc: "The `JSONAPIPlug.Resource` used to parse the request.",
                       type: :atom,
@@ -96,7 +101,9 @@ defmodule JSONAPIPlug.Plug do
   require Logger
 
   alias JSONAPIPlug.{Document, Exceptions}
+
   alias JSONAPIPlug.Plug.{ContentTypeNegotiation, Params, QueryParam, ResponseContentType}
+
   alias Plug.Conn
 
   plug :config
@@ -118,7 +125,11 @@ defmodule JSONAPIPlug.Plug do
 
     %{conn | assigns: assigns}
     |> fetch_query_params()
-    |> put_private(:jsonapi_plug, %JSONAPIPlug{api: options[:api], resource: options[:resource]})
+    |> put_private(:jsonapi_plug, %JSONAPIPlug{
+      allowed_includes: options[:includes],
+      api: options[:api],
+      resource: options[:resource]
+    })
   end
 
   @impl Plug.ErrorHandler

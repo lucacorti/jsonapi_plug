@@ -23,7 +23,16 @@ defmodule JSONAPIPlugTest do
     use Plug.Builder
 
     plug Parsers, parsers: [:json], pass: ["text/*"], json_decoder: Jason
-    plug JSONAPIPlug.Plug, api: JSONAPIPlug.TestSupport.APIs.DefaultAPI, resource: PostResource
+
+    plug JSONAPIPlug.Plug,
+      api: JSONAPIPlug.TestSupport.APIs.DefaultAPI,
+      resource: PostResource,
+      includes: [
+        author: [company: [industry: []]],
+        other_user: [company: [industry: []]],
+        company: []
+      ]
+
     plug :passthrough
 
     defp passthrough(conn, _) do
