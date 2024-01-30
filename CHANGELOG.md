@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.0.5 (2024-01-30)
+
+- Allow disabling generation of links for relationships and includes. (@treere)
+- Add compile time optimizations for case transformation of resource fields (@treere)
+- Add support to restrict allowed includes to `JSONAPIPlug.Plug`. (@lucacorti)
+
 ## 1.0.4 (2023-10-23)
 
 - Fix deeply nested includes not always serialized correctly (@treere)
