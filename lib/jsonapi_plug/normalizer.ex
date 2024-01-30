@@ -116,15 +116,17 @@ defmodule JSONAPIPlug.Normalizer do
          params,
          %ResourceObject{} = resource_object,
          resource,
-         conn,
+         %Conn{private: %{jsonapi_plug: %JSONAPIPlug{} = jsonapi_plug}} = conn,
          normalizer
        ) do
+    case = API.get_config(jsonapi_plug.api, [:case], :camelize)
+
     Enum.reduce(resource.attributes(), params, fn attribute, params ->
       name = Resource.field_name(attribute)
       deserialize = Resource.field_option(attribute, :deserialize)
       key = to_string(Resource.field_option(attribute, :name) || name)
 
-      case Map.fetch(resource_object.attributes, resource.recase_field(conn, name)) do
+      case Map.fetch(resource_object.attributes, resource.recase_field(name, case)) do
         {:ok, _value} when deserialize == false ->
           params
 
@@ -272,7 +274,16 @@ defmodule JSONAPIPlug.Normalizer do
   defp normalize_type(resource_object, resource, _conn, _data, _options),
     do: %ResourceObject{resource_object | type: resource.type()}
 
-  defp normalize_attributes(resource_object, resource, conn, data, _options, normalizer) do
+  defp normalize_attributes(
+         resource_object,
+         resource,
+         %Conn{private: %{jsonapi_plug: %JSONAPIPlug{} = jsonapi_plug}} = conn,
+         data,
+         _options,
+         normalizer
+       ) do
+    case = API.get_config(jsonapi_plug.api, [:case], :camelize)
+
     %ResourceObject{
       resource_object
       | attributes:
@@ -288,19 +299,27 @@ defmodule JSONAPIPlug.Normalizer do
 
               serialize when serialize in [true, nil] ->
                 value = normalizer.normalize_attribute(data, key)
-
-                Map.put(attributes, resource.recase_field(conn, name), value)
+                Map.put(attributes, resource.recase_field(name, case), value)
 
               serialize when is_function(serialize, 2) ->
                 value = serialize.(data, conn)
 
-                Map.put(attributes, resource.recase_field(conn, name), value)
+                Map.put(attributes, resource.recase_field(name, case), value)
             end
           end)
     }
   end
 
-  defp normalize_relationships(resource_object, resource, conn, data, _options, normalizer) do
+  defp normalize_relationships(
+         resource_object,
+         resource,
+         %Conn{private: %{jsonapi_plug: %JSONAPIPlug{} = jsonapi_plug}} = conn,
+         data,
+         _options,
+         normalizer
+       ) do
+    case = API.get_config(jsonapi_plug.api, [:case], :camelize)
+
     %ResourceObject{
       resource_object
       | relationships:
@@ -326,7 +345,7 @@ defmodule JSONAPIPlug.Normalizer do
 
               {_related_many, related_data} ->
                 {
-                  resource.recase_field(conn, name),
+                  resource.recase_field(name, case),
                   %RelationshipObject{
                     data:
                       normalize_relationship(related_resource, conn, related_data, normalizer),
