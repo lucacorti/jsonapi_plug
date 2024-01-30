@@ -409,17 +409,14 @@ defmodule JSONAPIPlug.Normalizer do
          options
        )
        when is_list(data) do
-    if API.get_config(jsonapi_plug.api, [:links]) do
-      links =
-        data
-        |> resource.links(conn)
-        |> Map.merge(pagination_links(resource, conn, data, jsonapi_plug.page, options))
-        |> Map.merge(%{self: Pagination.url_for(resource, data, conn, jsonapi_plug.page)})
-
-      %Document{document | links: links}
-    else
+    %Document{
       document
-    end
+      | links:
+          data
+          |> resource.links(conn)
+          |> Map.merge(pagination_links(resource, conn, data, jsonapi_plug.page, options))
+          |> Map.merge(%{self: Pagination.url_for(resource, data, conn, jsonapi_plug.page)})
+    }
   end
 
   defp normalize_links(%Document{} = document, resource, conn, data, _options) do
