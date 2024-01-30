@@ -29,7 +29,7 @@ defmodule JSONAPIPlugTest do
       resource: PostResource,
       includes: [
         author: [company: [industry: []]],
-        other_user: [company: [industry: [:tags]]],
+        other_user: [company: [industry: []]],
         company: []
       ]
 
