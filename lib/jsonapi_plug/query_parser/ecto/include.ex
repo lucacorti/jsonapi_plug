@@ -88,25 +88,41 @@ defmodule JSONAPIPlug.QueryParser.Ecto.Include do
         end
 
       [include_name | _] = path, relationship_includes ->
-        try do
-          name = String.to_existing_atom(include_name)
-
-          if include_name in valid_relationships_includes and
-               (not is_list(allowed_includes) or get_in(allowed_includes, [name])) do
-            relationship_includes
-          else
-            raise ArgumentError
-          end
-        rescue
-          ArgumentError ->
-            reraise InvalidQuery.exception(
-                      type: resource.type(),
-                      param: "include",
-                      value: Enum.join(path, ".")
-                    ),
-                    __STACKTRACE__
-        end
+        check_relationship_include(
+          resource,
+          valid_relationships_includes,
+          allowed_includes,
+          include_name,
+          path,
+          relationship_includes
+        )
     end)
     |> Keyword.merge(valid_includes, fn _k, a, b -> Keyword.merge(a, b) end)
+  end
+
+  def check_relationship_include(
+        resource,
+        valid_relationships_includes,
+        allowed_includes,
+        include_name,
+        path,
+        relationship_includes
+      ) do
+    name = String.to_existing_atom(include_name)
+
+    if include_name in valid_relationships_includes and
+         (not is_list(allowed_includes) or get_in(allowed_includes, [name])) do
+      relationship_includes
+    else
+      raise ArgumentError
+    end
+  rescue
+    ArgumentError ->
+      reraise InvalidQuery.exception(
+                type: resource.type(),
+                param: "include",
+                value: Enum.join(path, ".")
+              ),
+              __STACKTRACE__
   end
 end
