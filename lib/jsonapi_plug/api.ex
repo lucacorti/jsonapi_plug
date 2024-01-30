@@ -42,6 +42,11 @@ defmodule JSONAPIPlug.API do
       type: :boolean,
       default: false
     ],
+    links: [
+      doc: "Enable link generation.",
+      type: :boolean,
+      default: true
+    ],
     host: [
       doc: "Hostname used for link generation instead of deriving it from the connection.",
       type: :string
