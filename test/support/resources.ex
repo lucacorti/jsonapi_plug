@@ -6,7 +6,7 @@ defmodule JSONAPIPlug.TestSupport.Resources do
   defmodule CarResource do
     @moduledoc false
 
-    use JSONAPIPlug.Resource, type: "car"
+    use JSONAPIPlug.Resource, type: "car", attributes: [:model]
   end
 
   defmodule CommentResource do
@@ -122,7 +122,7 @@ defmodule JSONAPIPlug.TestSupport.Resources do
   defmodule TagResource do
     @moduledoc false
 
-    use JSONAPIPlug.Resource, type: "tag"
+    use JSONAPIPlug.Resource, type: "tag", attributes: [:name]
   end
 
   defmodule UserResource do

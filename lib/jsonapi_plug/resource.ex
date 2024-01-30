@@ -280,7 +280,7 @@ defmodule JSONAPIPlug.Resource do
 
   Returns the field is the required case
   """
-  @callback recase_field(Conn.t(), JSONAPIPlug.case()) :: String.t()
+  @callback recase_field(field_name(), JSONAPIPlug.case()) :: String.t()
 
   @doc """
   Resource Type
@@ -311,7 +311,7 @@ defmodule JSONAPIPlug.Resource do
       raise "Illegal field name '#{name}' for resource #{resource}. See https://jsonapi.org/format/#document-resource-object-fields for more information."
     end
 
-    casing_functions =
+    recase_field =
       for field <-
             Stream.concat(attributes, relationships)
             |> Stream.map(&JSONAPIPlug.Resource.field_name(&1))
@@ -320,7 +320,7 @@ defmodule JSONAPIPlug.Resource do
         result = JSONAPIPlug.recase(field, casing)
 
         quote do
-          defp internal_recase(unquote(field), unquote(casing)) do
+          def recase_field(unquote(field), unquote(casing)) do
             unquote(result)
           end
         end
@@ -351,14 +351,7 @@ defmodule JSONAPIPlug.Resource do
       def relationships, do: unquote(relationships)
 
       @impl JSONAPIPlug.Resource
-      def recase_field(%Conn{private: %{jsonapi_plug: %JSONAPIPlug{} = jsonapi_plug}}, field),
-        do: internal_recase(field, API.get_config(jsonapi_plug.api, [:case], :camelize))
-
-      def recase_field(_conn, field), do: internal_recase(field, :camelize)
-
-      unquote(casing_functions)
-
-      defp internal_recase(field, casing), do: JSONAPIPlug.recase(field, casing)
+      unquote(recase_field)
 
       @impl JSONAPIPlug.Resource
       def type, do: unquote(type)
