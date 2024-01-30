@@ -78,7 +78,8 @@ defmodule JSONAPIPlug.Plug do
                       required: true
                     ],
                     includes: [
-                      doc: "A nested keyword list of allowed includes for this endpoint",
+                      doc:
+                        "A nested keyword list of allowed includes for this endpoint. By default all includes are allowed. To disable all include, pass `[]`.",
                       type: :keyword_list,
                       keys: [*: [type: :keyword_list]]
                     ],
