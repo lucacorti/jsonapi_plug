@@ -41,6 +41,10 @@ defmodule JSONAPIPlug do
   @spec mime_type :: String.t()
   def mime_type, do: "application/vnd.api+json"
 
+  defguardp is_uppercase(a) when ?A <= a and a <= ?Z
+  defguardp is_lowercase(a) when ?a <= a and a <= ?z
+  defguardp is_letter(a) when is_lowercase(a) or is_uppercase(a)
+
   @doc """
   Recase resource fields
 
@@ -110,9 +114,28 @@ defmodule JSONAPIPlug do
   end
 
   def recase(field, :underscore) do
-    field
-    |> String.replace(~r/([a-zA-Z\d])-([a-zA-Z\d])/, "\\1_\\2")
-    |> String.replace(~r/([a-z\d])([A-Z])/, "\\1_\\2")
-    |> String.downcase()
+    recase_underscore(field, "")
   end
+
+  def recase_underscore(<<?-, field::binary>>, acc),
+    do: recase_underscore(field, acc <> <<?->>)
+
+  def recase_underscore(<<a::utf8, b::utf8, field::binary>>, acc)
+      when is_lowercase(a) and is_uppercase(b) do
+    recase_underscore(field, acc <> downcase(<<a>>) <> "_" <> downcase(<<b>>))
+  end
+
+  def recase_underscore(<<a::utf8, ?-, b::utf8, field::binary>>, acc)
+      when is_letter(a) and is_letter(b) do
+    recase_underscore(field, acc <> downcase(<<a>>) <> "_" <> downcase(<<b>>))
+  end
+
+  def recase_underscore(<<a::utf8, field::binary>>, acc) do
+    recase_underscore(field, acc <> downcase(<<a>>))
+  end
+
+  def recase_underscore("", acc), do: acc
+
+  defp downcase(<<a>>) when is_uppercase(a), do: <<a + 32>>
+  defp downcase(rest), do: rest
 end
