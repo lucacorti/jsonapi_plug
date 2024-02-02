@@ -102,7 +102,7 @@ defmodule JSONAPIPlug do
       Regex.split(~r{(?<=[a-zA-Z0-9])[-_](?=[a-zA-Z0-9])}, field)
       |> Enum.filter(&(&1 != ""))
 
-    Enum.join([String.downcase(h) | camelize_list(t)])
+    Enum.join([String.downcase(h) | Enum.map(t, &String.capitalize/1)])
   end
 
   def recase(field, :dasherize) do
@@ -115,7 +115,4 @@ defmodule JSONAPIPlug do
     |> String.replace(~r/([a-z\d])([A-Z])/, "\\1_\\2")
     |> String.downcase()
   end
-
-  defp camelize_list([]), do: []
-  defp camelize_list([h | t]), do: [String.capitalize(h) | camelize_list(t)]
 end

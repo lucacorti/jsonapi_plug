@@ -231,34 +231,31 @@ defmodule JSONAPIPlug.Normalizer do
   @doc "Transforms user data into a JSON:API Document"
   @spec normalize(
           Resource.t(),
-          Conn.t() | nil,
+          Conn.t(),
           Resource.data() | nil,
           Resource.meta() | nil,
           Resource.options()
         ) ::
           Document.t() | no_return()
   def normalize(resource, conn, data, meta, options) do
-    %Document{meta: meta}
-    |> normalize_data(resource, conn, data, options)
-    |> normalize_links(resource, conn, data, options)
-    |> normalize_included(resource, conn, data, options)
-    |> included_to_list()
+    %Document{
+      meta: meta,
+      data: normalize_data(resource, conn, data, options),
+      links: normalize_links(resource, conn, data, options),
+      included:
+        normalize_included(MapSet.new(), resource, conn, data, options)
+        |> MapSet.to_list()
+    }
   end
 
-  defp included_to_list(%Document{included: nil} = document), do: document
+  defp normalize_data(_resource, _conn, nil = _data, _options), do: nil
 
-  defp included_to_list(%Document{included: included} = document),
-    do: %Document{document | included: MapSet.to_list(included)}
-
-  defp normalize_data(document, _resource, _conn, nil = _data, _options),
-    do: document
-
-  defp normalize_data(document, resource, conn, data, options) when is_list(data) do
-    %Document{document | data: Enum.map(data, &normalize_resource(resource, conn, &1, options))}
+  defp normalize_data(resource, conn, data, options) when is_list(data) do
+    Enum.map(data, &normalize_resource(resource, conn, &1, options))
   end
 
-  defp normalize_data(document, resource, conn, data, options) do
-    %Document{document | data: normalize_resource(resource, conn, data, options)}
+  defp normalize_data(resource, conn, data, options) do
+    normalize_resource(resource, conn, data, options)
   end
 
   defp normalize_resource(
@@ -269,24 +266,18 @@ defmodule JSONAPIPlug.Normalizer do
        ) do
     normalizer = resource.normalizer() || API.get_config(jsonapi_plug.api, [:normalizer])
 
-    %ResourceObject{}
-    |> normalize_id(resource, conn, data, options, normalizer)
-    |> normalize_type(resource, conn, data, options)
-    |> normalize_attributes(resource, conn, data, options, normalizer)
-    |> normalize_relationships(resource, conn, data, options, normalizer)
+    %ResourceObject{
+      id: normalize_id(resource, data, normalizer),
+      type: resource.type(),
+      attributes: normalize_attributes(resource, conn, data, options, normalizer),
+      relationships: normalize_relationships(resource, conn, data, options, normalizer)
+    }
   end
 
-  defp normalize_id(resource_object, resource, _conn, data, _options, normalizer),
-    do: %ResourceObject{
-      resource_object
-      | id: to_string(normalizer.normalize_attribute(data, resource.id_attribute()))
-    }
-
-  defp normalize_type(resource_object, resource, _conn, _data, _options),
-    do: %ResourceObject{resource_object | type: resource.type()}
+  defp normalize_id(resource, data, normalizer),
+    do: data |> normalizer.normalize_attribute(resource.id_attribute()) |> to_string()
 
   defp normalize_attributes(
-         resource_object,
          resource,
          %Conn{private: %{jsonapi_plug: %JSONAPIPlug{} = jsonapi_plug}} = conn,
          data,
@@ -295,37 +286,32 @@ defmodule JSONAPIPlug.Normalizer do
        ) do
     case = API.get_config(jsonapi_plug.api, [:case], :camelize)
 
-    %ResourceObject{
-      resource_object
-      | attributes:
-          resource.attributes()
-          |> requested_fields(resource, conn)
-          |> Enum.reduce(%{}, fn attribute, attributes ->
-            name = Resource.field_name(attribute)
-            key = Resource.field_option(attribute, :name) || Resource.field_name(attribute)
+    resource.attributes()
+    |> requested_fields(resource, conn)
+    |> Enum.reduce(%{}, fn attribute, attributes ->
+      name = Resource.field_name(attribute)
+      key = Resource.field_option(attribute, :name) || Resource.field_name(attribute)
 
-            case Resource.field_option(attribute, :serialize) do
-              false ->
-                attributes
+      case Resource.field_option(attribute, :serialize) do
+        false ->
+          attributes
 
-              serialize when serialize in [true, nil] ->
-                value = normalizer.normalize_attribute(data, key)
-                Map.put(attributes, resource.recase_field(name, case), value)
+        serialize when serialize in [true, nil] ->
+          value = normalizer.normalize_attribute(data, key)
+          Map.put(attributes, resource.recase_field(name, case), value)
 
-              serialize when is_function(serialize, 2) ->
-                value = serialize.(data, conn)
-                Map.put(attributes, resource.recase_field(name, case), value)
+        serialize when is_function(serialize, 2) ->
+          value = serialize.(data, conn)
+          Map.put(attributes, resource.recase_field(name, case), value)
 
-              {module, function, args} ->
-                value = apply(module, function, [data, conn | args])
-                Map.put(attributes, resource.recase_field(name, case), value)
-            end
-          end)
-    }
+        {module, function, args} ->
+          value = apply(module, function, [data, conn | args])
+          Map.put(attributes, resource.recase_field(name, case), value)
+      end
+    end)
   end
 
   defp normalize_relationships(
-         resource_object,
          resource,
          %Conn{private: %{jsonapi_plug: %JSONAPIPlug{} = jsonapi_plug}} = conn,
          data,
@@ -334,73 +320,58 @@ defmodule JSONAPIPlug.Normalizer do
        ) do
     case = API.get_config(jsonapi_plug.api, [:case], :camelize)
 
-    %ResourceObject{
-      resource_object
-      | relationships:
-          resource.relationships()
-          |> Enum.filter(&relationship_loaded?(Map.get(data, elem(&1, 0))))
-          |> Enum.into(%{}, fn relationship ->
-            name = Resource.field_name(relationship)
-            key = Resource.field_option(relationship, :name) || Resource.field_name(relationship)
-            related_data = Map.get(data, key)
-            related_resource = Resource.field_option(relationship, :resource)
-            related_many = Resource.field_option(relationship, :many)
+    resource.relationships()
+    |> Enum.filter(&relationship_loaded?(Map.get(data, elem(&1, 0))))
+    |> Enum.into(%{}, fn relationship ->
+      name = Resource.field_name(relationship)
+      key = Resource.field_option(relationship, :name) || Resource.field_name(relationship)
+      related_data = Map.get(data, key)
+      related_resource = Resource.field_option(relationship, :resource)
+      related_many = Resource.field_option(relationship, :many)
 
-            case {related_many, related_data} do
-              {false, related_data} when is_list(related_data) ->
-                raise InvalidDocument,
-                  message: "List of resources given to render for one-to-one relationship",
-                  reference: nil
+      case {related_many, related_data} do
+        {false, related_data} when is_list(related_data) ->
+          raise InvalidDocument,
+            message: "List of resources given to render for one-to-one relationship",
+            reference: nil
 
-              {true, _related_data} when not is_list(related_data) ->
-                raise InvalidDocument,
-                  message: "Single resource given to render for many relationship",
-                  reference: nil
+        {true, _related_data} when not is_list(related_data) ->
+          raise InvalidDocument,
+            message: "Single resource given to render for many relationship",
+            reference: nil
 
-              {_related_many, related_data} ->
-                {
-                  resource.recase_field(name, case),
-                  %RelationshipObject{
-                    data:
-                      normalize_relationship(related_resource, conn, related_data, normalizer),
-                    meta: resource.meta(data, conn)
-                  }
-                  |> relationship_links(resource, data, conn)
-                }
-            end
-          end)
-    }
+        {_related_many, related_data} ->
+          {
+            resource.recase_field(name, case),
+            %RelationshipObject{
+              data: normalize_relationship(related_resource, conn, related_data, normalizer),
+              meta: resource.meta(data, conn),
+              links: relationship_links(resource, data, conn)
+            }
+          }
+      end
+    end)
   end
 
   defp relationship_links(
-         %RelationshipObject{} = relationship_object,
          resource,
          data,
          %Conn{private: %{jsonapi_plug: %JSONAPIPlug{} = jsonapi_plug}} = conn
        ) do
     if API.get_config(jsonapi_plug.api, [:links]) do
       %{
-        relationship_object
-        | links: %{
-            self: Resource.url_for_relationship(resource, data, conn, resource.type())
-          }
+        self: Resource.url_for_relationship(resource, data, conn, resource.type())
       }
-    else
-      relationship_object
     end
   end
 
   defp relationship_links(
-         %RelationshipObject{} = relationship_object,
          resource,
          data,
          conn
        ) do
     %{
-      relationship_object
-      | links: %{
-          self: Resource.url_for_relationship(resource, data, conn, resource.type())
-        }
+      self: Resource.url_for_relationship(resource, data, conn, resource.type())
     }
   end
 
@@ -409,37 +380,29 @@ defmodule JSONAPIPlug.Normalizer do
 
   defp normalize_relationship(resource, conn, data, normalizer) do
     %ResourceIdentifierObject{
-      id: to_string(normalizer.normalize_attribute(data, resource.id_attribute())),
+      id: data |> normalizer.normalize_attribute(resource.id_attribute()) |> to_string(),
       type: resource.type(),
       meta: resource.meta(data, conn)
     }
   end
 
   defp normalize_links(
-         %Document{} = document,
          resource,
          %Conn{private: %{jsonapi_plug: %JSONAPIPlug{} = jsonapi_plug}} = conn,
          data,
          options
        )
        when is_list(data) do
-    %Document{
-      document
-      | links:
-          data
-          |> resource.links(conn)
-          |> Map.merge(pagination_links(resource, conn, data, jsonapi_plug.page, options))
-          |> Map.merge(%{self: Pagination.url_for(resource, data, conn, jsonapi_plug.page)})
-    }
+    data
+    |> resource.links(conn)
+    |> Map.merge(pagination_links(resource, conn, data, jsonapi_plug.page, options))
+    |> Map.put(:self, Pagination.url_for(resource, data, conn, jsonapi_plug.page))
   end
 
-  defp normalize_links(%Document{} = document, resource, conn, data, _options) do
-    links =
-      data
-      |> resource.links(conn)
-      |> Map.merge(%{self: Resource.url_for(resource, data, conn)})
-
-    %Document{document | links: links}
+  defp normalize_links(resource, conn, data, _options) do
+    data
+    |> resource.links(conn)
+    |> Map.put(:self, Resource.url_for(resource, data, conn))
   end
 
   defp pagination_links(
@@ -456,13 +419,11 @@ defmodule JSONAPIPlug.Normalizer do
     end
   end
 
-  defp pagination_links(_resource, _resources, _conn, _page, _options), do: %{}
-
-  defp normalize_included(%Document{} = document, _resource, _conn, nil, _options),
-    do: document
+  defp normalize_included(included, _resource, _conn, nil, _options),
+    do: included
 
   defp normalize_included(
-         document,
+         included,
          resource,
          %Conn{private: %{jsonapi_plug: %JSONAPIPlug{} = jsonapi_plug}} = conn,
          data,
@@ -471,24 +432,22 @@ defmodule JSONAPIPlug.Normalizer do
     resource.relationships()
     |> Enum.filter(&get_in(jsonapi_plug.include, [elem(&1, 0)]))
     |> Enum.reduce(
-      document,
+      included,
       &normalize_resource_included(&2, resource, conn, data, options, &1)
     )
   end
 
-  defp normalize_included(document, _resource, _conn, _data, _options), do: document
-
-  defp normalize_resource_included(document, resource, conn, data, options, relationship)
+  defp normalize_resource_included(included, resource, conn, data, options, relationship)
        when is_list(data) do
     Enum.reduce(
       data,
-      document,
+      included,
       &normalize_resource_included(&2, resource, conn, &1, options, relationship)
     )
   end
 
   defp normalize_resource_included(
-         %Document{} = document,
+         included,
          _resource,
          conn,
          data,
@@ -501,52 +460,35 @@ defmodule JSONAPIPlug.Normalizer do
     related_resource = Resource.field_option(relationship, :resource)
     related_many = Resource.field_option(relationship, :many)
 
-    included =
-      case {related_loaded?, related_many, related_data} do
-        {true, true, related_data} when is_list(related_data) ->
-          MapSet.union(
-            document.included || MapSet.new(),
-            MapSet.new(
-              Enum.map(
-                related_data,
-                &normalize_resource(related_resource, conn, &1, options)
-              )
-            )
-          )
+    case {related_loaded?, related_many, related_data} do
+      {true, true, related_data} when is_list(related_data) ->
+        related_data
+        |> Enum.map(&normalize_resource(related_resource, conn, &1, options))
+        |> MapSet.new()
+        |> MapSet.union(included)
 
-        {true, _related_many, related_data} when is_list(related_data) ->
-          raise InvalidDocument,
-            message: "List of resources given to render for one-to-one relationship",
-            reference: nil
+      {true, _related_many, related_data} when is_list(related_data) ->
+        raise InvalidDocument,
+          message: "List of resources given to render for one-to-one relationship",
+          reference: nil
 
-        {true, true, _related_data} ->
-          raise InvalidDocument,
-            message: "Single resource given to render for many relationship",
-            reference: nil
+      {true, true, _related_data} ->
+        raise InvalidDocument,
+          message: "Single resource given to render for many relationship",
+          reference: nil
 
-        {true, _related_many, related_data} ->
-          MapSet.put(
-            document.included || MapSet.new(),
-            normalize_resource(related_resource, conn, related_data, options)
-          )
+      {true, _related_many, related_data} ->
+        MapSet.put(
+          included,
+          normalize_resource(related_resource, conn, related_data, options)
+        )
 
-        {false, _related_many, _related_data} ->
-          document.included
-      end
-
-    normalize_included(
-      %Document{document | included: included},
+      {false, _related_many, _related_data} ->
+        included
+    end
+    |> normalize_included(
       related_resource,
-      %Conn{
-        conn
-        | private: %{
-            conn.private
-            | jsonapi_plug: %JSONAPIPlug{
-                conn.private.jsonapi_plug
-                | include: get_in(conn.private.jsonapi_plug.include, [name])
-              }
-          }
-      },
+      update_in(conn.private.jsonapi_plug.include, & &1[name]),
       related_data,
       options
     )

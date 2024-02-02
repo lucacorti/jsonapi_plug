@@ -19,35 +19,39 @@ defmodule JSONAPIPlug.Plug.ContentTypeNegotiation do
     do: conn
 
   def call(conn, _opts) do
-    case {validate_header(conn, "content-type"), validate_header(conn, "accept")} do
-      {true, true} ->
-        conn
+    conn |> validate("content_type") |> validate("accept")
+  end
 
-      {false, _} ->
-        raise InvalidHeader,
-          status: :unsupported_content_type,
-          message:
-            "The 'content-type' request header must contain the JSON:API mime type (#{JSONAPIPlug.mime_type()})",
-          reference: "https://jsonapi.org/format/#content-negotiation.",
-          header: "content-type"
+  defp validate(conn, "content_type") do
+    if validate_header(conn, "content-type") do
+      conn
+    else
+      raise InvalidHeader,
+        status: :unsupported_content_type,
+        message:
+          "The 'content-type' request header must contain the JSON:API mime type (#{JSONAPIPlug.mime_type()})",
+        reference: "https://jsonapi.org/format/#content-negotiation.",
+        header: "content-type"
+    end
+  end
 
-      {_, false} ->
-        raise InvalidHeader,
-          status: :not_acceptable,
-          message:
-            "The 'accept' request header must contain the JSON:API mime type (#{JSONAPIPlug.mime_type()})",
-          reference: "https://jsonapi.org/format/#content-negotiation",
-          header: "accept"
+  defp validate(conn, "accept") do
+    if validate_header(conn, "accept") do
+      conn
+    else
+      raise InvalidHeader,
+        status: :not_acceptable,
+        message:
+          "The 'accept' request header must contain the JSON:API mime type (#{JSONAPIPlug.mime_type()})",
+        reference: "https://jsonapi.org/format/#content-negotiation",
+        header: "accept"
     end
   end
 
   defp validate_header(conn, header) do
-    value =
-      conn
-      |> Conn.get_req_header(header)
-      |> List.first()
-
-    (value || JSONAPIPlug.mime_type())
+    conn
+    |> Conn.get_req_header(header)
+    |> List.first(JSONAPIPlug.mime_type())
     |> String.split(",", trim: true)
     |> Enum.member?(JSONAPIPlug.mime_type())
   end
