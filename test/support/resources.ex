@@ -104,8 +104,9 @@ defmodule JSONAPIPlug.TestSupport.Resources do
       attributes: [
         text: nil,
         body: nil,
-        excerpt: [serialize: fn %Post{} = post, _conn -> String.slice(post.text, 0..1) end],
-        first_character: [serialize: fn %Post{} = post, _conn -> String.first(post.text) end],
+        excerpt: [serialize: fn %Post{} = post, _conn -> String.slice(post.text, 0..4) end],
+        first_character: [serialize: {__MODULE__, :slice, [0..0]}],
+        second_character: [serialize: {__MODULE__, :slice, [1..1]}],
         full_description: nil,
         inserted_at: nil
       ],
@@ -116,7 +117,11 @@ defmodule JSONAPIPlug.TestSupport.Resources do
       ]
 
     @impl JSONAPIPlug.Resource
-    def meta(%Post{} = post, _conn), do: %{"meta_text" => "meta_#{post.text}"}
+    def meta(%Post{} = post, _conn),
+      do: %{"meta_text" => "meta_#{String.slice(post.text, 0..4) |> String.downcase()}"}
+
+    @doc false
+    def slice(%Post{} = post, _conn, range), do: String.slice(post.text, range)
   end
 
   defmodule TagResource do

@@ -86,14 +86,14 @@ defmodule JSONAPIPlug.Resource do
     ],
     serialize: [
       doc:
-        "Controls attribute serialization. Can be either a boolean (do/don't serialize) or a function reference returning the attribute value to be serialized for full control.",
-      type: {:or, [:boolean, {:fun, 2}]},
+        "Can be either a boolean, a function reference or MFA returning the attribute value to be serialized.",
+      type: {:or, [:boolean, {:fun, 2}, :mfa]},
       default: true
     ],
     deserialize: [
       doc:
-        "Controls attribute deserialization. Can be either a boolean (do/don't deserialize) or a function reference returning the attribute value to be deserialized for full control.",
-      type: {:or, [:boolean, {:fun, 2}]},
+        "Can be either a boolean, a function reference or MFA returning the attribute value to be deserialized.",
+      type: {:or, [:boolean, {:fun, 2}, :mfa]},
       default: true
     ]
   ]

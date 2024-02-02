@@ -122,24 +122,35 @@ defmodule JSONAPIPlug.Normalizer do
     case = API.get_config(jsonapi_plug.api, [:case], :camelize)
 
     Enum.reduce(resource.attributes(), params, fn attribute, params ->
-      name = Resource.field_name(attribute)
-      deserialize = Resource.field_option(attribute, :deserialize)
-      key = to_string(Resource.field_option(attribute, :name) || name)
-
-      case Map.fetch(resource_object.attributes, resource.recase_field(name, case)) do
-        {:ok, _value} when deserialize == false ->
-          params
-
-        {:ok, value} when is_function(deserialize, 2) ->
-          normalizer.denormalize_attribute(params, key, deserialize.(value, conn))
-
-        {:ok, value} ->
-          normalizer.denormalize_attribute(params, key, value)
-
-        :error ->
-          params
-      end
+      denormalize_attribute(params, resource_object, resource, conn, attribute, case, normalizer)
     end)
+  end
+
+  defp denormalize_attribute(params, resource_object, resource, conn, attribute, case, normalizer) do
+    name = Resource.field_name(attribute)
+    key = to_string(Resource.field_option(attribute, :name) || name)
+
+    case Map.fetch(resource_object.attributes, resource.recase_field(name, case)) do
+      {:ok, value} ->
+        case Resource.field_option(attribute, :deserialize) do
+          false ->
+            params
+
+          serialize when serialize in [true, nil] ->
+            normalizer.denormalize_attribute(params, key, value)
+
+          {module, function, args} ->
+            value = apply(module, function, [value, conn] ++ args)
+            normalizer.denormalize_attribute(params, key, value)
+
+          deserialize when is_function(deserialize) ->
+            value = deserialize.(value, conn)
+            normalizer.denormalize_attribute(params, key, value)
+        end
+
+      :error ->
+        params
+    end
   end
 
   defp denormalize_relationships(
@@ -303,7 +314,10 @@ defmodule JSONAPIPlug.Normalizer do
 
               serialize when is_function(serialize, 2) ->
                 value = serialize.(data, conn)
+                Map.put(attributes, resource.recase_field(name, case), value)
 
+              {module, function, args} ->
+                value = apply(module, function, [data, conn] ++ args)
                 Map.put(attributes, resource.recase_field(name, case), value)
             end
           end)
