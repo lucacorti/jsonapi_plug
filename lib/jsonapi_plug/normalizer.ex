@@ -317,7 +317,7 @@ defmodule JSONAPIPlug.Normalizer do
                 Map.put(attributes, resource.recase_field(name, case), value)
 
               {module, function, args} ->
-                value = apply(module, function, [data, conn] ++ args)
+                value = apply(module, function, [data, conn | args])
                 Map.put(attributes, resource.recase_field(name, case), value)
             end
           end)
