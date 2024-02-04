@@ -13,7 +13,7 @@ defmodule JSONAPIPlugTest do
 
   @default_data %Post{
     id: 1,
-    text: "Hello",
+    text: "Hello, world!",
     body: "Hi",
     author: %User{username: "jason", id: 2},
     other_user: %User{username: "josh", id: 3}
@@ -59,8 +59,8 @@ defmodule JSONAPIPlugTest do
                  "type" => "post",
                  "attributes" => %{
                    "body" => "Hi",
-                   "text" => "Hello",
-                   "excerpt" => "He"
+                   "text" => "Hello, world!",
+                   "excerpt" => "Hello"
                  },
                  "relationships" =>
                    %{
@@ -70,6 +70,7 @@ defmodule JSONAPIPlugTest do
                          "type" => "user"
                        }
                      },
+                     "bestComments" => _best_comments,
                      "otherUser" => _other_user
                    } = relationships
                }
@@ -251,18 +252,9 @@ defmodule JSONAPIPlugTest do
   end
 
   test "handles deep nested includes properly when an include is unreachable" do
-    posts = [
-      %Post{
-        id: 1,
-        text: "Hello",
-        body: "Hi",
-        author: %User{username: "jason", id: 2}
-      }
-    ]
-
     conn =
       conn(:get, "/posts?include=author.company.industry")
-      |> Conn.assign(:data, posts)
+      |> Conn.assign(:data, [@default_data])
       |> MyPostPlug.call([])
 
     assert %{
@@ -280,11 +272,12 @@ defmodule JSONAPIPlugTest do
                  "type" => "post",
                  "attributes" => %{
                    "body" => "Hi",
-                   "excerpt" => "He",
+                   "excerpt" => "Hello",
                    "firstCharacter" => "H",
+                   "secondCharacter" => "e",
                    "fullDescription" => nil,
                    "insertedAt" => nil,
-                   "text" => "Hello"
+                   "text" => "Hello, world!"
                  }
                }
              ],
@@ -316,8 +309,8 @@ defmodule JSONAPIPlugTest do
                "data" => [
                  %{
                    "attributes" => %{
-                     "text" => "Hello",
-                     "excerpt" => "He",
+                     "text" => "Hello, world!",
+                     "excerpt" => "Hello",
                      "firstCharacter" => "H"
                    }
                  }
@@ -337,7 +330,7 @@ defmodule JSONAPIPlugTest do
                "data" => [
                  %{
                    "attributes" => %{
-                     "text" => "Hello",
+                     "text" => "Hello, world!",
                      "firstCharacter" => "H"
                    }
                  }
