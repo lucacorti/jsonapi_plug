@@ -140,7 +140,7 @@ defmodule JSONAPIPlug.Normalizer do
             normalizer.denormalize_attribute(params, key, value)
 
           {module, function, args} ->
-            value = apply(module, function, [value, conn] ++ args)
+            value = apply(module, function, [value, conn | args])
             normalizer.denormalize_attribute(params, key, value)
 
           deserialize when is_function(deserialize) ->
