@@ -472,7 +472,7 @@ defmodule JSONAPIPlug.Resource do
   @spec for_related_type(t(), ResourceObject.type()) :: t() | nil
   def for_related_type(resource, type) do
     Enum.find_value(resource.relationships(), fn {_relationship, options} ->
-      options[:resource].type() == type && options[:resource]
+      if options[:resource].type() == type, do: options[:resource]
     end)
   end
 
