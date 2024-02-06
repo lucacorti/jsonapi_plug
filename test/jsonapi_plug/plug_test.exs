@@ -186,7 +186,8 @@ defmodule JSONAPIPlug.PlugTest do
                      "id" => "1",
                      "type" => "user",
                      "attributes" => %{
-                       "firstName" => "Jerome"
+                       "firstName" => "Jerome",
+                       "lastName" => "finch"
                      },
                      "relationships" => %{
                        "company" => %{
@@ -229,7 +230,8 @@ defmodule JSONAPIPlug.PlugTest do
                      "id" => "1",
                      "type" => "user",
                      "attributes" => %{
-                       "firstName" => "Jerome"
+                       "firstName" => "Jerome",
+                       "lastName" => "Finch"
                      }
                    },
                    "included" => [

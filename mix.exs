@@ -40,6 +40,7 @@ defmodule JSONAPIPlug.Mixfile do
       {:credo, "~> 1.0", only: :dev, runtime: false},
       {:dialyxir, "~> 1.0", only: :dev, runtime: false},
       {:ex_doc, "~> 0.20", only: :dev, runtime: false},
+      {:ex_json_schema, "~> 0.10"},
       {:jason, "~> 1.0"},
       {:nimble_options, "~> 0.4 or ~> 0.5 or ~> 1.0"},
       {:plug, "~> 1.0"}

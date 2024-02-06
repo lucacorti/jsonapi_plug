@@ -90,6 +90,16 @@ defmodule JSONAPIPlug.Resource do
       type: {:or, [:boolean, {:fun, 2}, :mfa]},
       default: true
     ],
+    required: [
+      doc: "Attribute is required.",
+      type: :boolean,
+      default: true
+    ],
+    type: [
+      doc: "Attribute type.",
+      type: {:in, [:string, :number]},
+      default: :string
+    ],
     deserialize: [
       doc:
         "Can be either a boolean, a function reference or MFA returning the attribute value to be deserialized.",
@@ -306,27 +316,55 @@ defmodule JSONAPIPlug.Resource do
          Stream.concat(attributes, relationships)
          |> Enum.find(&(JSONAPIPlug.Resource.field_name(&1) in [:id, :type])) do
       name = JSONAPIPlug.Resource.field_name(field)
-      resource = Module.split(__CALLER__.module) |> List.last()
 
-      raise "Illegal field name '#{name}' for resource #{resource}. See https://jsonapi.org/format/#document-resource-object-fields for more information."
+      raise "Illegal field name '#{name}', see https://jsonapi.org/format/#document-resource-object-fields for more information."
     end
 
     recase_field =
       for field <-
             Stream.concat(attributes, relationships)
-            |> Stream.map(&JSONAPIPlug.Resource.field_name(&1))
+            |> Stream.map(&field_name(&1))
             |> MapSet.new(),
           casing <- [:camelize, :dasherize, :underscore] do
         result = JSONAPIPlug.recase(field, casing)
 
         quote do
-          def recase_field(unquote(field), unquote(casing)) do
-            unquote(result)
-          end
+          def recase_field(unquote(field), unquote(casing)), do: unquote(result)
+          def recase_field(unquote(to_string(field)), unquote(casing)), do: unquote(result)
         end
       end
 
+    schema =
+      %{
+        "type" => "object",
+        "required" =>
+          Enum.reduce(attributes, [], fn attribute, required ->
+            (field_option(attribute, :required) &&
+               [field_name(attribute) |> to_string() | required]) || required
+          end),
+        "properties" =>
+          Enum.reduce(attributes, %{}, fn attribute, properties ->
+            Map.merge(
+              properties,
+              %{
+                (field_name(attribute) |> to_string()) => %{
+                  "type" => (field_option(attribute, :type) || :string) |> to_string()
+                }
+              }
+            )
+          end)
+      }
+      |> ExJsonSchema.Schema.resolve()
+      |> Macro.escape()
+
     quote do
+      # require Exonerate
+
+      def validate(params),
+        do: ExJsonSchema.Validator.validate(unquote(schema), params)
+
+      # Exonerate.function_from_string(:def, :validate, unquote(Jason.encode!(schema)))
+
       @behaviour JSONAPIPlug.Resource
 
       @impl JSONAPIPlug.Resource
@@ -434,13 +472,7 @@ defmodule JSONAPIPlug.Resource do
   @spec for_related_type(t(), ResourceObject.type()) :: t() | nil
   def for_related_type(resource, type) do
     Enum.find_value(resource.relationships(), fn {_relationship, options} ->
-      relationship_resource = Keyword.fetch!(options, :resource)
-
-      if relationship_resource.type() == type do
-        relationship_resource
-      else
-        nil
-      end
+      options[:resource].type() == type && options[:resource]
     end)
   end
 
