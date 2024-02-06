@@ -358,13 +358,6 @@ defmodule JSONAPIPlug.Resource do
       |> Macro.escape()
 
     quote do
-      # require Exonerate
-
-      def validate(params),
-        do: ExJsonSchema.Validator.validate(unquote(schema), params)
-
-      # Exonerate.function_from_string(:def, :validate, unquote(Jason.encode!(schema)))
-
       @behaviour JSONAPIPlug.Resource
 
       @impl JSONAPIPlug.Resource
@@ -431,6 +424,10 @@ defmodule JSONAPIPlug.Resource do
           raise "invalid action #{action}, use one of create.json, index.json, show.json, update.json"
         end
       end
+
+      @doc false
+      def validate(params),
+        do: ExJsonSchema.Validator.validate(unquote(schema), params)
     end
   end
 
