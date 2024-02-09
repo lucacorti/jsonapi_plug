@@ -168,18 +168,16 @@ defmodule JSONAPIPlug.Plug do
     send_resp(conn, 500, "Something went wrong")
   end
 
-  defp send_error(conn, code, error) do
+  defp send_error(conn, code, %Document.ErrorObject{} = error) do
+    status_code = Conn.Status.code(code)
+
     conn
     |> put_resp_content_type(JSONAPIPlug.mime_type())
     |> send_resp(
       code,
       Jason.encode!(%Document{
         errors: [
-          %Document.ErrorObject{
-            error
-            | status: to_string(Conn.Status.code(code)),
-              title: Conn.Status.reason_phrase(Conn.Status.code(code))
-          }
+          %{error | status: to_string(status_code), title: Conn.Status.reason_phrase(status_code)}
         ]
       })
     )
