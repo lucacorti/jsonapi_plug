@@ -102,9 +102,7 @@ defmodule JSONAPIPlug.Plug do
   require Logger
 
   alias JSONAPIPlug.{Document, Exceptions}
-
   alias JSONAPIPlug.Plug.{ContentTypeNegotiation, Params, QueryParam, ResponseContentType}
-
   alias Plug.Conn
 
   plug :config
@@ -136,31 +134,40 @@ defmodule JSONAPIPlug.Plug do
   @impl Plug.ErrorHandler
   def handle_errors(
         conn,
+        %{kind: :error, reason: %Exceptions.InvalidAttributes{} = exception, stack: _stack}
+      ) do
+    send_errors(conn, :not_acceptable, exception.errors)
+  end
+
+  def handle_errors(
+        conn,
         %{kind: :error, reason: %Exceptions.InvalidDocument{} = exception, stack: _stack}
       ) do
-    send_error(conn, :bad_request, %Document.ErrorObject{
-      detail: "#{exception.message}. See #{exception.reference} for more information."
-    })
+    send_errors(conn, :bad_request, exception.errors)
   end
 
   def handle_errors(
         conn,
         %{kind: :error, reason: %Exceptions.InvalidHeader{} = exception, stack: _stack}
       ) do
-    send_error(conn, exception.status, %Document.ErrorObject{
-      detail: "#{exception.message}. See #{exception.reference} for more information.",
-      source: %{pointer: "/header/#{exception.header}"}
-    })
+    send_errors(conn, exception.status, [
+      %Document.ErrorObject{
+        detail: "#{exception.message}. See #{exception.reference} for more information.",
+        source: %{pointer: "/header/#{exception.header}"}
+      }
+    ])
   end
 
   def handle_errors(
         conn,
         %{kind: :error, reason: %Exceptions.InvalidQuery{} = exception, stack: _stack}
       ) do
-    send_error(conn, :bad_request, %Document.ErrorObject{
-      detail: exception.message,
-      source: %{pointer: "/query/#{exception.param}"}
-    })
+    send_errors(conn, :bad_request, [
+      %Document.ErrorObject{
+        detail: exception.message,
+        source: %{pointer: "/query/#{exception.param}"}
+      }
+    ])
   end
 
   def handle_errors(conn, error) do
@@ -168,19 +175,10 @@ defmodule JSONAPIPlug.Plug do
     send_resp(conn, 500, "Something went wrong")
   end
 
-  defp send_error(conn, code, %Document.ErrorObject{} = error) do
-    status_code = Conn.Status.code(code)
-
+  defp send_errors(conn, code, errors) do
     conn
     |> put_resp_content_type(JSONAPIPlug.mime_type())
-    |> send_resp(
-      code,
-      Jason.encode!(%Document{
-        errors: [
-          %{error | status: to_string(status_code), title: Conn.Status.reason_phrase(status_code)}
-        ]
-      })
-    )
+    |> send_resp(code, Jason.encode!(%Document{errors: errors}))
     |> halt()
   end
 end

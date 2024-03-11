@@ -5,12 +5,9 @@ defmodule JSONAPIPlug.Document.ResourceObject do
   https://jsonapi.org/format/#resource_object-resource-objects
   """
 
-  alias JSONAPIPlug.{
-    Document,
-    Document.LinkObject,
-    Document.RelationshipObject,
-    Exceptions.InvalidDocument
-  }
+  alias JSONAPIPlug.Document
+  alias JSONAPIPlug.Document.{ErrorObject, LinkObject, RelationshipObject}
+  alias JSONAPIPlug.Exceptions.InvalidDocument
 
   @type id :: String.t()
   @type type :: String.t()
@@ -63,19 +60,34 @@ defmodule JSONAPIPlug.Document.ResourceObject do
   defp deserialize_type(_resource_object, %{"type" => type}) do
     raise InvalidDocument,
       message: "Resource object type (#{type}) is invalid",
-      reference: "https://jsonapi.org/format/#document-resource-objects"
+      errors: [
+        %ErrorObject{
+          title: "Resource object type (#{type}) is invalid",
+          detail: "https://jsonapi.org/format/#document-resource-objects"
+        }
+      ]
   end
 
   defp deserialize_attributes(_resource_object, %{"attributes" => %{"id" => _id}}) do
     raise InvalidDocument,
       message: "Resource object cannot have an attribute named 'id'",
-      reference: "https://jsonapi.org/format/#document-resource-objects"
+      errors: [
+        %ErrorObject{
+          title: "Resource object cannot have an attribute named 'id'",
+          detail: "https://jsonapi.org/format/#document-resource-objects"
+        }
+      ]
   end
 
   defp deserialize_attributes(_resource_object, %{"attributes" => %{"type" => _type}}) do
     raise InvalidDocument,
       message: "Resource object cannot have an attribute named 'type'",
-      reference: "https://jsonapi.org/format/#document-resource-objects"
+      errors: [
+        %ErrorObject{
+          title: "Resource object cannot have an attribute named 'type'",
+          detail: "https://jsonapi.org/format/#document-resource-objects"
+        }
+      ]
   end
 
   defp deserialize_attributes(resource_object, %{"attributes" => attributes})
@@ -98,13 +110,23 @@ defmodule JSONAPIPlug.Document.ResourceObject do
   defp deserialize_relationships(_resource_object, %{"relationships" => %{"id" => _id}}) do
     raise InvalidDocument,
       message: "Resource object cannot have a relationship named 'id'",
-      reference: "https://jsonapi.org/format/#document-resource-objects"
+      errors: [
+        %ErrorObject{
+          title: "Resource object cannot have a relationship named 'id'",
+          detail: "https://jsonapi.org/format/#document-resource-objects"
+        }
+      ]
   end
 
   defp deserialize_relationships(_resource_object, %{"relationships" => %{"type" => _type}}) do
     raise InvalidDocument,
       message: "Resource object cannot have a relationship named 'type'",
-      reference: "https://jsonapi.org/format/#document-resource-objects"
+      errors: [
+        %ErrorObject{
+          title: "Resource object cannot have a relationship named 'type'",
+          detail: "https://jsonapi.org/format/#document-resource-objects"
+        }
+      ]
   end
 
   defp deserialize_relationships(
@@ -130,7 +152,12 @@ defmodule JSONAPIPlug.Document.ResourceObject do
        }) do
     raise InvalidDocument,
       message: "Resource object 'relationships' attribute must be an object",
-      reference: "https://jsonapi.org/format/#document-resource-object-relationships"
+      errors: [
+        %ErrorObject{
+          title: "Resource object 'relationships' attribute must be an object",
+          detail: "https://jsonapi.org/format/#document-resource-object-relationships"
+        }
+      ]
   end
 
   defp deserialize_relationships(relationships, _data), do: relationships
@@ -141,7 +168,12 @@ defmodule JSONAPIPlug.Document.ResourceObject do
   defp deserialize_meta(_resource_object, %{"meta" => _meta}) do
     raise InvalidDocument,
       message: "Resource object 'meta' must be an object",
-      reference: "https://jsonapi.org/format/#document-resource-objects"
+      errors: [
+        %ErrorObject{
+          title: "Resource object 'meta' must be an object",
+          detail: "https://jsonapi.org/format/#document-resource-objects"
+        }
+      ]
   end
 
   defp deserialize_meta(resource_object, _data), do: resource_object
