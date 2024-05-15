@@ -172,10 +172,10 @@ defmodule JSONAPIPlug.Normalizer do
         {_many, nil} ->
           params
 
-        {true, related_relationships} when is_list(related_relationships) ->
+        {true, related_relationships} when is_list(related_relationships.data) ->
           value =
             Enum.map(
-              related_relationships,
+              related_relationships.data,
               &find_related_relationship(document, &1, related_resource, conn)
             )
 
@@ -198,7 +198,7 @@ defmodule JSONAPIPlug.Normalizer do
           value =
             find_related_relationship(
               document,
-              related_relationship,
+              related_relationship.data,
               related_resource,
               conn
             )
@@ -210,12 +210,10 @@ defmodule JSONAPIPlug.Normalizer do
 
   defp find_related_relationship(
          %Document{} = document,
-         %RelationshipObject{
-           data: %ResourceIdentifierObject{
-             id: id,
-             type: type
-           }
-         },
+         %ResourceIdentifierObject{
+            id: id,
+            type: type
+          },
          resource,
          conn
        ) do
