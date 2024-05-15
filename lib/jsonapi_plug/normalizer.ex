@@ -211,9 +211,9 @@ defmodule JSONAPIPlug.Normalizer do
   defp find_related_relationship(
          %Document{} = document,
          %ResourceIdentifierObject{
-            id: id,
-            type: type
-          },
+           id: id,
+           type: type
+         },
          resource,
          conn
        ) do
