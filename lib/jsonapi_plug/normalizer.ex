@@ -172,7 +172,7 @@ defmodule JSONAPIPlug.Normalizer do
         {_many, nil} ->
           params
 
-        {true, related_relationships} when is_list(related_relationships.data) ->
+        {true, %RelationshipObject{data: data}} when is_list(data) ->
           value =
             Enum.map(
               related_relationships.data,
