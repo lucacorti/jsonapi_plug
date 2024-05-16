@@ -23,6 +23,18 @@ defmodule JSONAPIPlug.Normalizer.Ecto do
   @impl Normalizer
   def denormalize_relationship(
         params,
+        %RelationshipObject{data: data},
+        relationship,
+        value
+      )
+      when is_list(data) do
+    params
+    |> Map.put(to_string(relationship), value)
+    |> Map.put("#{relationship}_id", Enum.map(data, &Map.get(&1, "id")))
+  end
+
+  def denormalize_relationship(
+        params,
         %RelationshipObject{data: %ResourceIdentifierObject{} = data},
         relationship,
         value
