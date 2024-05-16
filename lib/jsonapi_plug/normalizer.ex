@@ -175,13 +175,13 @@ defmodule JSONAPIPlug.Normalizer do
         {true, %RelationshipObject{data: data}} when is_list(data) ->
           value =
             Enum.map(
-             data,
+              data,
               &find_related_relationship(document, &1, related_resource, conn)
             )
 
           normalizer.denormalize_relationship(params, related_relationships, key, value)
 
-        {_many, related_relationships} when is_list(related_relationships) ->
+        {_many, %RelationshipObject{data: data}} when is_list(data) ->
           raise InvalidDocument,
             message: "List of resources for one-to-one relationship during normalization",
             reference: nil
