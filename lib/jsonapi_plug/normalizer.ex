@@ -174,10 +174,17 @@ defmodule JSONAPIPlug.Normalizer do
 
         {true, %RelationshipObject{data: data}} when is_list(data) ->
           value =
-            Enum.map(
+            Enum.reduce(
               data,
-              &find_related_relationship(document, &1, related_resource, conn)
+              [],
+              fn item, acc ->
+                case find_related_relationship(document, item, related_resource, conn) do
+                  nil -> acc
+                  item -> [item | acc]
+                end
+              end
             )
+            |> Enum.reverse()
 
           normalizer.denormalize_relationship(params, related_relationships, key, value)
 
