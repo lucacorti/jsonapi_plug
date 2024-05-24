@@ -30,7 +30,6 @@ defmodule JSONAPIPlug.Normalizer.Ecto do
       when is_list(data) do
     params
     |> Map.put(to_string(relationship), value)
-    |> Map.put("#{relationship}_id", Enum.map(data, &Map.get(&1, :id)))
   end
 
   def denormalize_relationship(
