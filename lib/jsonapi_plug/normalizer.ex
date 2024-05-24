@@ -174,7 +174,12 @@ defmodule JSONAPIPlug.Normalizer do
           params
 
         {true, %RelationshipObject{data: data} = relationship_object} when is_list(data) ->
-          value = Enum.map(data, &denormalize_relationship(document, &1, related_resource, conn))
+          value =
+            Enum.map(
+              data,
+              &denormalize_relationship(document, &1, related_resource, normalizer, conn)
+            )
+
           normalizer.denormalize_relationship(params, relationship_object, key, value)
 
         {true, _related_data} ->
@@ -192,7 +197,7 @@ defmodule JSONAPIPlug.Normalizer do
 
         {false,
          %RelationshipObject{data: %ResourceIdentifierObject{} = data} = relationship_object} ->
-          value = denormalize_relationship(document, data, related_resource, conn)
+          value = denormalize_relationship(document, data, related_resource, normalizer, conn)
           normalizer.denormalize_relationship(params, relationship_object, key, value)
       end
     end)
@@ -202,15 +207,20 @@ defmodule JSONAPIPlug.Normalizer do
          document,
          %ResourceIdentifierObject{id: id, type: type},
          related_resource,
+         normalizer,
          conn
        ) do
-    Enum.find_value(document.included || [], %{"id" => id}, fn
-      %ResourceObject{id: ^id, type: ^type} = resource_object ->
-        denormalize_resource(document, resource_object, related_resource, conn)
+    Enum.find_value(
+      document.included || [],
+      normalizer.denormalize_attribute(%{}, related_resource.id_attribute(), id),
+      fn
+        %ResourceObject{id: ^id, type: ^type} = resource_object ->
+          denormalize_resource(document, resource_object, related_resource, conn)
 
-      %ResourceObject{} ->
-        nil
-    end)
+        %ResourceObject{} ->
+          nil
+      end
+    )
   end
 
   @doc "Transforms user data into a JSON:API Document"
