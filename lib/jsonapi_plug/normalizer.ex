@@ -173,7 +173,7 @@ defmodule JSONAPIPlug.Normalizer do
         {_many?, nil} ->
           params
 
-        {true, %RelationshipObject{data: data}} = relationship_object when is_list(data) ->
+        {true, %RelationshipObject{data: data} = relationship_object} when is_list(data) ->
           value = Enum.map(data, &denormalize_relationship(document, &1, related_resource, conn))
           normalizer.denormalize_relationship(params, relationship_object, key, value)
 
