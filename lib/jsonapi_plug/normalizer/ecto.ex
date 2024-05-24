@@ -8,7 +8,7 @@ defmodule JSONAPIPlug.Normalizer.Ecto do
   `Ecto.Repo` for database operations.
   """
 
-  alias JSONAPIPlug.Document.{RelationshipObject, ResourceIdentifierObject}
+  alias JSONAPIPlug.Document.RelationshipObject
   alias JSONAPIPlug.Normalizer
 
   @behaviour Normalizer
@@ -23,17 +23,24 @@ defmodule JSONAPIPlug.Normalizer.Ecto do
   @impl Normalizer
   def denormalize_relationship(
         params,
-        %RelationshipObject{data: %ResourceIdentifierObject{} = data},
+        %RelationshipObject{data: data},
+        relationship,
+        value
+      )
+      when is_list(data) do
+    Map.put(params, to_string(relationship), value)
+  end
+
+  def denormalize_relationship(
+        params,
+        %RelationshipObject{data: data},
         relationship,
         value
       ) do
     params
     |> Map.put(to_string(relationship), value)
-    |> Map.put("#{relationship}_id", data.id)
+    |> Map.put("#{relationship}_id", if(data, do: data.id, else: nil))
   end
-
-  def denormalize_relationship(params, _relationship_objects, relationship, value),
-    do: Map.put(params, to_string(relationship), value)
 
   @impl Normalizer
   def normalize_attribute(params, attribute), do: Map.get(params, attribute)

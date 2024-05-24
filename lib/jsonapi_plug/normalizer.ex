@@ -57,7 +57,7 @@ defmodule JSONAPIPlug.Normalizer do
               params() | no_return()
   @callback denormalize_relationship(
               params(),
-              RelationshipObject.t() | [RelationshipObject.t()],
+              RelationshipObject.t(),
               Resource.field_name(),
               term()
             ) ::
@@ -155,7 +155,7 @@ defmodule JSONAPIPlug.Normalizer do
 
   defp denormalize_relationships(
          params,
-         %ResourceObject{relationships: relationships},
+         %ResourceObject{} = resource_object,
          %Document{} = document,
          resource,
          conn,
@@ -165,67 +165,62 @@ defmodule JSONAPIPlug.Normalizer do
       name = Resource.field_name(relationship)
       key = to_string(Resource.field_option(relationship, :name) || name)
       related_resource = Resource.field_option(relationship, :resource)
-      related_many = Resource.field_option(relationship, :many)
-      related_relationships = Map.get(relationships, to_string(name))
 
-      case {related_many, related_relationships} do
-        {_many, nil} ->
+      case {
+        Resource.field_option(relationship, :many),
+        resource_object.relationships[to_string(name)]
+      } do
+        {_many?, nil} ->
           params
 
-        {true, related_relationships} when is_list(related_relationships) ->
+        {true, %RelationshipObject{data: data} = relationship_object} when is_list(data) ->
           value =
             Enum.map(
-              related_relationships,
-              &find_related_relationship(document, &1, related_resource, conn)
+              data,
+              &denormalize_relationship(document, &1, related_resource, normalizer, conn)
             )
 
-          normalizer.denormalize_relationship(params, related_relationships, key, value)
-
-        {_many, related_relationships} when is_list(related_relationships) ->
-          raise InvalidDocument,
-            message: "List of resources for one-to-one relationship during normalization",
-            reference: nil
+          normalizer.denormalize_relationship(params, relationship_object, key, value)
 
         {true, _related_data} ->
           raise InvalidDocument,
             message: "Single resource for many relationship during normalization",
             reference: nil
 
-        {_many, %RelationshipObject{data: nil}} ->
-          Map.put(params, key <> "_id", nil)
+        {false, %RelationshipObject{data: data}} when is_list(data) ->
+          raise InvalidDocument,
+            message: "List of resources for one-to-one relationship during normalization",
+            reference: nil
 
-        {_many, related_relationship} ->
-          value =
-            find_related_relationship(
-              document,
-              related_relationship,
-              related_resource,
-              conn
-            )
+        {false, %RelationshipObject{data: nil} = relationship_object} ->
+          normalizer.denormalize_relationship(params, relationship_object, key, nil)
 
-          normalizer.denormalize_relationship(params, related_relationship, key, value)
+        {false,
+         %RelationshipObject{data: %ResourceIdentifierObject{} = data} = relationship_object} ->
+          value = denormalize_relationship(document, data, related_resource, normalizer, conn)
+          normalizer.denormalize_relationship(params, relationship_object, key, value)
       end
     end)
   end
 
-  defp find_related_relationship(
-         %Document{} = document,
-         %RelationshipObject{
-           data: %ResourceIdentifierObject{
-             id: id,
-             type: type
-           }
-         },
-         resource,
+  defp denormalize_relationship(
+         document,
+         %ResourceIdentifierObject{id: id, type: type},
+         related_resource,
+         normalizer,
          conn
        ) do
-    Enum.find_value(document.included || [], fn
-      %ResourceObject{id: ^id, type: ^type} = resource_object ->
-        denormalize_resource(document, resource_object, resource, conn)
+    Enum.find_value(
+      document.included || [],
+      normalizer.denormalize_attribute(%{}, related_resource.id_attribute(), id),
+      fn
+        %ResourceObject{id: ^id, type: ^type} = resource_object ->
+          denormalize_resource(document, resource_object, related_resource, conn)
 
-      %ResourceObject{} ->
-        nil
-    end)
+        %ResourceObject{} ->
+          nil
+      end
+    )
   end
 
   @doc "Transforms user data into a JSON:API Document"
