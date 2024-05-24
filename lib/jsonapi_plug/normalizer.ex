@@ -212,25 +212,25 @@ defmodule JSONAPIPlug.Normalizer do
 
   defp find_related_relationships(
          %Document{} = document,
-         data,
+         list,
          resource,
          conn
        ) do
     Enum.reduce(
-      data,
+      list,
       [],
-      fn %ResourceIdentifierObject{} = item, acc ->
-        case find_related_relationship(document, item, resource, conn) do
+      fn %ResourceIdentifierObject{id: id} = data, acc ->
+        case find_related_relationship(document, data, resource, conn) do
           nil ->
             [
               %{
-                id: item.id
+                id: id
               },
               acc
             ]
 
           item ->
-            [item | acc]
+            [Map.put(item, "id", id) | acc]
         end
       end
     )
