@@ -28,8 +28,7 @@ defmodule JSONAPIPlug.Normalizer.Ecto do
         value
       )
       when is_list(data) do
-    params
-    |> Map.put(to_string(relationship), value)
+    Map.put(params, to_string(relationship), value)
   end
 
   def denormalize_relationship(
