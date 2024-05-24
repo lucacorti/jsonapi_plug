@@ -187,6 +187,9 @@ defmodule JSONAPIPlug.Normalizer do
             message: "List of resources for one-to-one relationship during normalization",
             reference: nil
 
+        {false, %RelationshipObject{data: nil} = relationship_object} ->
+          normalizer.denormalize_relationship(params, relationship_object, key, nil)
+
         {false,
          %RelationshipObject{data: %ResourceIdentifierObject{} = data} = relationship_object} ->
           value = denormalize_relationship(document, data, related_resource, conn)
