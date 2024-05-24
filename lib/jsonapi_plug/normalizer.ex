@@ -225,8 +225,8 @@ defmodule JSONAPIPlug.Normalizer do
             [
               %{
                 id: id
-              },
-              acc
+              }
+              | acc
             ]
 
           item ->
