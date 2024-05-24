@@ -189,14 +189,7 @@ defmodule JSONAPIPlug.Normalizer do
 
         {false,
          %RelationshipObject{data: %ResourceIdentifierObject{} = data} = relationship_object} ->
-          value =
-            denormalize_relationship(
-              document,
-              data,
-              related_resource,
-              conn
-            )
-
+          value = denormalize_relationship(document, data, related_resource, conn)
           normalizer.denormalize_relationship(params, relationship_object, key, value)
       end
     end)
