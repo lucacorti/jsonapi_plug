@@ -220,14 +220,14 @@ defmodule JSONAPIPlug.Normalizer do
             ]
 
         {false, %RelationshipObject{data: data}} when is_list(data) ->
-        raise InvalidDocument,
-          message: "Invalid value for '#{resource.type()}' relationship '#{name}'",
-          errors: [
-            %ErrorObject{
-              title: "Invalid value for '#{resource.type()}' relationship '#{name}'",
-              detail: "Relationship '#{name}' is one-to-one but a list was received."
-            }
-          ]
+          raise InvalidDocument,
+            message: "Invalid value for '#{resource.type()}' relationship '#{name}'",
+            errors: [
+              %ErrorObject{
+                title: "Invalid value for '#{resource.type()}' relationship '#{name}'",
+                detail: "Relationship '#{name}' is one-to-one but a list was received."
+              }
+            ]
 
         {false, %RelationshipObject{data: nil} = relationship_object} ->
           normalizer.denormalize_relationship(params, relationship_object, key, nil)
