@@ -431,10 +431,6 @@ defmodule JSONAPIPlug.Resource do
           raise "invalid action #{action}, use one of create.json, index.json, show.json, update.json"
         end
       end
-
-      @doc false
-      def validate(params),
-        do: ExJsonSchema.Validator.validate(unquote(schema), params)
     end
   end
 
