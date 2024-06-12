@@ -37,7 +37,7 @@ defmodule JSONAPIPlug.Mixfile do
 
   defp deps do
     [
-      {:credo, "~> 1.7.7-rc.0", only: :dev, runtime: false},
+      {:credo, "~> 1.0", only: :dev, runtime: false},
       {:dialyxir, "~> 1.0", only: :dev, runtime: false},
       {:ex_doc, "~> 0.20", only: :dev, runtime: false},
       {:jason, "~> 1.0"},
