@@ -230,7 +230,7 @@ defmodule JSONAPIPlug.Normalizer do
           Resource.t(),
           Conn.t(),
           Resource.data() | nil,
-          Resource.meta() | nil,
+          Document.meta() | nil,
           Resource.options()
         ) ::
           Document.t() | no_return()
@@ -357,7 +357,7 @@ defmodule JSONAPIPlug.Normalizer do
        ) do
     if API.get_config(jsonapi_plug.api, [:links]) do
       %{
-        self: Resource.url_for_relationship(resource, data, conn, resource.type())
+        self: JSONAPIPlug.url_for_relationship(resource, data, conn, resource.type())
       }
     end
   end
@@ -368,7 +368,7 @@ defmodule JSONAPIPlug.Normalizer do
          conn
        ) do
     %{
-      self: Resource.url_for_relationship(resource, data, conn, resource.type())
+      self: JSONAPIPlug.url_for_relationship(resource, data, conn, resource.type())
     }
   end
 
@@ -399,7 +399,7 @@ defmodule JSONAPIPlug.Normalizer do
   defp normalize_links(resource, conn, data, _options) do
     data
     |> resource.links(conn)
-    |> Map.put(:self, Resource.url_for(resource, data, conn))
+    |> Map.put(:self, JSONAPIPlug.url_for(resource, data, conn))
   end
 
   defp pagination_links(

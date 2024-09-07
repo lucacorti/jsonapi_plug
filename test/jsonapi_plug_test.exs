@@ -6,7 +6,6 @@ defmodule JSONAPIPlugTest do
 
   doctest JSONAPIPlug
 
-  alias JSONAPIPlug.Resource
   alias JSONAPIPlug.TestSupport.Resources.PostResource
   alias JSONAPIPlug.TestSupport.Schemas.{Company, Industry, Post, Tag, User}
   alias Plug.{Conn, Parsers}
@@ -38,7 +37,7 @@ defmodule JSONAPIPlugTest do
     defp passthrough(conn, _) do
       resp =
         PostResource
-        |> Resource.render(conn, conn.assigns[:data], conn.assigns[:meta])
+        |> JSONAPIPlug.render(conn, conn.assigns[:data], conn.assigns[:meta])
         |> Jason.encode!()
 
       send_resp(conn, 200, resp)

@@ -66,7 +66,7 @@ defmodule JSONAPIPlug.QueryParser.Ecto.Fields do
     if type == resource.type() do
       Enum.map(resource.attributes(), &Resource.field_name/1)
     else
-      case Resource.for_related_type(resource, type) do
+      case JSONAPIPlug.for_related_type(resource, type) do
         nil -> raise InvalidQuery, type: resource.type(), param: "fields", value: type
         related_resource -> Enum.map(related_resource.attributes(), &Resource.field_name/1)
       end

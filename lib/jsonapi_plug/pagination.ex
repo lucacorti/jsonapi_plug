@@ -78,11 +78,11 @@ defmodule JSONAPIPlug.Pagination do
   end
 
   defp prepare_url(resource, data, conn, "" = _query),
-    do: Resource.url_for(resource, data, conn)
+    do: JSONAPIPlug.url_for(resource, data, conn)
 
   defp prepare_url(resource, data, conn, query) do
     resource
-    |> Resource.url_for(data, conn)
+    |> JSONAPIPlug.url_for(data, conn)
     |> URI.parse()
     |> struct(query: query)
     |> URI.to_string()
