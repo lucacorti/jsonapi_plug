@@ -46,7 +46,7 @@ In order to parse `JSON:API` requests from clients you need to add the `JSONAPIP
 ```elixir
 defmodule MyApp.PostsController do
   ...
-  plug JSONAPIPlug.Plug, api: MyApp.API, resource: MyApp.PostResource
+  plug JSONAPIPlug.Plug, api: MyApp.API, path: "posts", resource: MyApp.Post
   ...
 end
 ```
@@ -55,7 +55,7 @@ This will take care of ensuring `JSON:API` specification compliance and will ret
 
 The `:api` option expects a module using `JSONAPI.API` for configuration.
 
-The `:resource` option expects a module using `JSONAPIPlug.Resource` to convert to/from `JSON:API` format.
+The `:resource` option expects a module implementing `JSONAPIPlug.Resource` to convert to/from `JSON:API` format.
 
 When requests are processed, the `:jsonapi_plug` connection private field is populated with the parsed request.
 
@@ -68,60 +68,60 @@ To start serving responses, you need to have some data to return to clients:
 ```elixir
 defmodule MyApp.Post do
   @type t :: %__MODULE__{id: pos_integer(), body: String.t(), title: String.t()}
-
-  @enforce_keys [:id, :body, :title]
-  defstruct [:id, :body, :title]
-end
-```
-
-and define a resource module to render your resource:
-
-```elixir
-defmodule MyApp.PostResource do
-  use JSONAPIPlug.Resource,
+  @derive {
+    JSONAPIPlug.Resource,
     type: "post",
     attributes: [
       title: nil,
       text: nil,
       excerpt: [serialize: fn %Post{} = post, _conn -> String.slice(post.body, 0..5) end]
     ]
+  }
+  defstruct [:id, :body, :title]
 
-  @impl JSONAPIPlug.Resource
-  def meta(%Post{} = post, _conn), do: %{slug: to_slug(post.title)}
+  defimpl JSONAPIPlug.Resource.Meta do
+    def meta(%Post{} = post, _conn), do: %{slug: to_slug(post.title)}
+  end
 end
 ```
 
-To use the resource module in Phoenix, just call render and pass the data from your controller:
+To serve JSON:API resources in Phoenix, just call render and pass the data from your controller:
 
 ```elixir
   defmodule MyAppWeb.PostsController do
     ...
-    plug JSONAPIPlug.Plug, api: MyApp.API, resource: MyApp.PostResource
+    plug JSONAPIPlug.Plug, api: MyApp.API, resource: MyApp.Post
     ...
 
     def create(%Conn{private: %{jsonapi_plug: jsonapi_plug}} = conn, params) do
       post = ...create a post using jsonapi_plug parsed parameters...
-      render(conn, "create.json", %{data: post})
+      JSONAPIPlug.render(conn, post)
     end
 
     def index(%Conn{private: %{jsonapi_plug: jsonapi_plug}} = conn, _params) do
       posts = ...load data using jsonapi_plug parsed parameters...
-      render(conn, "index.json", %{data: posts})
+      JSONAPIPlug.render(conn, posts)
     end
 
-    def show(%Conn{private: %{jsonapi_plug: jsonapi_plug} = conn, _params) do
+    def show(%Conn{private: %{jsonapi_plug: jsonapi_plug}} = conn, _params) do
       post = ...load data using jsonapi_plug parsed parameters...
-      render(conn, "show.json", %{data: post})
+      JSONAPIPlug.render(conn, post)
     end
 
     def udate(%Conn{private: %{jsonapi_plug: jsonapi_plug}} = conn, params) do
       post = ...update a post using jsonapi_plug parsed parameters...
-     render(conn, "update.json", %{data: post})
+      JSONAPIPlug.render(conn, post)
     end
   end
 ```
 
-If you have a `Plug` application, you can call `JSONAPIPlug.Resource.render/5` to generate a `JSONAPI.Document` with your data for the client. The structure is serializable to JSON with `Jason`.
+If you have a `Plug` application, you can call `JSONAPIPlug.render/4` to generate a `JSONAPI.Document` with your data for the client.
+Render returns a `JSONAPI.Document`, that is serializable to JSON via `Jason`.
+
+```elixir
+JSONAPIPlug.render(conn, data)
+|> Jason.encode!()
+```
 
 See the `JSONAPIPlug.Plug` and `JSONAPIPlug.Resource` modules documentation for more information.
 

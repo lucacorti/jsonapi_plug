@@ -1,4 +1,4 @@
-defmodule JSONAPIPlug.TestSupport.APIs do
+defmodule JSONAPIPlug.TestSupport.API do
   @moduledoc false
 
   defmodule DasherizingAPI do

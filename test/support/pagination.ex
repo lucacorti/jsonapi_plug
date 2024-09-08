@@ -6,14 +6,12 @@ defmodule JSONAPIPlug.TestSupport.Pagination do
     Page based pagination strategy
     """
 
-    alias JSONAPIPlug.Pagination
+    @behaviour JSONAPIPlug.Pagination
 
-    @behaviour Pagination
+    @impl JSONAPIPlug.Pagination
+    def paginate(_resources, _conn, nil = _page, _options), do: %{}
 
-    @impl Pagination
-    def paginate(_resource, _resources, _conn, nil = _page, _options), do: %{}
-
-    def paginate(resource, resources, conn, page, options) do
+    def paginate(resources, conn, page, options) do
       number =
         page
         |> Map.get("page", "0")
@@ -27,26 +25,28 @@ defmodule JSONAPIPlug.TestSupport.Pagination do
       total_pages = Keyword.get(options, :total_pages, 0)
 
       %{
-        first: Pagination.url_for(resource, resources, conn, Map.put(page, "page", 1)),
-        last: Pagination.url_for(resource, resources, conn, Map.put(page, "page", total_pages)),
-        next: next_link(resources, resource, conn, number, size, total_pages),
-        prev: previous_link(resources, resource, conn, number, size),
-        self: Pagination.url_for(resource, resources, conn, %{"size" => size, "page" => number})
+        first: JSONAPIPlug.Pagination.url_for(resources, conn, Map.put(page, "page", 1)),
+        last: JSONAPIPlug.Pagination.url_for(resources, conn, Map.put(page, "page", total_pages)),
+        next: next_link(resources, conn, number, size, total_pages),
+        prev: previous_link(resources, conn, number, size),
+        self: JSONAPIPlug.Pagination.url_for(resources, conn, %{"size" => size, "page" => number})
       }
     end
 
-    defp next_link(resources, resource, conn, page, size, total_pages)
+    defp next_link(resources, conn, page, size, total_pages)
          when page < total_pages,
-         do: Pagination.url_for(resource, resources, conn, %{"size" => size, "page" => page + 1})
+         do:
+           JSONAPIPlug.Pagination.url_for(resources, conn, %{"size" => size, "page" => page + 1})
 
-    defp next_link(_resources, _resource, _conn, _page, _size, _total_pages),
+    defp next_link(_resources, _conn, _page, _size, _total_pages),
       do: nil
 
-    defp previous_link(resources, resource, conn, page, size)
+    defp previous_link(resources, conn, page, size)
          when page > 1,
-         do: Pagination.url_for(resource, resources, conn, %{"size" => size, "page" => page - 1})
+         do:
+           JSONAPIPlug.Pagination.url_for(resources, conn, %{"size" => size, "page" => page - 1})
 
-    defp previous_link(_resources, _resource, _conn, _page, _size),
+    defp previous_link(_resources, _conn, _page, _size),
       do: nil
   end
 end

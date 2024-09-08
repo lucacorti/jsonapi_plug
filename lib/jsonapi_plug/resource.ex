@@ -1,41 +1,41 @@
-defmodule JSONAPIPlug.Resource do
+defprotocol JSONAPIPlug.Resource do
   @moduledoc """
-  A Resource is simply a module that describes how to render your data as JSON:API resources.
+  You can use any struct as a resource by deriving or directly implementing the `JSONAPIPlug.Resource` protocol:
 
-  You can implement a resource by "use-ing" the `JSONAPIPlug.Resource` module, which is recommeded, or
-  by adopting the `JSONAPIPlug.Resource` behaviour and implementing all of the callback functions:
+  ```elixir
+  defmodule MyApp.User do
+    @derive {
+      JSONAPIPlug.Resource,
+      type: "user",
+      attributes: [:name, :surname, :username]
+    }
+    defstruct id: nil, name: nil, surname: nil, username: nil
+  end
+  ```
+  See `t:options/0` for all available options you can pass to `@derive JSONAPIPlug.Resource`.
 
-      defmodule MyApp.UsersResource do
-        use JSONAPIPlug.Resource,
-          type: "user",
-          attributes: [:name, :surname, :username]
-      end
-
-  See `t:options/0` for all available options you can pass to `use JSONAPIPlug.Resource`.
-
-  You can now call `UsersResource.render("show.json", %{data: user})` or `Resource.render(UsersResource, conn, user)`
-  to render a valid JSON:API document from your data. If you use phoenix, you can use:
-
-      render(conn, "show.json", %{data: user})
-
-  in your controller functions to render the document in the same way.
+  You can now call `JSONAPIPlug.render(conn, user)` to render a valid JSON:API document from
+  your data. If you use `phoenix`, you can call this in your controller to render the response.
 
   ## Attributes
 
   By default, the resulting JSON document consists of resources taken from your data.
-  Only resource  attributes defined on the resource will be (de)serialized. You can customize
+  Only resource attributes defined on the resource will be (de)serialized. You can customize
   how attributes are handled by passing a keyword list of options:
 
-      defmodule MyApp.UsersResource do
-        use JSONAPIPlug.Resource,
-          type: "user",
-          attributes: [
-            username: nil,
-            fullname: [deserialize: false, serialize: &fullname/2]
-          ]
-
-        defp fullname(resource, conn), do: "\#{resouce.first_name} \#{resource.last_name}"
-      end
+  ```elixir
+  defmodule MyApp.User do
+    @derive {
+      JSONAPIPlug.Resource,
+      type: "user",
+      attributes: [
+        username: nil,
+        fullname: [deserialize: false, serialize: &fullname/2]
+      ]
+    }
+    defp fullname(resource, conn), do: "\#{resouce.first_name} \#{last_name}"
+  end
+  ```
 
   In this example we are defining a computed attribute by passing the `serialize` option a function reference.
   Serialization functions take `resource` and `conn` as arguments and return the attribute value to be serialized.
@@ -45,24 +45,31 @@ defmodule JSONAPIPlug.Resource do
 
   Relationships are defined by passing the `relationships` option to `use JSONAPIPlug.Resource`.
 
-      defmodule MyApp.PostResource do
-        use JSONAPIPlug.Resource,
-          type: "post",
-          attributes: [:text, :body]
-          relationships: [
-            author: [resource: MyApp.UsersResource],
-            comments: [many: true, resource: MyApp.CommentsResource]
-          ]
-      end
+  ```elixir
+  defmodule MyApp.Post do
+    @derive {
+      JSONAPIPlug.Resource,
+      type: "post",
+      attributes: [:text, :body]
+      relationships: [
+        author: [resource: MyApp.UsersResource],
+        comments: [many: true, resource: MyApp.CommentsResource]
+      ]
+    }
+  end
 
-      defmodule MyApp.CommentsResource do
-        alias MyApp.UsersResource
+  defmodule MyApp.CommentsResource do
+    alias MyApp.UsersResource
 
-        use JSONAPIPlug.Resource,
-          type: "comment",
-          attributes: [:text]
-          relationships: [post: [resource: MyApp.PostResource]]
-      end
+    @derive {
+      JSONAPIPlug.Resource,
+      type: "comment",
+      attributes: [:text]
+      relationships: [post: [resource: MyApp.Post]]
+    }
+    defstruct text: nil, post: nil
+  end
+  ```
 
   When requesting `GET /posts?include=author`, if the author key is present on the data you pass from the
   controller it will appear in the `included` section of the JSON:API response.
@@ -73,12 +80,76 @@ defmodule JSONAPIPlug.Resource do
   and `scheme` from the connection. If you need to use different values for some reason, you can override them
   using `JSONAPIPlug.API` configuration options in your api configuration:
 
-      config :my_app, MyApp.API, host: "adifferenthost.com"
+  ```elixir
+  config :my_app, MyApp.API, host: "adifferenthost.com"
+  ```
   """
 
-  alias JSONAPIPlug.{Document, Document.ResourceObject, Normalizer}
-  alias Plug.Conn
+  alias JSONAPIPlug.Document.ResourceObject
 
+  @typedoc """
+  Resource module
+
+  A struct implementing the `JSONAPIPlug.Resource` protocol
+  """
+  @type t :: struct()
+
+  @typedoc "Resource options"
+  @type options :: keyword()
+
+  @typedoc """
+  Resource field name
+
+  The name of a Resource field (attribute or relationship)
+  """
+  @type field_name :: atom()
+
+  @doc "Returns the resource attributes"
+  @spec attributes(t()) :: [field_name()]
+  def attributes(resource)
+
+  @doc """
+  Resource Id Attribute
+
+  Returns the attribute used to fetch resource ids for resources by the
+  """
+  @spec id_attribute(t()) :: field_name()
+  def id_attribute(resource)
+
+  @doc """
+  Resource field option
+
+  Returns the value of the requested field option
+  """
+  @spec field_option(t(), field_name(), atom()) :: term()
+  def field_option(resource, field_name, option)
+
+  @doc """
+  Resource function to recase fields
+
+  Returns the field is the required case
+  """
+  @spec recase_field(t(), field_name(), JSONAPIPlug.case()) :: String.t()
+  def recase_field(resource, field_name, jsonapi_plug)
+
+  @doc """
+  Resource relationships
+
+  Returns the keyword list of resource relationships for the
+  """
+  @spec relationships(t()) :: [field_name()]
+  def relationships(resource)
+
+  @doc """
+  Resource Type
+
+  Returns the Resource Type of resources for the
+  """
+  @spec type(t()) :: ResourceObject.type()
+  def type(resource)
+end
+
+defimpl JSONAPIPlug.Resource, for: Any do
   @attribute_schema [
     name: [
       doc: "Maps the resource attribute name to the given key.",
@@ -134,12 +205,13 @@ defmodule JSONAPIPlug.Resource do
               default: :id
             ],
             path: [
-              doc: "A custom path to be used for the resource. Defaults to the resource type.",
+              doc: "A custom path to be used for the  Defaults to the resource type.",
               type: :string
             ],
             relationships: [
               doc:
-                "Resource relationships. This will be used to (de)serialize requests/responses",
+                "Resource relationships. This will be used to (de)serialize requests/responses\n\n" <>
+                  NimbleOptions.docs(@relationship_schema, nest_level: 1),
               type: :keyword_list,
               keys: [*: [type: :non_empty_keyword_list, keys: @relationship_schema]],
               default: []
@@ -151,271 +223,114 @@ defmodule JSONAPIPlug.Resource do
             ]
           )
 
-  @typedoc """
-  Resource module
-
-  A Module adopting the `JSONAPIPlug.Resource` behaviour
-  """
-  @type t :: module()
-
-  @typedoc """
+  @doc """
   Resource options
 
   #{NimbleOptions.docs(@schema)}
   """
-  @type options :: keyword()
-
-  @typedoc """
-  Resource data
-
-  User data representing a single resource
-  """
-  @type resource :: term()
-
-  @typedoc """
-  Resource data
-
-  Resource data is either a resource or a list of resources
-  """
-  @type data :: resource() | [resource()]
-
-  @typedoc """
-  Resource field name
-
-  The name of a Resource field (attribute or relationship)
-  """
-  @type field_name :: atom()
-
-  @typedoc """
-  Attribute options\n#{NimbleOptions.docs(NimbleOptions.new!(@attribute_schema))}
-  """
-  @type attribute_options :: [
-          name: field_name(),
-          serialize: boolean() | (resource(), Conn.t() -> term()),
-          deserialize: boolean() | (resource(), Conn.t() -> term())
-        ]
-
-  @typedoc """
-  Resource attributes
-
-  A keyword list composed of attribute names and their options
-  """
-  @type attributes :: [field_name()] | [{field_name(), attribute_options()}]
-
-  @typedoc """
-  Relationship options
-
-  #{NimbleOptions.docs(NimbleOptions.new!(@relationship_schema))}
-  """
-  @type relationship_options :: [many: boolean(), name: field_name(), resource: t()]
-
-  @typedoc """
-  Resource attributes
-
-  A keyword list composed of relationship names and their options
-  """
-  @type relationships :: [{field_name(), relationship_options()}]
-
-  @type field ::
-          field_name() | {field_name(), attribute_options() | relationship_options()}
-
-  @doc """
-  Resource Id Attribute
-
-  Returns the attribute used to fetch resource ids for resources by the resource.
-  """
-  @callback id_attribute :: field_name()
-
-  @doc """
-  Resource attributes
-
-  Returns the keyword list of resource attributes for the resource.
-  """
-  @callback attributes :: attributes()
-
-  @doc """
-  Resource links
-
-  Returns the resource links to be returned for resources by the resource.
-  """
-  @callback links(resource(), Conn.t() | nil) :: Document.links()
-
-  @doc """
-  Resource normalizer
-
-  Returns the resource normalizer for resources by the resource.
-  """
-  @callback normalizer :: Normalizer.t()
-
-  @doc """
-  Resource meta
-
-  Returns the resource meta to be returned for resources by the resource.
-  """
-  @callback meta(resource(), Conn.t() | nil) :: Document.meta()
-
-  @doc """
-  Resource path
-
-  Returns the path to prepend to resources for the resource.
-  """
-  @callback path :: String.t() | nil
-
-  @doc """
-  Resource relationships
-
-  Returns the keyword list of resource relationships for the resource.
-  """
-  @callback relationships :: relationships()
-
-  @doc """
-  Resource function to recase fields
-
-  Returns the field is the required case
-  """
-  @callback recase_field(field_name(), JSONAPIPlug.case()) :: String.t()
-
-  @doc """
-  Resource Type
-
-  Returns the Resource Type of resources for the resource.
-  """
-  @callback type :: ResourceObject.type()
-
-  defmacro __using__(options \\ []) do
+  defmacro __deriving__(module, _struct, options) do
     options =
       options
       |> Macro.prewalk(&Macro.expand(&1, __CALLER__))
       |> NimbleOptions.validate!(@schema)
 
-    attributes = Keyword.fetch!(options, :attributes)
-    id_attribute = Keyword.fetch!(options, :id_attribute)
-    normalizer = Keyword.get(options, :normalizer)
-    path = Keyword.get(options, :path)
-    relationships = Keyword.fetch!(options, :relationships)
-    type = Keyword.fetch!(options, :type)
+    attributes = generate_attributes(options)
+    relationships = generate_relationships(options)
 
-    if field =
-         Stream.concat(attributes, relationships)
-         |> Enum.find(&(JSONAPIPlug.Resource.field_name(&1) in [:id, :type])) do
-      name = JSONAPIPlug.Resource.field_name(field)
-      resource = Module.split(__CALLER__.module) |> List.last()
+    check_fields(attributes, relationships, options)
 
-      raise "Illegal field name '#{name}' for resource #{resource}. See https://jsonapi.org/format/#document-resource-object-fields for more information."
-    end
-
-    recase_field =
-      for field <-
-            Stream.concat(attributes, relationships)
-            |> Stream.map(&JSONAPIPlug.Resource.field_name(&1))
-            |> MapSet.new(),
-          casing <- [:camelize, :dasherize, :underscore] do
-        result = JSONAPIPlug.recase(field, casing)
-
-        quote do
-          def recase_field(unquote(field), unquote(casing)) do
-            unquote(result)
-          end
-        end
-      end
+    field_option = generate_field_option(options)
+    recase_field = generate_recase_field(options)
 
     quote do
-      @behaviour JSONAPIPlug.Resource
+      defimpl JSONAPIPlug.Resource, for: unquote(module) do
+        def id_attribute(_resource), do: unquote(options[:id_attribute] || :id)
+        def attributes(_resource), do: unquote(attributes)
 
-      @impl JSONAPIPlug.Resource
-      def id_attribute, do: unquote(id_attribute)
+        unquote(
+          Enum.reverse([
+            quote do
+              def field_option(_resource, _field_name, _field_option), do: nil
+            end
+            | field_option
+          ])
+        )
 
-      @impl JSONAPIPlug.Resource
-      def attributes, do: unquote(attributes)
-
-      @impl JSONAPIPlug.Resource
-      def links(_resource, _conn), do: %{}
-
-      @impl JSONAPIPlug.Resource
-      def meta(_resource, _conn), do: %{}
-
-      @impl JSONAPIPlug.Resource
-      def path, do: unquote(path)
-
-      @impl JSONAPIPlug.Resource
-      def normalizer, do: unquote(normalizer)
-
-      @impl JSONAPIPlug.Resource
-      def relationships, do: unquote(relationships)
-
-      @impl JSONAPIPlug.Resource
-      unquote(recase_field)
-
-      @impl JSONAPIPlug.Resource
-      def type, do: unquote(type)
-
-      defoverridable JSONAPIPlug.Resource
-
-      if Code.ensure_loaded?(Phoenix) do
-        @doc """
-        JSONAPIPlug generated resource render function
-
-        This render function is autogenerated by JSONAPIPlug because it detected Phoenix
-        to be present in your project. It allows you to use the `JSONAPIPlug.Resource` as a
-        standard phoenix resource by calling `Phoenix.Controller.render/2` with your assigns:
-
-          ...
-          conn
-          |> put_resource(MyApp.PostResource)
-          |> render("update.json", %{data: post})
-          ...
-
-        instead of calling `JSONAPIPlug.Resource.render/5` directly in your controllers.
-        It takes the action (one of "create.json", "index.json", "show.json", "update.json") and
-        the assings as a keyword list or map with atom keys.
-        """
-        @spec render(action :: String.t(), assigns :: keyword() | %{atom() => term()}) ::
-                Document.t() | no_return()
-        def render(action, assigns)
-            when action in ["create.json", "index.json", "show.json", "update.json"] do
-          JSONAPIPlug.render(
-            __MODULE__,
-            assigns[:conn],
-            assigns[:data],
-            assigns[:meta],
-            assigns[:options]
-          )
-        end
-
-        def render(action, _assigns) do
-          raise "invalid action #{action}, use one of create.json, index.json, show.json, update.json"
-        end
+        def path(_resource), do: unquote(options[:path])
+        unquote(recase_field)
+        def relationships(_resource), do: unquote(relationships)
+        def type(_resource), do: unquote(options[:type])
       end
     end
   end
 
-  @doc """
-  Field option
-
-  Returns the name of the attribute or relationship for the field definition.
-  """
-  @spec field_name(field()) :: field_name()
-  def field_name(field) when is_atom(field), do: field
-  def field_name({name, nil}), do: name
-  def field_name({name, options}) when is_list(options), do: name
-
-  def field_name(field) do
-    raise "invalid field definition: #{inspect(field)}"
+  defp generate_attributes(options) do
+    Enum.map(options[:attributes] || [], fn
+      {field_name, _field_options} -> field_name
+      field_name -> field_name
+    end)
   end
 
-  @doc """
-  Field option
-
-  Returns the value of the attribute or relationship option for the field definition.
-  """
-  @spec field_option(field(), atom()) :: term()
-  def field_option(name, _option) when is_atom(name), do: nil
-  def field_option({_name, nil}, _option), do: nil
-
-  def field_option({_name, options}, option) when is_list(options),
-    do: Keyword.get(options, option)
-
-  def field_option(field, _option, _default) do
-    raise "invalid field definition: #{inspect(field)}"
+  defp generate_relationships(options) do
+    Enum.map(options[:relationships] || [], fn
+      {field_name, _field_options} -> field_name
+      field_name -> field_name
+    end)
   end
+
+  defp check_fields(attributes, relationships, options) do
+    for field_name <- attributes do
+      if field_name in [:id, :type] do
+        raise "Illegal attribute name '#{field_name}' for resource '#{options[:type]}'. See https://jsonapi.org/format/#document-resource-object-fields for more information."
+      end
+    end
+
+    for field_name <- relationships do
+      if field_name in [:id, :type] do
+        raise "Illegal relationship name '#{field_name}' for resource '#{options[:type]}'. See https://jsonapi.org/format/#document-resource-object-fields for more information."
+      end
+    end
+  end
+
+  defp generate_field_option(options) do
+    Stream.concat(options[:attributes], options[:relationships])
+    |> Stream.map(fn
+      {field_name, nil} -> {field_name, []}
+      {field_name, field_options} -> {field_name, field_options}
+      field_name -> {field_name, []}
+    end)
+    |> Enum.flat_map(fn {field_name, field_options} ->
+      Enum.map(field_options, fn {field_option, value} ->
+        quote do
+          def field_option(_resource, unquote(field_name), unquote(field_option)),
+            do: unquote(value)
+        end
+      end)
+    end)
+  end
+
+  defp generate_recase_field(options) do
+    Stream.concat(options[:attributes], options[:relationships])
+    |> Stream.map(fn
+      {field_name, _field_options} -> field_name
+      field_name -> field_name
+    end)
+    |> Enum.flat_map(fn field_name ->
+      Enum.map([:camelize, :dasherize, :underscore], fn field_case ->
+        quote do
+          def recase_field(_resource, unquote(field_name), unquote(field_case)),
+            do: unquote(JSONAPIPlug.recase(field_name, field_case))
+        end
+      end)
+    end)
+  end
+
+  def id_attribute(_resource), do: :id
+  def attributes(_resource), do: []
+  def field_name(_resource, field_name), do: field_name
+  def field_option(_resource, _field_name, _option), do: nil
+  def path(_resource), do: nil
+  def recase_field(_resource, field, _case), do: field
+  def relationships(_resource), do: []
+  def type(_resource), do: ""
 end

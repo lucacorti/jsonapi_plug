@@ -39,9 +39,6 @@ defmodule JSONAPIPlug.Normalizer.Ecto do
       ) do
     params
     |> Map.put(to_string(relationship), value)
-    |> Map.put("#{relationship}_id", if(data, do: data.id, else: nil))
+    |> Map.put("#{relationship}_id", if(data, do: data.id))
   end
-
-  @impl Normalizer
-  def normalize_attribute(params, attribute), do: Map.get(params, attribute)
 end

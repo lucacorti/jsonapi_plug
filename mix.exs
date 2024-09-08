@@ -41,7 +41,7 @@ defmodule JSONAPIPlug.Mixfile do
       {:dialyxir, "~> 1.0", only: :dev, runtime: false},
       {:ex_doc, "~> 0.20", only: :dev, runtime: false},
       {:jason, "~> 1.0"},
-      {:nimble_options, "~> 0.4 or ~> 0.5 or ~> 1.0"},
+      {:nimble_options, "~> 1.0"},
       {:plug, "~> 1.0"}
     ]
   end
@@ -52,6 +52,7 @@ defmodule JSONAPIPlug.Mixfile do
       extras: ["README.md"],
       groups_for_modules: [
         Document: [~r/JSONAPIPlug\.Document\..*/],
+        Resource: [~r/JSONAPIPlug\.Resource\..*/],
         Plugs: [~r/JSONAPIPlug\.Plug\..*/],
         Ecto: [~r/JSONAPIPlug\.(Normalizer|QueryParser)\.Ecto\.*/],
         Parsers: [~r/JSONAPIPlug\.QueryParser\..*/],

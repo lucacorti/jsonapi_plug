@@ -1,14 +1,15 @@
 import Config
 
-alias JSONAPIPlug.TestSupport.{
-  APIs.DasherizingAPI,
-  APIs.DefaultAPI,
-  APIs.OtherHostAPI,
-  APIs.OtherNamespaceAPI,
-  APIs.OtherSchemeAPI,
-  APIs.UnderscoringAPI,
-  Pagination.PageBasedPagination
+alias JSONAPIPlug.TestSupport.API.{
+  DasherizingAPI,
+  DefaultAPI,
+  OtherHostAPI,
+  OtherNamespaceAPI,
+  OtherSchemeAPI,
+  UnderscoringAPI
 }
+
+alias JSONAPIPlug.TestSupport.Pagination.PageBasedPagination
 
 config :jsonapi_plug, DasherizingAPI, case: :dasherize
 config :jsonapi_plug, DefaultAPI, pagination: PageBasedPagination
