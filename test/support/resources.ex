@@ -60,13 +60,6 @@ defmodule JSONAPIPlug.TestSupport.Resources do
               first_name: nil,
               last_name: nil,
               company: nil
-
-    defimpl JSONAPIPlug.Resource.Attribute do
-      def render(%@for{} = user, :full_name, _conn),
-        do: Enum.join([user.first_name, user.last_name], " ")
-
-      def render(resource, field_name, _conn), do: Map.get(resource, field_name)
-    end
   end
 
   defmodule Car do
@@ -120,20 +113,26 @@ defmodule JSONAPIPlug.TestSupport.Resources do
               author: nil,
               other_user: nil,
               best_comments: []
-
-    @doc false
-    def slice(%Post{} = post, _conn, range), do: String.slice(post.text, range)
-
-    defimpl JSONAPIPlug.Resource.Attribute do
-      def render(%@for{} = post, :excerpt, _conn), do: String.slice(post.text, 0..4)
-      def render(%@for{} = post, :first_character, _conn), do: String.slice(post.text, 0..0)
-      def render(%@for{} = post, :second_character, _conn), do: String.slice(post.text, 1..1)
-      def render(resource, field_name, _conn), do: Map.get(resource, field_name)
-    end
-
-    defimpl JSONAPIPlug.Resource.Meta do
-      def meta(%@for{} = post, _conn),
-        do: %{"meta_text" => "meta_#{String.slice(post.text, 0..4) |> String.downcase()}"}
-    end
   end
+end
+
+defimpl JSONAPIPlug.Resource.Attribute, for: JSONAPIPlug.TestSupport.Resources.Post do
+  def render(%@for{} = post, :excerpt, _conn), do: String.slice(post.text, 0..4)
+  def render(%@for{} = post, :first_character, _conn), do: String.slice(post.text, 0..0)
+  def render(%@for{} = post, :second_character, _conn), do: String.slice(post.text, 1..1)
+  def render(resource, field_name, _conn), do: Map.get(resource, field_name)
+  def parse(_resource, _field_name, value, _conn), do: value
+end
+
+defimpl JSONAPIPlug.Resource.Meta, for: JSONAPIPlug.TestSupport.Resources.Post do
+  def meta(%@for{} = post, _conn),
+    do: %{"meta_text" => "meta_#{String.slice(post.text, 0..4) |> String.downcase()}"}
+end
+
+defimpl JSONAPIPlug.Resource.Attribute, for: JSONAPIPlug.TestSupport.Resources.User do
+  def render(%@for{} = user, :full_name, _conn),
+    do: Enum.join([user.first_name, user.last_name], " ")
+
+  def render(resource, field_name, _conn), do: Map.get(resource, field_name)
+  def parse(_resource, _field_name, value, _conn), do: value
 end

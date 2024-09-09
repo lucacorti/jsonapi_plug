@@ -89,7 +89,7 @@ defmodule JSONAPIPlug.Normalizer do
        ) do
     jsonapi_plug.normalizer.resource_params()
     |> denormalize_id(resource_object, resource, conn, jsonapi_plug.normalizer)
-    |> denormalize_attributes(resource_object, resource, conn, jsonapi_plug.normalizer)
+    |> denormalize_attributes(resource_object, resource, conn)
     |> denormalize_relationships(
       resource_object,
       document,
@@ -123,36 +123,42 @@ defmodule JSONAPIPlug.Normalizer do
         resource_object.id
       )
 
-  defp denormalize_attributes(
-         params,
-         %ResourceObject{} = resource_object,
-         resource,
-         %Conn{private: %{jsonapi_plug: %JSONAPIPlug{} = jsonapi_plug}},
-         normalizer
-       ) do
+  defp denormalize_attributes(params, %ResourceObject{} = resource_object, resource, conn) do
     Enum.reduce(Resource.attributes(resource), params, fn attribute, params ->
       denormalize_attribute(
         params,
         resource_object,
         resource,
         attribute,
-        jsonapi_plug.case,
-        normalizer
+        conn
       )
     end)
   end
 
-  defp denormalize_attribute(params, resource_object, resource, attribute, case, normalizer) do
+  defp denormalize_attribute(
+         params,
+         resource_object,
+         resource,
+         attribute,
+         %Conn{private: %{jsonapi_plug: %JSONAPIPlug{} = jsonapi_plug}} = conn
+       ) do
     key = to_string(Resource.field_option(resource, attribute, :name) || attribute)
 
-    case Map.fetch(resource_object.attributes, Resource.recase_field(resource, attribute, case)) do
+    case Map.fetch(
+           resource_object.attributes,
+           Resource.recase_field(resource, attribute, jsonapi_plug.case)
+         ) do
       {:ok, value} ->
         case Resource.field_option(resource, attribute, :deserialize) do
           false ->
             params
 
           _deserialize ->
-            normalizer.denormalize_attribute(params, key, value)
+            jsonapi_plug.normalizer.denormalize_attribute(
+              params,
+              key,
+              Attribute.parse(resource, attribute, value, conn)
+            )
         end
 
       :error ->
@@ -284,12 +290,10 @@ defmodule JSONAPIPlug.Normalizer do
           attributes
 
         _serialize ->
-          value = Attribute.render(resource, key, conn)
-
           Map.put(
             attributes,
             Resource.recase_field(resource, attribute, jsonapi_plug.case),
-            value
+            Attribute.render(resource, key, conn)
           )
       end
     end)
