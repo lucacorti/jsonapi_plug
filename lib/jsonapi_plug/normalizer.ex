@@ -152,11 +152,9 @@ defmodule JSONAPIPlug.Normalizer do
             params
 
           _deserialize ->
-            key = to_string(Resource.field_option(resource, attribute, :name) || attribute)
-
             jsonapi_plug.normalizer.denormalize_attribute(
               params,
-              key,
+              Resource.field_option(resource, attribute, :name) || attribute,
               Attribute.deserialize(resource, attribute, value, conn)
             )
         end
@@ -293,7 +291,7 @@ defmodule JSONAPIPlug.Normalizer do
           Map.put(
             attributes,
             Resource.recase_field(resource, attribute, jsonapi_plug.case),
-            Attribute.serialize(resource, key, Map.get(resource, attribute), conn)
+            Attribute.serialize(resource, attribute, Map.get(resource, key), conn)
           )
       end
     end)
