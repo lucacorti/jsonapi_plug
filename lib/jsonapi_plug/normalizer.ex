@@ -142,25 +142,25 @@ defmodule JSONAPIPlug.Normalizer do
          attribute,
          %Conn{private: %{jsonapi_plug: %JSONAPIPlug{} = jsonapi_plug}} = conn
        ) do
-    case Map.fetch(
-           resource_object.attributes,
-           Resource.recase_field(resource, attribute, jsonapi_plug.case)
-         ) do
-      {:ok, value} ->
-        case Resource.field_option(resource, attribute, :deserialize) do
-          false ->
-            params
+    case Resource.field_option(resource, attribute, :deserialize) do
+      false ->
+        params
 
-          _deserialize ->
+      _deserialize ->
+        case Map.fetch(
+               resource_object.attributes,
+               Resource.recase_field(resource, attribute, jsonapi_plug.case)
+             ) do
+          {:ok, value} ->
             jsonapi_plug.normalizer.denormalize_attribute(
               params,
               Resource.field_option(resource, attribute, :name) || attribute,
               Attribute.deserialize(resource, attribute, value, conn)
             )
-        end
 
-      :error ->
-        params
+          :error ->
+            params
+        end
     end
   end
 
