@@ -291,7 +291,7 @@ defmodule JSONAPIPlug.Normalizer do
           Map.put(
             attributes,
             Resource.recase_field(resource, attribute, jsonapi_plug.case),
-            Attribute.serialize(resource, attribute, Map.get(resource, key), conn)
+            Attribute.serialize(resource, key, Map.get(resource, attribute), conn)
           )
       end
     end)
