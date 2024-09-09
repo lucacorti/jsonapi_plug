@@ -30,10 +30,9 @@ defprotocol JSONAPIPlug.Resource do
       type: "user",
       attributes: [
         username: nil,
-        fullname: [deserialize: false, serialize: &fullname/2]
+        fullname: [deserialize: false]
       ]
     }
-    defp fullname(resource, conn), do: "\#{resouce.first_name} \#{last_name}"
   end
   ```
 
@@ -156,15 +155,13 @@ defimpl JSONAPIPlug.Resource, for: Any do
       type: :atom
     ],
     serialize: [
-      doc:
-        "Can be either a boolean, a function reference or MFA returning the attribute value to be serialized.",
-      type: {:or, [:boolean, {:fun, 2}, :mfa]},
+      doc: "Controls wether the attribute is serialized in responses.",
+      type: :boolean,
       default: true
     ],
     deserialize: [
-      doc:
-        "Can be either a boolean, a function reference or MFA returning the attribute value to be deserialized.",
-      type: {:or, [:boolean, {:fun, 2}, :mfa]},
+      doc: "Controls wether the attribute is deserialized in requests.",
+      type: :boolean,
       default: true
     ]
   ]

@@ -127,7 +127,7 @@ defmodule JSONAPIPlug.Normalizer do
          params,
          %ResourceObject{} = resource_object,
          resource,
-         %Conn{private: %{jsonapi_plug: %JSONAPIPlug{} = jsonapi_plug}} = conn,
+         %Conn{private: %{jsonapi_plug: %JSONAPIPlug{} = jsonapi_plug}},
          normalizer
        ) do
     Enum.reduce(Resource.attributes(resource), params, fn attribute, params ->
@@ -135,7 +135,6 @@ defmodule JSONAPIPlug.Normalizer do
         params,
         resource_object,
         resource,
-        conn,
         attribute,
         jsonapi_plug.case,
         normalizer
@@ -143,7 +142,7 @@ defmodule JSONAPIPlug.Normalizer do
     end)
   end
 
-  defp denormalize_attribute(params, resource_object, resource, conn, attribute, case, normalizer) do
+  defp denormalize_attribute(params, resource_object, resource, attribute, case, normalizer) do
     key = to_string(Resource.field_option(resource, attribute, :name) || attribute)
 
     case Map.fetch(resource_object.attributes, Resource.recase_field(resource, attribute, case)) do
@@ -152,15 +151,7 @@ defmodule JSONAPIPlug.Normalizer do
           false ->
             params
 
-          serialize when serialize in [true, nil] ->
-            normalizer.denormalize_attribute(params, key, value)
-
-          {module, function, args} ->
-            value = apply(module, function, [value, conn | args])
-            normalizer.denormalize_attribute(params, key, value)
-
-          deserialize when is_function(deserialize) ->
-            value = deserialize.(value, conn)
+          _deserialize ->
             normalizer.denormalize_attribute(params, key, value)
         end
 
@@ -292,26 +283,8 @@ defmodule JSONAPIPlug.Normalizer do
         false ->
           attributes
 
-        serialize when serialize in [true, nil] ->
+        _serialize ->
           value = Attribute.render(resource, key, conn)
-
-          Map.put(
-            attributes,
-            Resource.recase_field(resource, attribute, jsonapi_plug.case),
-            value
-          )
-
-        serialize when is_function(serialize, 2) ->
-          value = serialize.(resource, conn)
-
-          Map.put(
-            attributes,
-            Resource.recase_field(resource, attribute, jsonapi_plug.case),
-            value
-          )
-
-        {module, function, args} ->
-          value = apply(module, function, [resource, conn | args])
 
           Map.put(
             attributes,
