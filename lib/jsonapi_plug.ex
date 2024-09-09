@@ -7,7 +7,6 @@ defmodule JSONAPIPlug do
   and stores it in the `Plug.Conn` private assings under the `jsonapi_plug` key.
   """
 
-  alias JSONAPIPlug.Resource.Attribute
   alias JSONAPIPlug.{API, Document, Normalizer, Resource}
   alias JSONAPIPlug.Document.ResourceObject
   alias Plug.Conn
@@ -103,12 +102,12 @@ defmodule JSONAPIPlug do
 
   def url_for(
         resource,
-        %Conn{private: %{jsonapi_plug: %__MODULE__{} = jsonapi_plug}} = conn
+        %Conn{private: %{jsonapi_plug: %__MODULE__{} = jsonapi_plug}}
       ) do
     Enum.join(
       [
         jsonapi_plug.base_url,
-        Attribute.render(resource, Resource.id_attribute(resource), conn) |> to_string()
+        Map.get(resource, Resource.id_attribute(resource)) |> to_string()
       ],
       "/"
     )

@@ -117,11 +117,13 @@ defmodule JSONAPIPlug.TestSupport.Resources do
 end
 
 defimpl JSONAPIPlug.Resource.Attribute, for: JSONAPIPlug.TestSupport.Resources.Post do
-  def render(%@for{} = post, :excerpt, _conn), do: String.slice(post.text, 0..4)
-  def render(%@for{} = post, :first_character, _conn), do: String.slice(post.text, 0..0)
-  def render(%@for{} = post, :second_character, _conn), do: String.slice(post.text, 1..1)
-  def render(resource, field_name, _conn), do: Map.get(resource, field_name)
-  def parse(_resource, _field_name, value, _conn), do: value
+  def serialize(post, :excerpt, _value, _conn), do: slice(post, 0..4)
+  def serialize(post, :first_character, _value, _conn), do: slice(post, 0..0)
+  def serialize(post, :second_character, _value, _conn), do: slice(post, 1..1)
+  def serialize(_post, _attribute, value, _conn), do: value
+  def deserialize(_post, _atribute, value, _conn), do: value
+
+  defp slice(%@for{} = post, range), do: String.slice(post.text, range)
 end
 
 defimpl JSONAPIPlug.Resource.Meta, for: JSONAPIPlug.TestSupport.Resources.Post do
@@ -130,9 +132,9 @@ defimpl JSONAPIPlug.Resource.Meta, for: JSONAPIPlug.TestSupport.Resources.Post d
 end
 
 defimpl JSONAPIPlug.Resource.Attribute, for: JSONAPIPlug.TestSupport.Resources.User do
-  def render(%@for{} = user, :full_name, _conn),
+  def serialize(%@for{} = user, :full_name, _value, _conn),
     do: Enum.join([user.first_name, user.last_name], " ")
 
-  def render(resource, field_name, _conn), do: Map.get(resource, field_name)
-  def parse(_resource, _field_name, value, _conn), do: value
+  def serialize(_resource, _field_name, value, _conn), do: value
+  def deserialize(_resource, _field_name, value, _conn), do: value
 end

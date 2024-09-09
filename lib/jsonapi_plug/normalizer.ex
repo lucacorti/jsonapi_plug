@@ -157,7 +157,7 @@ defmodule JSONAPIPlug.Normalizer do
             jsonapi_plug.normalizer.denormalize_attribute(
               params,
               key,
-              Attribute.parse(resource, attribute, value, conn)
+              Attribute.deserialize(resource, attribute, value, conn)
             )
         end
 
@@ -265,15 +265,15 @@ defmodule JSONAPIPlug.Normalizer do
 
   defp normalize_resource(conn, resource, options) do
     %ResourceObject{
-      id: normalize_id(resource, conn),
+      id: normalize_id(resource),
       type: Resource.type(resource),
       attributes: normalize_attributes(conn, resource, options),
       relationships: normalize_relationships(conn, resource, options)
     }
   end
 
-  defp normalize_id(resource, conn),
-    do: Attribute.render(resource, Resource.id_attribute(resource), conn) |> to_string()
+  defp normalize_id(resource),
+    do: Map.get(resource, Resource.id_attribute(resource)) |> to_string()
 
   defp normalize_attributes(
          %Conn{private: %{jsonapi_plug: %JSONAPIPlug{} = jsonapi_plug}} = conn,
@@ -283,17 +283,17 @@ defmodule JSONAPIPlug.Normalizer do
     Resource.attributes(resource)
     |> requested_fields(resource, conn)
     |> Enum.reduce(%{}, fn attribute, attributes ->
-      key = Resource.field_option(resource, attribute, :name) || attribute
-
       case Resource.field_option(resource, attribute, :serialize) do
         false ->
           attributes
 
         _serialize ->
+          key = Resource.field_option(resource, attribute, :name) || attribute
+
           Map.put(
             attributes,
-            Resource.recase_field(resource, attribute, jsonapi_plug.case),
-            Attribute.render(resource, key, conn)
+            Resource.recase_field(resource, key, jsonapi_plug.case),
+            Attribute.serialize(resource, attribute, Map.get(resource, attribute), conn)
           )
       end
     end)
@@ -351,7 +351,7 @@ defmodule JSONAPIPlug.Normalizer do
 
   defp normalize_relationship(conn, resource) do
     %ResourceIdentifierObject{
-      id: Attribute.render(resource, Resource.id_attribute(resource), conn) |> to_string(),
+      id: Map.get(resource, Resource.id_attribute(resource)) |> to_string(),
       type: Resource.type(resource),
       meta: Meta.meta(resource, conn)
     }
