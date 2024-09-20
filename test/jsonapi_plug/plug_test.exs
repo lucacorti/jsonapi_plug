@@ -69,7 +69,7 @@ defmodule JSONAPIPlug.PlugTest do
     test "deserializes attribute key names" do
       assert %Conn{
                private: %{
-                 jsonapi_plug: %JSONAPIPlug{params: %{"id" => "1"}}
+                 jsonapi_plug: %JSONAPIPlug{params: %{"id" => "1", "model" => "panda"}}
                }
              } =
                conn(
@@ -84,7 +84,8 @@ defmodule JSONAPIPlug.PlugTest do
                        "foo-bar" => true,
                        "some-map" => %{
                          "nested-key" => true
-                       }
+                       },
+                       "model" => "panda"
                      },
                      "relationships" => %{
                        "baz" => %{
@@ -105,10 +106,17 @@ defmodule JSONAPIPlug.PlugTest do
                |> CarResourcePlug.call([])
     end
 
-    test "converts to many relationship" do
+    test "converts to many relationship retrocompatibility" do
       assert %Conn{
                private: %{
-                 jsonapi_plug: %JSONAPIPlug{params: %{"id" => "1"}}
+                 jsonapi_plug: %JSONAPIPlug{
+                   params: %{
+                     "id" => "1",
+                     "age" => 42,
+                     "first_name" => "pippo",
+                     "top_posts" => [%{"id" => "2"}, %{"id" => "3"}]
+                   }
+                 }
                }
              } =
                conn(
@@ -119,13 +127,54 @@ defmodule JSONAPIPlug.PlugTest do
                      "id" => "1",
                      "type" => "user",
                      "attributes" => %{
-                       "foo-bar" => true
+                       "age" => 42,
+                       "firstName" => "pippo"
                      },
                      "relationships" => %{
-                       "baz" => %{
+                       "top_posts" => %{
                          "data" => [
-                           %{"id" => "2", "type" => "baz"},
-                           %{"id" => "3", "type" => "baz"}
+                           %{"id" => "2", "type" => "my-type"},
+                           %{"id" => "3", "type" => "my-type"}
+                         ]
+                       }
+                     }
+                   }
+                 })
+               )
+               |> put_req_header("content-type", JSONAPIPlug.mime_type())
+               |> put_req_header("accept", JSONAPIPlug.mime_type())
+               |> UserResourcePlug.call([])
+    end
+
+    test "converts to many relationship" do
+      assert %Conn{
+               private: %{
+                 jsonapi_plug: %JSONAPIPlug{
+                   params: %{
+                     "id" => "1",
+                     "age" => 42,
+                     "first_name" => "pippo",
+                     "top_posts" => [%{"id" => "2"}, %{"id" => "3"}]
+                   }
+                 }
+               }
+             } =
+               conn(
+                 :post,
+                 "/",
+                 Jason.encode!(%{
+                   "data" => %{
+                     "id" => "1",
+                     "type" => "user",
+                     "attributes" => %{
+                       "age" => 42,
+                       "firstName" => "pippo"
+                     },
+                     "relationships" => %{
+                       "topPosts" => %{
+                         "data" => [
+                           %{"id" => "2", "type" => "my-type"},
+                           %{"id" => "3", "type" => "my-type"}
                          ]
                        }
                      }

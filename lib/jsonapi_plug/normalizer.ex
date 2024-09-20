@@ -158,9 +158,11 @@ defmodule JSONAPIPlug.Normalizer do
          %ResourceObject{} = resource_object,
          %Document{} = document,
          resource,
-         conn,
+         %Conn{private: %{jsonapi_plug: %JSONAPIPlug{} = jsonapi_plug}} = conn,
          normalizer
        ) do
+    case = API.get_config(jsonapi_plug.api, [:case], :camelize)
+
     Enum.reduce(resource.relationships(), params, fn relationship, params ->
       name = Resource.field_name(relationship)
       key = to_string(Resource.field_option(relationship, :name) || name)
@@ -168,7 +170,8 @@ defmodule JSONAPIPlug.Normalizer do
 
       case {
         Resource.field_option(relationship, :many),
-        resource_object.relationships[to_string(name)]
+        resource_object.relationships[resource.recase_field(name, case)] ||
+          resource_object.relationships[to_string(name)]
       } do
         {_many?, nil} ->
           params
