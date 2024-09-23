@@ -170,8 +170,7 @@ defmodule JSONAPIPlug.Normalizer do
 
       case {
         Resource.field_option(relationship, :many),
-        resource_object.relationships[resource.recase_field(name, case)] ||
-          resource_object.relationships[to_string(name)]
+        resource_object.relationships[resource.recase_field(name, case)]
       } do
         {_many?, nil} ->
           params
