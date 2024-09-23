@@ -69,7 +69,7 @@ defmodule JSONAPIPlug.PlugTest do
     test "deserializes attribute key names" do
       assert %Conn{
                private: %{
-                 jsonapi_plug: %JSONAPIPlug{params: %{"id" => "1"}}
+                 jsonapi_plug: %JSONAPIPlug{params: %{"id" => "1", "model" => "panda"}}
                }
              } =
                conn(
@@ -84,7 +84,8 @@ defmodule JSONAPIPlug.PlugTest do
                        "foo-bar" => true,
                        "some-map" => %{
                          "nested-key" => true
-                       }
+                       },
+                       "model" => "panda"
                      },
                      "relationships" => %{
                        "baz" => %{
@@ -108,7 +109,14 @@ defmodule JSONAPIPlug.PlugTest do
     test "converts to many relationship" do
       assert %Conn{
                private: %{
-                 jsonapi_plug: %JSONAPIPlug{params: %{"id" => "1"}}
+                 jsonapi_plug: %JSONAPIPlug{
+                   params: %{
+                     "id" => "1",
+                     "age" => 42,
+                     "first_name" => "pippo",
+                     "top_posts" => [%{"id" => "2"}, %{"id" => "3"}]
+                   }
+                 }
                }
              } =
                conn(
@@ -119,13 +127,14 @@ defmodule JSONAPIPlug.PlugTest do
                      "id" => "1",
                      "type" => "user",
                      "attributes" => %{
-                       "foo-bar" => true
+                       "age" => 42,
+                       "firstName" => "pippo"
                      },
                      "relationships" => %{
-                       "baz" => %{
+                       "topPosts" => %{
                          "data" => [
-                           %{"id" => "2", "type" => "baz"},
-                           %{"id" => "3", "type" => "baz"}
+                           %{"id" => "2", "type" => "my-type"},
+                           %{"id" => "3", "type" => "my-type"}
                          ]
                        }
                      }
