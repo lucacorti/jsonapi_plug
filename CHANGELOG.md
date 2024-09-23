@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.0.7 (2024-09-23)
+
+- Fix case in deserialization of relationships (@treere)
+
 ## 1.0.6 (2024-05-24)
 
 - Fix deserialization of many relationships (@lucacorti, @alexgolasibill)
