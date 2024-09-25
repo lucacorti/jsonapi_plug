@@ -32,7 +32,6 @@ defmodule JSONAPIPlug.Normalizer do
   """
 
   alias JSONAPIPlug.{
-    API,
     Document,
     Document.RelationshipObject,
     Document.ResourceIdentifierObject,
@@ -87,15 +86,15 @@ defmodule JSONAPIPlug.Normalizer do
          resource,
          %Conn{private: %{jsonapi_plug: %JSONAPIPlug{} = jsonapi_plug}} = conn
        ) do
-    jsonapi_plug.normalizer.resource_params()
-    |> denormalize_id(resource_object, resource, conn, jsonapi_plug.normalizer)
+    jsonapi_plug.config[:normalizer].resource_params()
+    |> denormalize_id(resource_object, resource, conn, jsonapi_plug.config[:normalizer])
     |> denormalize_attributes(resource_object, resource, conn)
     |> denormalize_relationships(
       resource_object,
       document,
       resource,
       conn,
-      jsonapi_plug.normalizer
+      jsonapi_plug.config[:normalizer]
     )
   end
 
@@ -106,7 +105,7 @@ defmodule JSONAPIPlug.Normalizer do
          %Conn{private: %{jsonapi_plug: %JSONAPIPlug{} = jsonapi_plug}},
          _normalizer
        ) do
-    if API.get_config(jsonapi_plug.api, [:client_generated_ids], false) do
+    if jsonapi_plug.config[:client_generated_ids] do
       raise InvalidDocument,
         message: "Resource ID not received in request and API requires Client-Generated IDs",
         reference: "https://jsonapi.org/format/1.0/#crud-creating-client-ids"
@@ -149,10 +148,10 @@ defmodule JSONAPIPlug.Normalizer do
       _deserialize ->
         case Map.fetch(
                resource_object.attributes,
-               Resource.recase_field(resource, attribute, jsonapi_plug.case)
+               Resource.recase_field(resource, attribute, jsonapi_plug.config[:case])
              ) do
           {:ok, value} ->
-            jsonapi_plug.normalizer.denormalize_attribute(
+            jsonapi_plug.config[:normalizer].denormalize_attribute(
               params,
               Resource.field_option(resource, attribute, :name) || attribute,
               Attribute.deserialize(resource, attribute, value, conn)
@@ -174,7 +173,7 @@ defmodule JSONAPIPlug.Normalizer do
        ) do
     Enum.reduce(Resource.relationships(resource), params, fn relationship, params ->
       key = to_string(Resource.field_option(resource, relationship, :name) || relationship)
-      name = Resource.recase_field(resource, relationship, jsonapi_plug.case)
+      name = Resource.recase_field(resource, relationship, jsonapi_plug.config[:case])
       related_resource = struct(Resource.field_option(resource, relationship, :resource))
 
       case {
@@ -289,7 +288,7 @@ defmodule JSONAPIPlug.Normalizer do
 
           Map.put(
             attributes,
-            Resource.recase_field(resource, attribute, jsonapi_plug.case),
+            Resource.recase_field(resource, attribute, jsonapi_plug.config[:case]),
             Attribute.serialize(resource, attribute, Map.get(resource, key), conn)
           )
       end
@@ -321,26 +320,17 @@ defmodule JSONAPIPlug.Normalizer do
 
         {_related_many, related_resource} ->
           {
-            Resource.recase_field(resource, relationship, jsonapi_plug.case),
+            Resource.recase_field(resource, relationship, jsonapi_plug.config[:case]),
             %RelationshipObject{
               data: normalize_relationship(conn, related_resource),
               meta: Meta.meta(resource, conn),
-              links: relationship_links(resource, conn)
+              links: %{
+                self: JSONAPIPlug.url_for_relationship(resource, conn, Resource.type(resource))
+              }
             }
           }
       end
     end)
-  end
-
-  defp relationship_links(
-         resource,
-         %Conn{private: %{jsonapi_plug: %JSONAPIPlug{} = jsonapi_plug}} = conn
-       ) do
-    if API.get_config(jsonapi_plug.api, [:links]) do
-      %{
-        self: JSONAPIPlug.url_for_relationship(resource, conn, Resource.type(resource))
-      }
-    end
   end
 
   defp normalize_relationship(conn, resources) when is_list(resources),
@@ -380,7 +370,7 @@ defmodule JSONAPIPlug.Normalizer do
          options
        )
        when is_list(resources) do
-    if pagination = API.get_config(jsonapi_plug.api, [:pagination]) do
+    if pagination = jsonapi_plug.config[:pagination] do
       pagination.paginate(resources, conn, page, options)
     else
       %{}

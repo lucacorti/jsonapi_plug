@@ -131,17 +131,13 @@ defmodule JSONAPIPlug.Plug do
   def config(%Conn{} = conn, _options) do
     {options, assigns} = Map.pop!(conn.assigns, :jsonapi_plug)
 
-    jsonapi_plug = %JSONAPIPlug{
-      allowed_includes: options[:includes],
-      api: options[:api],
-      case: API.get_config(options[:api], [:case], :camelize),
-      normalizer: API.get_config(options[:api], [:normalizer]),
-      resource: struct(options[:resource])
-    }
-
     %{conn | assigns: assigns}
     |> fetch_query_params()
-    |> put_private(:jsonapi_plug, jsonapi_plug)
+    |> put_private(:jsonapi_plug, %JSONAPIPlug{
+      allowed_includes: options[:includes],
+      config: API.get_config(options[:api]),
+      resource: struct(options[:resource])
+    })
     |> set_base_url(options[:path])
   end
 
@@ -210,20 +206,20 @@ defmodule JSONAPIPlug.Plug do
   end
 
   defp scheme(%Conn{private: %{jsonapi_plug: %JSONAPIPlug{} = jsonapi_plug}} = conn),
-    do: to_string(API.get_config(jsonapi_plug.api, [:scheme], conn.scheme))
+    do: to_string(jsonapi_plug.config[:scheme] || conn.scheme)
 
   defp host(%Conn{private: %{jsonapi_plug: %JSONAPIPlug{} = jsonapi_plug}} = conn),
-    do: API.get_config(jsonapi_plug.api, [:host], conn.host)
+    do: jsonapi_plug.config[:host] || conn.host
 
   defp namespace(%Conn{private: %{jsonapi_plug: %JSONAPIPlug{} = jsonapi_plug}}) do
-    case API.get_config(jsonapi_plug.api, [:namespace]) do
+    case jsonapi_plug.config[:namespace] do
       nil -> ""
       namespace -> "/" <> namespace
     end
   end
 
   defp port(%Conn{private: %{jsonapi_plug: %JSONAPIPlug{} = jsonapi_plug}} = conn) do
-    port = API.get_config(jsonapi_plug.api, [:port], conn.port)
+    port = jsonapi_plug.config[:port] || conn.port
     unless port == URI.default_port(scheme(conn)), do: port
   end
 end
