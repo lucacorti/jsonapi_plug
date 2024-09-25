@@ -136,17 +136,12 @@ defmodule JSONAPIPlug.API do
   end
 
   @doc """
-  Retrieve a configuration option
+  Retrieve API configuration
 
-  Retrieves an API configuration option value, with fallback to a default value
-  in case the configuration option is not present.
+  Please note that API configuration is also cached on first request and read back from it afterwards.
   """
-  @spec get_config(t() | nil, [atom()], term()) :: term()
-  def get_config(api, path, default \\ nil)
-
-  def get_config(nil = _api, _path, default), do: default
-
-  def get_config(api, path, default) do
+  @spec get_config(t()) :: keyword()
+  def get_config(api) do
     config = :persistent_term.get(api, nil)
 
     if is_nil(config) do
@@ -156,9 +151,9 @@ defmodule JSONAPIPlug.API do
         |> NimbleOptions.validate!(@config_schema)
 
       :persistent_term.put(api, config)
-      get_in(config, path) || default
+      config
     else
-      get_in(config, path) || default
+      config
     end
   end
 end
