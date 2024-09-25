@@ -46,13 +46,21 @@ Resources can be any struct `@derive`-ing the `JSONAPIPlug.Resource` protocol:
 
 ```elixir
 defmodule MyApp.Post do
+  use Ecto.Schema
+
   @type t :: %__MODULE__{id: pos_integer(), body: String.t(), title: String.t()}
+
   @derive {
     JSONAPIPlug.Resource,
     type: "post",
     attributes: [:title, :text, :excerpt]
   }
-  defstruct [:id, :title, :text]
+  schema "posts" do
+    field :title
+    field :text
+  end
+
+  ...
 end
 ```
 
