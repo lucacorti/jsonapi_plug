@@ -54,6 +54,7 @@ defmodule JSONAPIPlug do
   @spec render(
           Conn.t(),
           Resource.t() | [Resource.t()] | nil,
+          Document.links() | nil,
           Document.meta() | nil,
           Resource.options()
         ) ::
@@ -61,10 +62,11 @@ defmodule JSONAPIPlug do
   def render(
         conn,
         resource_or_resources \\ nil,
+        links \\ nil,
         meta \\ nil,
         options \\ []
       ) do
-    Normalizer.normalize(conn, resource_or_resources, meta, options)
+    Normalizer.normalize(conn, resource_or_resources, meta, links, options)
     |> Document.serialize()
   end
 

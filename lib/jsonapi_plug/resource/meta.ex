@@ -3,6 +3,15 @@ defprotocol JSONAPIPlug.Resource.Meta do
   Resource Links
 
   Implement this protocol to generate JSON:API metadata for indivudual resources.
+  Metadata returned will be included for each resource `meta` in JSON:API responses.
+
+  This example implementation generates metadata for each `MyApp.Post` resource.
+
+  ```elixir
+    defimpl JSONAPIPlug.Resource.Meta, for: MyApp.Post do
+      def meta(%@for{} = post, _conn), do: %{slug: to_slug(post.title)}
+    end
+  ```
   """
 
   alias JSONAPIPlug.{Document, Resource}

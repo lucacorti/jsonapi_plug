@@ -9,9 +9,7 @@ defmodule JSONAPIPlug.TestSupport.Pagination do
     @behaviour JSONAPIPlug.Pagination
 
     @impl JSONAPIPlug.Pagination
-    def paginate(_resources, _conn, nil = _page, _options), do: %{}
-
-    def paginate(resources, conn, page, options) do
+    def paginate(resources, conn, page, options) when not is_nil(page) and is_list(resources) do
       number =
         page
         |> Map.get("page", "0")
@@ -32,6 +30,8 @@ defmodule JSONAPIPlug.TestSupport.Pagination do
         self: JSONAPIPlug.Pagination.url_for(resources, conn, %{"size" => size, "page" => number})
       }
     end
+
+    def paginate(_resources, _conn, _page, _options), do: %{}
 
     defp next_link(resources, conn, page, size, total_pages)
          when page < total_pages,

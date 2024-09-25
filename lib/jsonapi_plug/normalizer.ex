@@ -237,15 +237,16 @@ defmodule JSONAPIPlug.Normalizer do
   @spec normalize(
           Conn.t(),
           Resource.t() | [Resource.t()] | nil,
+          Document.links() | nil,
           Document.meta() | nil,
           Resource.options()
         ) ::
           Document.t() | no_return()
-  def normalize(conn, resource_or_resources, meta, options) do
+  def normalize(conn, resource_or_resources, links, meta, options) do
     %Document{
       meta: meta,
       data: normalize_data(conn, resource_or_resources, options),
-      links: normalize_links(conn, resource_or_resources, options),
+      links: normalize_links(conn, resource_or_resources, links || %{}, options),
       included:
         normalize_included(MapSet.new(), conn, resource_or_resources, options)
         |> MapSet.to_list()
@@ -264,7 +265,9 @@ defmodule JSONAPIPlug.Normalizer do
       id: normalize_id(resource),
       type: Resource.type(resource),
       attributes: normalize_attributes(conn, resource, options),
-      relationships: normalize_relationships(conn, resource, options)
+      relationships: normalize_relationships(conn, resource, options),
+      links: normalize_links(conn, resource, Links.links(resource, conn), options),
+      meta: Meta.meta(resource, conn)
     }
   end
 
@@ -344,23 +347,26 @@ defmodule JSONAPIPlug.Normalizer do
     }
   end
 
-  defp normalize_links(conn, nil, _options), do: %{self: JSONAPIPlug.url_for(nil, conn)}
-  defp normalize_links(conn, [], _options), do: %{self: JSONAPIPlug.url_for([], conn)}
+  defp normalize_links(conn, nil, links, _options),
+    do: Map.merge(links, %{self: JSONAPIPlug.url_for(nil, conn)})
+
+  defp normalize_links(conn, [], links, _options),
+    do: Map.merge(links, %{self: JSONAPIPlug.url_for([], conn)})
 
   defp normalize_links(
          %Conn{private: %{jsonapi_plug: %JSONAPIPlug{} = jsonapi_plug}} = conn,
-         [resource | _] = resources,
+         resources,
+         links,
          options
-       ) do
-    Links.links(resource, conn)
+       )
+       when is_list(resources) do
+    links
     |> Map.merge(pagination_links(conn, resources, jsonapi_plug.page, options))
     |> Map.put(:self, Pagination.url_for(resources, conn, jsonapi_plug.page))
   end
 
-  defp normalize_links(conn, resource, _options) do
-    resource
-    |> Links.links(conn)
-    |> Map.put(:self, JSONAPIPlug.url_for(resource, conn))
+  defp normalize_links(conn, resource, links, _options) do
+    Map.put(links, :self, JSONAPIPlug.url_for(resource, conn))
   end
 
   defp pagination_links(

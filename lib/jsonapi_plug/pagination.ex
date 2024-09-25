@@ -35,7 +35,7 @@ defmodule JSONAPIPlug.Pagination do
   @type params :: %{String.t() => String.t()}
 
   @callback paginate(
-              [Resource.t()],
+              [Resource.t()] | nil,
               Conn.t() | nil,
               params(),
               Resource.options()

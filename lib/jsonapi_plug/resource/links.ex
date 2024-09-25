@@ -3,6 +3,15 @@ defprotocol JSONAPIPlug.Resource.Links do
   Resource Links
 
   Implement this protocol to generate JSON:API links for individual resources.
+  Links returned will be included for each resource `links` in JSON:API responses.
+
+  This example implementation generates a link for each `MyApp.Post` resource.
+
+  ```elixir
+  defimpl JSONAPIPlug.Resource.Links, for: MyApp.Post do
+    def links(%@for{} = post, _conn), do: %{some-link: "http://myapp.com/post/\#{post.id}/other-stuff"}
+  end
+  ```
   """
 
   alias JSONAPIPlug.{Document, Resource}
