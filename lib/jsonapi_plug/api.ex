@@ -138,7 +138,7 @@ defmodule JSONAPIPlug.API do
   @doc """
   Retrieve API configuration
 
-  Retrieves API configuration with fallback to a default value in case the configuration option is not present.
+  Please note that API configuration is also cached on first request and read back from it afterwards.
   """
   @spec get_config(t()) :: term()
   def get_config(api) do
