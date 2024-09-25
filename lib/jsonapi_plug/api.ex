@@ -140,7 +140,7 @@ defmodule JSONAPIPlug.API do
 
   Please note that API configuration is also cached on first request and read back from it afterwards.
   """
-  @spec get_config(t()) :: term()
+  @spec get_config(t()) :: keyword()
   def get_config(api) do
     config = :persistent_term.get(api, nil)
 
