@@ -7,7 +7,7 @@ defmodule JSONAPIPlug do
   and stores it in the `Plug.Conn` private assings under the `jsonapi_plug` key.
   """
 
-  alias JSONAPIPlug.{API, Document, Normalizer, Resource}
+  alias JSONAPIPlug.{Document, Normalizer, Resource}
   alias JSONAPIPlug.Document.ResourceObject
   alias Plug.Conn
 
@@ -17,7 +17,6 @@ defmodule JSONAPIPlug do
   @typedoc "JSONAPIPlug context"
   @type t :: %__MODULE__{
           allowed_includes: keyword(keyword()),
-          api: API.t(),
           config: Keyword.t(),
           base_url: String.t(),
           fields: term(),
@@ -29,14 +28,11 @@ defmodule JSONAPIPlug do
           sort: term()
         }
   defstruct allowed_includes: nil,
-            api: nil,
             base_url: nil,
-            case: nil,
             config: nil,
             fields: nil,
             filter: nil,
             include: nil,
-            normalizer: nil,
             page: nil,
             params: nil,
             resource: nil,
