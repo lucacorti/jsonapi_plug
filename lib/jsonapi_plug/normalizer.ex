@@ -172,15 +172,14 @@ defmodule JSONAPIPlug.Normalizer do
          %Conn{private: %{jsonapi_plug: %JSONAPIPlug{} = jsonapi_plug}} = conn,
          normalizer
        ) do
-    case = API.get_config(jsonapi_plug.api, [:case], :camelize)
-
     Enum.reduce(Resource.relationships(resource), params, fn relationship, params ->
       key = to_string(Resource.field_option(resource, relationship, :name) || relationship)
+      name = Resource.recase_field(resource, relationship, jsonapi_plug.case)
       related_resource = struct(Resource.field_option(resource, relationship, :resource))
 
       case {
         Resource.field_option(resource, relationship, :many),
-        resource_object.relationships[Resource.recase_field(resource, relationship, case)]
+        resource_object.relationships[name]
       } do
         {_many?, nil} ->
           params
