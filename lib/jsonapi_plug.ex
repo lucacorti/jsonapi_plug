@@ -185,4 +185,78 @@ defmodule JSONAPIPlug do
     |> String.replace(~r/([a-z\d])([A-Z])/, "\\1_\\2")
     |> String.downcase()
   end
+
+  @attribute_schema [
+    name: [
+      doc: "Maps the resource attribute name to the given key.",
+      type: :atom
+    ],
+    serialize: [
+      doc: "Controls wether the attribute is serialized in responses.",
+      type: :boolean,
+      default: true
+    ],
+    deserialize: [
+      doc: "Controls wether the attribute is deserialized in requests.",
+      type: :boolean,
+      default: true
+    ]
+  ]
+
+  @relationship_schema [
+    name: [
+      doc: "Maps the resource relationship name to the given key.",
+      type: :atom
+    ],
+    many: [
+      doc: "Specifies a to many relationship.",
+      type: :boolean,
+      default: false
+    ],
+    resource: [
+      doc: "Specifies the resource to be used to serialize the relationship",
+      type: :atom,
+      required: true
+    ]
+  ]
+
+  @schema NimbleOptions.new!(
+            attributes: [
+              doc:
+                "Resource attributes. This will be used to (de)serialize requests/responses:\n\n" <>
+                  NimbleOptions.docs(@attribute_schema, nest_level: 1),
+              type:
+                {:or,
+                 [
+                   {:list, :atom},
+                   {:keyword_list, [*: [type: [keyword_list: [keys: @attribute_schema]]]]}
+                 ]},
+              default: []
+            ],
+            id_attribute: [
+              doc: "Attribute on your data to be used as the JSON:API resource id.",
+              type: :atom,
+              default: :id
+            ],
+            path: [
+              doc: "A custom path to be used for the  Defaults to the resource type.",
+              type: :string
+            ],
+            relationships: [
+              doc:
+                "Resource relationships. This will be used to (de)serialize requests/responses\n\n" <>
+                  NimbleOptions.docs(@relationship_schema, nest_level: 1),
+              type: :keyword_list,
+              keys: [*: [type: :non_empty_keyword_list, keys: @relationship_schema]],
+              default: []
+            ],
+            type: [
+              doc: "Resource type. To be used as the JSON:API resource type value",
+              type: :string,
+              required: true
+            ]
+          )
+
+  @doc false
+  def resource_options_schema, do: @schema
 end

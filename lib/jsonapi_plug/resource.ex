@@ -14,9 +14,6 @@ defprotocol JSONAPIPlug.Resource do
   ```
   See `t:options/0` for all available options you can pass to `@derive JSONAPIPlug.Resource`.
 
-  You can now call `JSONAPIPlug.render(conn, user)` to render a valid JSON:API document from
-  your data. If you use `phoenix`, you can call this in your controller to render the response.
-
   ## Attributes
 
   By default, the resulting JSON document consists of resources taken from your data.
@@ -93,7 +90,12 @@ defprotocol JSONAPIPlug.Resource do
   """
   @type t :: struct()
 
-  @typedoc "Resource options"
+  @typedoc """
+  Resource options
+
+  Available options:
+  #{NimbleOptions.docs(JSONAPIPlug.resource_options_schema())}
+  """
   @type options :: keyword()
 
   @typedoc """
@@ -149,87 +151,11 @@ defprotocol JSONAPIPlug.Resource do
 end
 
 defimpl JSONAPIPlug.Resource, for: Any do
-  @attribute_schema [
-    name: [
-      doc: "Maps the resource attribute name to the given key.",
-      type: :atom
-    ],
-    serialize: [
-      doc: "Controls wether the attribute is serialized in responses.",
-      type: :boolean,
-      default: true
-    ],
-    deserialize: [
-      doc: "Controls wether the attribute is deserialized in requests.",
-      type: :boolean,
-      default: true
-    ]
-  ]
-
-  @relationship_schema [
-    name: [
-      doc: "Maps the resource relationship name to the given key.",
-      type: :atom
-    ],
-    many: [
-      doc: "Specifies a to many relationship.",
-      type: :boolean,
-      default: false
-    ],
-    resource: [
-      doc: "Specifies the resource to be used to serialize the relationship",
-      type: :atom,
-      required: true
-    ]
-  ]
-
-  @schema NimbleOptions.new!(
-            attributes: [
-              doc:
-                "Resource attributes. This will be used to (de)serialize requests/responses:\n\n" <>
-                  NimbleOptions.docs(@attribute_schema, nest_level: 1),
-              type:
-                {:or,
-                 [
-                   {:list, :atom},
-                   {:keyword_list, [*: [type: [keyword_list: [keys: @attribute_schema]]]]}
-                 ]},
-              default: []
-            ],
-            id_attribute: [
-              doc: "Attribute on your data to be used as the JSON:API resource id.",
-              type: :atom,
-              default: :id
-            ],
-            path: [
-              doc: "A custom path to be used for the  Defaults to the resource type.",
-              type: :string
-            ],
-            relationships: [
-              doc:
-                "Resource relationships. This will be used to (de)serialize requests/responses\n\n" <>
-                  NimbleOptions.docs(@relationship_schema, nest_level: 1),
-              type: :keyword_list,
-              keys: [*: [type: :non_empty_keyword_list, keys: @relationship_schema]],
-              default: []
-            ],
-            type: [
-              doc: "Resource type. To be used as the JSON:API resource type value",
-              type: :string,
-              required: true
-            ]
-          )
-
-  @doc """
-  Resource options
-
-  #{NimbleOptions.docs(@schema)}
-  """
   defmacro __deriving__(module, _struct, options) do
     options =
       options
       |> Macro.prewalk(&Macro.expand(&1, __CALLER__))
-      |> NimbleOptions.validate!(@schema)
+      |> NimbleOptions.validate!(JSONAPIPlug.resource_options_schema())
 
     attributes = generate_attributes(options)
     relationships = generate_relationships(options)

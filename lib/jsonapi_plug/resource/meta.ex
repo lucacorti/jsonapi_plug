@@ -10,6 +10,8 @@ defprotocol JSONAPIPlug.Resource.Meta do
   ```elixir
     defimpl JSONAPIPlug.Resource.Meta, for: MyApp.Post do
       def meta(%@for{} = post, _conn), do: %{slug: to_slug(post.title)}
+
+      defp to_slug(string), do: string  |> String.downcase |> String.replace(" ", "-")
     end
   ```
   """

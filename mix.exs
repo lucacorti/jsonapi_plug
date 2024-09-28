@@ -49,13 +49,13 @@ defmodule JSONAPIPlug.Mixfile do
   defp docs do
     [
       main: "readme",
-      extras: ["README.md"],
+      extras: ["README.md", "guides/upgrading.md"],
       groups_for_modules: [
-        Document: [~r/JSONAPIPlug\.Document\..*/],
-        Resource: [~r/JSONAPIPlug\.Resource\..*/],
+        Document: [~r/JSONAPIPlug\.Document.*/],
+        Resource: [~r/JSONAPIPlug\.Resource.*/],
         Plugs: [~r/JSONAPIPlug\.Plug\..*/],
-        Ecto: [~r/JSONAPIPlug\.(Normalizer|QueryParser)\.Ecto\.*/],
-        Parsers: [~r/JSONAPIPlug\.QueryParser\..*/],
+        Ecto: [~r/JSONAPIPlug\.(Normalizer|QueryParser)\.Ecto.*/],
+        Parsers: [~r/JSONAPIPlug\.QueryParser.*/],
         Behaviours: [~r/JSONAPIPlug\.(Normalizer|Pagination|QueryParser)/]
       ]
     ]

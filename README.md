@@ -167,7 +167,7 @@ If you have a `Plug` application, assuming you already set up routingm you can c
 pipeline to generate a `JSONAPI.Document` with your data for the client.
 
 ```elixir
-JSONAPIPlug.render(conn, data)
+JSONAPIPlug.render(conn, post)
 |> Jason.encode!()
 ```
 

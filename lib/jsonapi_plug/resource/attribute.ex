@@ -17,9 +17,9 @@ defprotocol JSONAPIPlug.Resource.Attribute do
     def serialize(%@for{}, :excerpt, _value, _conn),
       do: String.slice(post.body, 0..9)
 
-    def serialize(%@for{}, :excerpt, _value, _conn), do: value
+    def serialize(%@for{}, _attribute, _value, _conn), do: value
 
-    def deserialize(%@for{}, :excerpt, _value, _conn), do: value
+    def deserialize(%@for{}, _attribute, _value, _conn), do: value
   end
   ```
   """
