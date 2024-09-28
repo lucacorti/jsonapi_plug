@@ -361,7 +361,7 @@ defmodule JSONAPIPlug.Normalizer do
        )
        when is_list(resources) do
     links
-    |> Map.merge(pagination_links(conn, resources, jsonapi_plug.page, options))
+    |> Map.merge(pagination_links(conn, resources, options))
     |> Map.put(:self, Pagination.url_for(resources, conn, jsonapi_plug.page))
   end
 
@@ -372,18 +372,15 @@ defmodule JSONAPIPlug.Normalizer do
   defp pagination_links(
          %Conn{private: %{jsonapi_plug: %JSONAPIPlug{} = jsonapi_plug}} = conn,
          resources,
-         page,
          options
        )
        when is_list(resources) do
     if pagination = jsonapi_plug.config[:pagination] do
-      pagination.paginate(resources, conn, page, options)
+      pagination.paginate(resources, conn, jsonapi_plug.page, options)
     else
       %{}
     end
   end
-
-  defp pagination_links(_conn, _resource, _page, _options), do: %{}
 
   defp normalize_included(included, _conn, nil, _options),
     do: included
