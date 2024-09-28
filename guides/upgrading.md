@@ -2,7 +2,7 @@
 
 Upgrade instructions between major versions of `JSONAPIPlug`.
 
-## Upgrading from 1.0 to 2.0
+## Upgrading from 1.x to 2.0
 
   To upgrade your application to 2.0:
 
