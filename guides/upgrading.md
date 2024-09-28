@@ -14,9 +14,9 @@ Upgrade instructions between major versions of `JSONAPIPlug`.
   protocol.
 - Moved `path` option from `JSONAPI.Resource` to `JSONAPIPlug.Plug`.
 - Removed `links` option to `JSONAPIPlug.API`. Resource links are always generated.
-- Moved the Phoenix render function to a component module in the library, is can be added
-  to the phoenix `MyAppWeb` module and imported in the phoenix `_json.ex` module via
-  `use MyAppWeb, :jsonapi` as per phoenix conventions.
+- Moved the Phoenix render function to a component module in the library, is can be
+  added to the phoenix `MyAppWeb` module and imported in the phoenix `_json.ex`
+  module via `use MyAppWeb, :jsonapi` as per phoenix conventions.
 
 ### Migration
 
