@@ -31,8 +31,8 @@ Upgrade instructions between major versions of `JSONAPIPlug`.
       Remove all function references passed to `serialize` and `deserialize` and provide an implementation
       of the `JSONAPIPlug.Resource.Attribute` protocol for your resource to do custom serialization/deserialization.
   4. If overridden, replace the `JSONAPIPlug.Resource.links` callback with an implementation of the
-     `JSONAPIPlug.Resource.Links` protocol for your resource to provide per-resource `JSON:API` links.
+     `JSONAPIPlug.Resource.Links` protocol for your resource to add per-resource `JSON:API` links.
   5. If overridden, replace the `JSONAPIPlug.Resource.meta` callback with an implementation of the
-    `JSONAPIPlug.Resource.Meta` protocol for your resource to provide per-resource `JSON:API` meta.
+    `JSONAPIPlug.Resource.Meta` protocol for your resource to add per-resource `JSON:API` meta.
   6. If you use phonenix, either call `JSONAPIPlug.render/5` in your controllers or add `use MyAppWeb, :json_api`
      to your `_json.ex` modules and call `render/3`. See the README for complete instructions.
