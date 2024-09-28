@@ -28,8 +28,8 @@ Upgrade instructions between major versions of `JSONAPIPlug`.
       implement manually.
   2. Move the `path` option from `JSONAPIPlug.Resource` options to `plug JSONAPIPlug.Plug` options in your controllers.
   3. `JSONAPIPlug.Resource` attribute options `serialize` and `deserialize` now only support a boolean value.
-      Replace all function references passed to `serialize` and `deserialize` with an implementation
-      of the `JSONAPIPlug.Resource.Attribute` protocol for your resource.
+      Remove all function references passed to `serialize` and `deserialize` and provide an implementation
+      of the `JSONAPIPlug.Resource.Attribute` protocol for your resource to do custom serialization/deserialization.
   4. If overridden, replace the `JSONAPIPlug.Resource.links` callback with an implementation of the
      `JSONAPIPlug.Resource.Links` protocol for your resource to provide per-resource `JSON:API` links.
   5. If overridden, replace the `JSONAPIPlug.Resource.meta` callback with an implementation of the
