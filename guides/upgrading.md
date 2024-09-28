@@ -27,7 +27,7 @@ Upgrade instructions between major versions of `JSONAPIPlug`.
       because the derivation macro generates functions for recasing and options that are tedious to
       implement manually.
   2. Move the `path` option from `JSONAPIPlug.Resource` options to `plug JSONAPIPlug.Plug` options in your controllers.
-  3. `serialize` and `deserialize` attribute options now only support a boolean value.
+  3. `JSONAPIPlug.Resource` attribute options `serialize` and `deserialize` now only support a boolean value.
       Replace all function references passed to `serialize` and `deserialize` with an implementation
       of the `JSONAPIPlug.Resource.Attribute` protocol for your resource.
   4. If overridden, replace the `JSONAPIPlug.Resource.links` callback with an implementation of the
