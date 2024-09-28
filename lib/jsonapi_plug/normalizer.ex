@@ -109,9 +109,9 @@ defmodule JSONAPIPlug.Normalizer do
       raise InvalidDocument,
         message: "Resource ID not received in request and API requires Client-Generated IDs",
         reference: "https://jsonapi.org/format/1.0/#crud-creating-client-ids"
+    else
+      params
     end
-
-    params
   end
 
   defp denormalize_id(params, %ResourceObject{} = resource_object, resource, _conn, normalizer),
@@ -202,8 +202,8 @@ defmodule JSONAPIPlug.Normalizer do
             message: "List of resources for one-to-one relationship during normalization",
             reference: nil
 
-        {false, %RelationshipObject{data: nil} = relationship_object} ->
-          normalizer.denormalize_relationship(params, relationship_object, key, nil)
+        {false, %RelationshipObject{data: nil} = _relationship_object} ->
+          params
 
         {false,
          %RelationshipObject{data: %ResourceIdentifierObject{} = data} = relationship_object} ->
@@ -215,16 +215,22 @@ defmodule JSONAPIPlug.Normalizer do
 
   defp denormalize_relationship(
          document,
-         %ResourceIdentifierObject{id: id, type: type},
+         %ResourceIdentifierObject{id: id, lid: lid, type: type},
          related_resource,
          normalizer,
          conn
        ) do
     Enum.find_value(
       document.included || [],
-      normalizer.denormalize_attribute(%{}, Resource.id_attribute(related_resource), id),
+      normalizer.denormalize_attribute(%{}, Resource.id_attribute(related_resource), lid || id),
       fn
-        %ResourceObject{id: ^id, type: ^type} = resource_object ->
+        %ResourceObject{id: nil, lid: nil} ->
+          nil
+
+        %ResourceObject{id: nil, lid: ^lid, type: ^type} = resource_object ->
+          denormalize_resource(document, resource_object, related_resource, conn)
+
+        %ResourceObject{id: ^id, lid: nil, type: ^type} = resource_object ->
           denormalize_resource(document, resource_object, related_resource, conn)
 
         %ResourceObject{} ->

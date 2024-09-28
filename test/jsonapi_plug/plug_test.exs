@@ -200,34 +200,76 @@ defmodule JSONAPIPlug.PlugTest do
                |> UserResourcePlug.call([])
     end
 
-    test "processes has many includes" do
-      assert %Conn{
-               private: %{
-                 jsonapi_plug: %JSONAPIPlug{
-                   params: %{
-                     "id" => "1",
-                     "first_name" => "Jerome"
-                   }
-                 }
-               }
-             } =
+    test "processes single includes with lid" do
+      assert %Conn{private: %{jsonapi_plug: %JSONAPIPlug{} = jsonapi_plug}} =
                conn(
                  :post,
                  "/",
                  Jason.encode!(%{
                    "data" => %{
-                     "id" => "1",
+                     "lid" => "1",
                      "type" => "user",
                      "attributes" => %{
                        "firstName" => "Jerome"
+                     },
+                     "relationships" => %{
+                       "company" => %{
+                         "data" => %{"lid" => "234", "type" => "company"}
+                       }
                      }
                    },
                    "included" => [
                      %{
-                       "id" => "234",
-                       "type" => "friend",
                        "attributes" => %{
                          "name" => "Tara"
+                       },
+                       "lid" => "234",
+                       "type" => "company"
+                     }
+                   ]
+                 })
+               )
+               |> put_req_header("content-type", JSONAPIPlug.mime_type())
+               |> put_req_header("accept", JSONAPIPlug.mime_type())
+               |> UserResourcePlug.call([])
+
+      refute jsonapi_plug.params["id"]
+      assert jsonapi_plug.params["first_name"] == "Jerome"
+      refute jsonapi_plug.params["company"]["id"]
+      assert jsonapi_plug.params["company"]["name"] == "Tara"
+    end
+
+    test "processes has many includes" do
+      assert %Conn{private: %{jsonapi_plug: %JSONAPIPlug{} = jsonapi_plug}} =
+               conn(
+                 :post,
+                 "/",
+                 Jason.encode!(%{
+                   "data" => %{
+                     "lid" => "1",
+                     "type" => "user",
+                     "attributes" => %{
+                       "firstName" => "Jerome"
+                     },
+                     "relationships" => %{
+                       "company" => %{
+                         "data" => %{"lid" => "234", "type" => "company"}
+                       },
+                       "topPosts" => %{
+                         "data" => [
+                           %{"lid" => "1", "type" => "my-type"},
+                           %{"lid" => "2", "type" => "my-type"},
+                           %{"lid" => "3", "type" => "my-type"}
+                         ]
+                       }
+                     }
+                   },
+                   "included" => [
+                     %{
+                       "lid" => "234",
+                       "type" => "company",
+                       "attributes" => %{
+                         "name" => "Evil Corp"
                        },
                        "relationships" => %{
                          "baz" => %{
@@ -243,17 +285,30 @@ defmodule JSONAPIPlug.PlugTest do
                      },
                      %{
                        "attributes" => %{
-                         "name" => "Wild Bill"
+                         "title" => "Wild Bill",
+                         "body" => "A wild cowboy.",
+                         "text" => "His rebel life."
                        },
-                       "id" => "0012",
-                       "type" => "friend"
+                       "lid" => "1",
+                       "type" => "my-type"
                      },
                      %{
                        "attributes" => %{
-                         "title" => "Sr"
+                         "title" => "Naughty Sean",
+                         "body" => "A petty criminal.",
+                         "text" => "His dangerous life."
                        },
-                       "id" => "456",
-                       "type" => "organization"
+                       "lid" => "2",
+                       "type" => "my-type"
+                     },
+                     %{
+                       "attributes" => %{
+                         "title" => "Cool Vaughn",
+                         "body" => "A chill dude.",
+                         "text" => "His laid back life."
+                       },
+                       "lid" => "3",
+                       "type" => "my-type"
                      }
                    ]
                  })
@@ -261,6 +316,32 @@ defmodule JSONAPIPlug.PlugTest do
                |> put_req_header("content-type", JSONAPIPlug.mime_type())
                |> put_req_header("accept", JSONAPIPlug.mime_type())
                |> UserResourcePlug.call([])
+
+      refute jsonapi_plug.params["id"]
+      assert jsonapi_plug.params["first_name"] == "Jerome"
+      refute jsonapi_plug.params["company_id"]
+      refute jsonapi_plug.params["company"]["id"]
+      assert jsonapi_plug.params["company"]["name"] == "Evil Corp"
+      refute get_in(jsonapi_plug.params, ["top_posts", Access.at(0), "id"])
+      assert get_in(jsonapi_plug.params, ["top_posts", Access.at(0), "body"]) == "A wild cowboy."
+      assert get_in(jsonapi_plug.params, ["top_posts", Access.at(0), "text"]) == "His rebel life."
+      assert get_in(jsonapi_plug.params, ["top_posts", Access.at(0), "title"]) == "Wild Bill"
+      refute get_in(jsonapi_plug.params, ["top_posts", Access.at(1), "id"])
+
+      assert get_in(jsonapi_plug.params, ["top_posts", Access.at(1), "body"]) ==
+               "A petty criminal."
+
+      assert get_in(jsonapi_plug.params, ["top_posts", Access.at(1), "text"]) ==
+               "His dangerous life."
+
+      assert get_in(jsonapi_plug.params, ["top_posts", Access.at(1), "title"]) == "Naughty Sean"
+      refute get_in(jsonapi_plug.params, ["top_posts", Access.at(2), "id"])
+      assert get_in(jsonapi_plug.params, ["top_posts", Access.at(2), "body"]) == "A chill dude."
+
+      assert get_in(jsonapi_plug.params, ["top_posts", Access.at(2), "text"]) ==
+               "His laid back life."
+
+      assert get_in(jsonapi_plug.params, ["top_posts", Access.at(2), "title"]) == "Cool Vaughn"
     end
 
     test "processes simple array of data" do
