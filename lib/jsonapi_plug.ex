@@ -238,10 +238,6 @@ defmodule JSONAPIPlug do
               type: :atom,
               default: :id
             ],
-            path: [
-              doc: "A custom path to be used for the  Defaults to the resource type.",
-              type: :string
-            ],
             relationships: [
               doc:
                 "Resource relationships. This will be used to (de)serialize requests/responses\n\n" <>
