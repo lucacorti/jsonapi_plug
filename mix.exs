@@ -49,7 +49,11 @@ defmodule JSONAPIPlug.Mixfile do
   defp docs do
     [
       main: "readme",
-      extras: ["README.md", "guides/upgrading.md"],
+      extras: [
+        "README.md",
+        "guides/upgrading.md": [title: "Upgrading between major versions"],
+        "CHANGELOG.md": [title: "Changelog"]
+      ],
       groups_for_modules: [
         Document: [~r/JSONAPIPlug\.Document.*/],
         Resource: [~r/JSONAPIPlug\.Resource.*/],

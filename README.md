@@ -4,12 +4,18 @@ Server library to build [JSON:API](http://jsonapi.org) compliant REST APIs.
 
 ## JSON:API Support
 
-This library currently implements version `1.0` of the [JSON:API](https://jsonapi.org) specification.
+This library currently implements version `1.0` of the [JSON:API][json:api] specification.
+However, to support resource creation alongside included resources, `JSON:API 1.1` `lid` is supported.
 
 ## Documentation
 
-- [Full docs here](https://hexdocs.pm/jsonapi_plug)
-- [JSON API Specification (v1.0)](https://jsonapi.org/format/1.0/)
+- Full documentation can be found on [hexdocs.pm][jsonapi_plug-hexdocs]
+
+For the `JSON:API` specification documentation as well as other client and server implementations:
+
+- [JSON:API][json:api]
+- [JSON:API Specification (v1.0)][json:api-1.0]
+- [JSON:API Specification (v1.1)][json:api-1.1]
 
 ## Quickstart
 
@@ -20,10 +26,17 @@ Add the following line to your `mix.deps` file with the desired version to insta
 ```elixir
 defp deps do [
   ...
-  {:jsonapi_plug, "~> 1.0"}
+  {:jsonapi_plug, "~> 2.0"}
   ...
 ]
 ```
+
+### Upgrading
+
+Upgrading the library should be safe for minor and patch vesion upgrades, it's still a good practice
+to check the [changelog][changelog] for more information on the release content. For major version
+upgrades, breaking changes should be expected, and the [upgrade guide][upgrade] contains instructions
+on upgrading between major releases of the library.
 
 ### Configuration
 
@@ -175,7 +188,15 @@ Render returns a `JSONAPI.Document`, that is serializable to JSON via `Jason`.
 
 ## Contributing
 
-- This project was born as a fork of the [jsonapi](https://github.com/beam-community/jsonapi)
+- This project was born as a fork of the [jsonapi][jsonapi-fork]
 library but has since been completely rewritten and is now a completely different project.
 - PRs for new features, bug fixes, documentation and tests are welcome
 - If you are proposing a large feature or change, please open an issue for discussion
+
+[changelog]: https://hexdocs.pm/jsonapi_plug/changelog.html
+[json:api-1.0]: https://jsonapi.org/format/1.0/
+[json:api-1.1]: https://jsonapi.org/format/1.1/
+[json:api]: https://jsonapi.org
+[jsonapi-fork]: https://github.com/beam-community/jsonapi
+[jsonapi_plug-hexdocs]: https://hexdocs.pm/jsonapi_plug
+[upgrade]: https://hexdocs.pm/jsonapi_plug/upgrading.html

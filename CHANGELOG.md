@@ -7,7 +7,7 @@ This is the result of a big refactoring, cleaning up internals and providing a m
 stable foundation for the library moving forward. This means there are a number of
 breaking changes that require changes to applications using `JSONAPIPlug`.
 
-See the upgrade guide in the docs for detailed upgrade instructions from 1.0.
+See the [upgrade guide][upgrade] in the docs for detailed upgrade instructions from 1.0.
 
 - `JSONAPIPlug.Resource` is now a protocol instead of a behaviour.
   Using structs as resource data is now mandatory.
@@ -77,3 +77,5 @@ What `jsonapi_plug` has to offer to users of Phoenix/Plug for building `JSON:API
 - A declarative resource system allowing users to control rendering, rename fields between `JSON:API` payloads and internal data, customize (de)serialization of fields values and more without writing additional business logic code.
 
 Contributors: @lucacorti
+
+[upgrade]: https://hexdocs.pm/jsonapi_plug/upgrading.html

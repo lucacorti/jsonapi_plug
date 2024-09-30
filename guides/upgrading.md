@@ -1,6 +1,6 @@
 # Upgrading
 
-Upgrade instructions between major versions of `JSONAPIPlug`.
+Instructions to upgrade between major versions of `JSONAPIPlug`.
 
 ## Upgrading from 1.x to 2.0
 
