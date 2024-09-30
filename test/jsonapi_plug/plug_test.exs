@@ -16,20 +16,18 @@ defmodule JSONAPIPlug.PlugTest do
     end
 
     test "ignores non-jsonapi.org format params" do
-      assert %Conn{private: %{jsonapi_plug: %JSONAPIPlug{params: params}}} =
+      assert %Conn{private: %{jsonapi_plug: %JSONAPIPlug{}}} =
                conn(
                  :post,
                  "/",
                  Jason.encode!(%{
-                   "data" => %{"id" => "1", "type" => "car", "attributes" => %{}},
+                   "data" => %{"type" => "car", "attributes" => %{}},
                    "some-nonsense" => "yup"
                  })
                )
                |> put_req_header("content-type", JSONAPIPlug.mime_type())
                |> put_req_header("accept", JSONAPIPlug.mime_type())
                |> CarResourcePlug.call([])
-
-      refute Map.has_key?(params, "id")
     end
 
     test "deserializes attribute key names" do
@@ -39,7 +37,6 @@ defmodule JSONAPIPlug.PlugTest do
                  "/",
                  Jason.encode!(%{
                    "data" => %{
-                     "id" => "1",
                      "type" => "car",
                      "attributes" => %{
                        "some-nonsense" => true,
@@ -67,7 +64,6 @@ defmodule JSONAPIPlug.PlugTest do
                |> put_req_header("accept", JSONAPIPlug.mime_type())
                |> CarResourcePlug.call([])
 
-      refute Map.has_key?(params, "id")
       assert params["model"] == "panda"
     end
 
@@ -78,7 +74,6 @@ defmodule JSONAPIPlug.PlugTest do
                  "/",
                  Jason.encode!(%{
                    "data" => %{
-                     "id" => "1",
                      "type" => "user",
                      "attributes" => %{
                        "age" => 42,
@@ -99,7 +94,6 @@ defmodule JSONAPIPlug.PlugTest do
                |> put_req_header("accept", JSONAPIPlug.mime_type())
                |> UserResourcePlug.call([])
 
-      refute Map.has_key?(params, "id")
       assert params["age"] == 42
       assert params["first_name"] == "pippo"
       assert get_in(params, ["top_posts", Access.at(0), "id"]) == "2"
@@ -107,13 +101,12 @@ defmodule JSONAPIPlug.PlugTest do
     end
 
     test "converts polymorphic" do
-      assert %Conn{private: %{jsonapi_plug: %JSONAPIPlug{params: params}}} =
+      assert %Conn{private: %{jsonapi_plug: %JSONAPIPlug{}}} =
                conn(
                  :post,
                  "/",
                  Jason.encode!(%{
                    "data" => %{
-                     "id" => "1",
                      "type" => "user",
                      "attributes" => %{
                        "foo-bar" => true
@@ -132,8 +125,6 @@ defmodule JSONAPIPlug.PlugTest do
                |> put_req_header("content-type", JSONAPIPlug.mime_type())
                |> put_req_header("accept", JSONAPIPlug.mime_type())
                |> UserResourcePlug.call([])
-
-      refute Map.has_key?(params, "id")
     end
 
     test "processes single includes" do
@@ -143,7 +134,6 @@ defmodule JSONAPIPlug.PlugTest do
                  "/",
                  Jason.encode!(%{
                    "data" => %{
-                     "id" => "1",
                      "type" => "user",
                      "attributes" => %{
                        "firstName" => "Jerome"
@@ -159,7 +149,6 @@ defmodule JSONAPIPlug.PlugTest do
                        "attributes" => %{
                          "name" => "Tara"
                        },
-                       "id" => "456",
                        "lid" => "234",
                        "type" => "company"
                      }
@@ -170,9 +159,7 @@ defmodule JSONAPIPlug.PlugTest do
                |> put_req_header("accept", JSONAPIPlug.mime_type())
                |> UserResourcePlug.call([])
 
-      refute Map.has_key?(params, "id")
       assert params["first_name"] == "Jerome"
-      refute Map.has_key?(params["company"], "id")
       assert params["company"]["name"] == "Tara"
     end
 
@@ -209,9 +196,7 @@ defmodule JSONAPIPlug.PlugTest do
                |> put_req_header("accept", JSONAPIPlug.mime_type())
                |> UserResourcePlug.call([])
 
-      refute jsonapi_plug.params["id"]
       assert jsonapi_plug.params["first_name"] == "Jerome"
-      refute jsonapi_plug.params["company"]["id"]
       assert jsonapi_plug.params["company"]["name"] == "Tara"
     end
 
@@ -222,7 +207,6 @@ defmodule JSONAPIPlug.PlugTest do
                  "/",
                  Jason.encode!(%{
                    "data" => %{
-                     "id" => "1",
                      "type" => "user",
                      "attributes" => %{
                        "firstName" => "Jerome"
@@ -293,33 +277,26 @@ defmodule JSONAPIPlug.PlugTest do
                |> put_req_header("accept", JSONAPIPlug.mime_type())
                |> UserResourcePlug.call([])
 
-      refute Map.has_key?(params, "id")
       assert params["first_name"] == "Jerome"
-      refute Map.has_key?(params, "company_id")
-      refute Map.has_key?(params["company"], "id")
       assert params["company"]["name"] == "Evil Corp"
-      refute get_in(params, ["top_posts", Access.at(0), "id"])
       assert get_in(params, ["top_posts", Access.at(0), "body"]) == "A wild cowboy."
       assert get_in(params, ["top_posts", Access.at(0), "text"]) == "His rebel life."
       assert get_in(params, ["top_posts", Access.at(0), "title"]) == "Wild Bill"
-      refute get_in(params, ["top_posts", Access.at(1), "id"])
       assert get_in(params, ["top_posts", Access.at(1), "body"]) == "A petty criminal."
       assert get_in(params, ["top_posts", Access.at(1), "text"]) == "His dangerous life."
       assert get_in(params, ["top_posts", Access.at(1), "title"]) == "Naughty Sean"
-      refute get_in(params, ["top_posts", Access.at(2), "id"])
       assert get_in(params, ["top_posts", Access.at(2), "body"]) == "A chill dude."
       assert get_in(params, ["top_posts", Access.at(2), "text"]) == "His laid back life."
       assert get_in(params, ["top_posts", Access.at(2), "title"]) == "Cool Vaughn"
     end
 
     test "processes empty keys" do
-      assert %Conn{private: %{jsonapi_plug: %JSONAPIPlug{params: params}}} =
+      assert %Conn{private: %{jsonapi_plug: %JSONAPIPlug{}}} =
                conn(
                  :post,
                  "/",
                  Jason.encode!(%{
                    "data" => %{
-                     "id" => "1",
                      "type" => "user",
                      "attributes" => nil
                    },
@@ -330,18 +307,15 @@ defmodule JSONAPIPlug.PlugTest do
                |> put_req_header("content-type", JSONAPIPlug.mime_type())
                |> put_req_header("accept", JSONAPIPlug.mime_type())
                |> UserResourcePlug.call([])
-
-      refute Map.has_key?(params, "id")
     end
 
     test "processes empty attributes" do
-      assert %Conn{private: %{jsonapi_plug: %JSONAPIPlug{params: params}}} =
+      assert %Conn{private: %{jsonapi_plug: %JSONAPIPlug{}}} =
                conn(
                  :post,
                  "/",
                  Jason.encode!(%{
                    "data" => %{
-                     "id" => "1",
                      "type" => "user"
                    }
                  })
@@ -349,8 +323,6 @@ defmodule JSONAPIPlug.PlugTest do
                |> put_req_header("content-type", JSONAPIPlug.mime_type())
                |> put_req_header("accept", JSONAPIPlug.mime_type())
                |> UserResourcePlug.call([])
-
-      refute Map.has_key?(params, "id")
     end
   end
 

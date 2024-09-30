@@ -111,7 +111,13 @@ defmodule JSONAPIPlug.Normalizer do
         )
       end
     else
-      params
+      if is_nil(resource_object.id) do
+        params
+      else
+        raise InvalidDocument,
+          message: "Resource ID received in request and API forbids Client-Generated IDs",
+          reference: "https://jsonapi.org/format/1.0/#crud-creating-client-ids"
+      end
     end
   end
 
