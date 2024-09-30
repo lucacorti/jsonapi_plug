@@ -19,9 +19,15 @@ See the upgrade guide in the docs for detailed upgrade instructions from 1.0.
   callbacks has been replaces by the `JSONAPIPlug.Resource.Links` and
   `JSONAPIPlug.Resource.Meta` protocols.
 - Removed `links` option to `JSONAPIPlug.API`. Resource links are always generated.
-- Moved the Phoenix render function to a component module in the library, is can be
-  added to the phoenix `MyAppWeb` module and imported in the phoenix `_json.ex`
+- Moved the Phoenix render function to a component module in the library, thiis can
+  be added to the phoenix `MyAppWeb` module and imported in the phoenix `_json.ex`
   module via `use MyAppWeb, :jsonapi` as per phoenix conventions.
+- Enforce `client_generated_ids` option. This prevents sending ids in resources and
+  included resources when `client_generated_ids` is turned off. If you were sending
+  ids to support resource creation with included atomically, this is now supported
+  by sending `JSON:API 1.1` `lid` in relationships and included resources. This
+  is supported even though the reported jsonapi vesion is still `1.0` becasuse the
+  library still doesn't have full `JSON:API 1.1` support. Only `lid` is supported.
 
 Contributors: @lucacorti
 
