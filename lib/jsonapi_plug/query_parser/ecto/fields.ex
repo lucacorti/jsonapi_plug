@@ -15,7 +15,7 @@ defmodule JSONAPIPlug.QueryParser.Ecto.Fields do
   def parse(_jsonapi_plug, nil), do: %{}
 
   def parse(%JSONAPIPlug{resource: resource}, fields) when is_map(fields) do
-    Enum.reduce(fields, %{}, fn {type, value}, fields ->
+    Enum.reduce(fields, %{}, fn {type, value}, validated_fields ->
       valid_fields =
         resource
         |> attributes_for_type(type)
@@ -32,9 +32,9 @@ defmodule JSONAPIPlug.QueryParser.Ecto.Fields do
         rescue
           ArgumentError ->
             reraise InvalidQuery.exception(
-                      type: resource.type(),
+                      type: Resource.type(resource),
                       param: "fields",
-                      value: value
+                      value: inspect(fields)
                     ),
                     __STACKTRACE__
         end
@@ -44,32 +44,43 @@ defmodule JSONAPIPlug.QueryParser.Ecto.Fields do
       case MapSet.subset?(requested_fields, valid_fields) do
         false when size > 0 ->
           raise InvalidQuery,
-            type: resource.type(),
+            type: Resource.type(resource),
             param: "fields",
-            value:
-              requested_fields
-              |> MapSet.difference(valid_fields)
-              |> MapSet.to_list()
-              |> Enum.join(",")
+            value: inspect(fields)
 
         _ ->
-          Map.put(fields, type, MapSet.to_list(requested_fields))
+          Map.put(validated_fields, type, MapSet.to_list(requested_fields))
       end
     end)
   end
 
   def parse(%JSONAPIPlug{resource: resource}, fields) do
-    raise InvalidQuery, type: resource.type(), param: "fields", value: fields
+    raise InvalidQuery, type: Resource.type(resource), param: "fields", value: inspect(fields)
   end
 
   defp attributes_for_type(resource, type) do
-    if type == resource.type() do
-      Enum.map(resource.attributes(), &Resource.field_name/1)
+    if Resource.type(resource) == type do
+      Resource.attributes(resource)
     else
-      case Resource.for_related_type(resource, type) do
-        nil -> raise InvalidQuery, type: resource.type(), param: "fields", value: type
-        related_resource -> Enum.map(related_resource.attributes(), &Resource.field_name/1)
+      case resource_for_related_type(resource, type) do
+        nil ->
+          raise InvalidQuery, type: Resource.type(resource), param: "fields", value: type
+
+        related_resource ->
+          Resource.attributes(related_resource)
       end
     end
+  end
+
+  defp resource_for_related_type(resource, type) do
+    Resource.relationships(resource)
+    |> Enum.find_value(fn relationship ->
+      related_resource_module = Resource.field_option(resource, relationship, :resource)
+
+      unless is_nil(related_resource_module) do
+        related_resource = struct(related_resource_module)
+        Resource.type(related_resource) == type && related_resource
+      end
+    end)
   end
 end

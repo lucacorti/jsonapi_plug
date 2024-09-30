@@ -23,7 +23,7 @@ defmodule JSONAPIPlug.QueryParser.Ecto.Sort do
   end
 
   def parse(%JSONAPIPlug{resource: resource}, sort) do
-    raise InvalidQuery, type: resource.type(), param: "sort", value: inspect(sort)
+    raise InvalidQuery, type: Resource.type(resource), param: "sort", value: inspect(sort)
   end
 
   defp parse_sort_field(field_name, resource) do
@@ -37,12 +37,12 @@ defmodule JSONAPIPlug.QueryParser.Ecto.Sort do
   defp parse_sort_components([field_name], resource, components) do
     valid_attributes =
       Enum.map(
-        [resource.id_attribute() | resource.attributes()],
-        &to_string(Resource.field_option(&1, :name) || Resource.field_name(&1))
+        [Resource.id_attribute(resource) | Resource.attributes(resource)],
+        &to_string(Resource.field_option(resource, &1, :name) || &1)
       )
 
     unless field_name in valid_attributes do
-      raise InvalidQuery, type: resource.type(), param: "sort", value: field_name
+      raise InvalidQuery, type: Resource.type(resource), param: "sort", value: field_name
     end
 
     [field_name | components]
@@ -52,24 +52,24 @@ defmodule JSONAPIPlug.QueryParser.Ecto.Sort do
   end
 
   defp parse_sort_components([field_name | rest], resource, components) do
-    relationships = resource.relationships()
+    relationships = Resource.relationships(resource)
 
     valid_relationships =
       Enum.map(
         relationships,
-        &to_string(Resource.field_option(&1, :name) || Resource.field_name(&1))
+        &to_string(Resource.field_option(resource, &1, :name) || &1)
       )
 
     unless field_name in valid_relationships do
-      raise InvalidQuery, type: resource.type(), param: "sort", value: field_name
+      raise InvalidQuery, type: Resource.type(resource), param: "sort", value: field_name
     end
 
     related_resource =
       Enum.find_value(relationships, fn relationship ->
-        String.to_existing_atom(field_name) == Resource.field_name(relationship) &&
-          Resource.field_option(relationship, :resource)
+        String.to_existing_atom(field_name) == relationship &&
+          Resource.field_option(resource, relationship, :resource)
       end)
 
-    parse_sort_components(rest, related_resource, [field_name | components])
+    parse_sort_components(rest, struct(related_resource), [field_name | components])
   end
 end

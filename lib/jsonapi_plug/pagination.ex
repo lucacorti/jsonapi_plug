@@ -35,23 +35,20 @@ defmodule JSONAPIPlug.Pagination do
   @type params :: %{String.t() => String.t()}
 
   @callback paginate(
-              Resource.t(),
-              [Resource.resource()],
+              [Resource.t()] | nil,
               Conn.t() | nil,
               params(),
               Resource.options()
             ) :: links()
 
   @spec url_for(
-          Resource.t(),
-          [Resource.resource()],
+          [Resource.t()],
           Conn.t() | nil,
           params() | nil
         ) ::
           LinkObject.t()
   def url_for(
-        resource,
-        data,
+        resources,
         %Conn{query_params: query_params} = conn,
         nil = _params
       ) do
@@ -60,33 +57,26 @@ defmodule JSONAPIPlug.Pagination do
       |> to_list_of_query_string_components()
       |> URI.encode_query()
 
-    prepare_url(resource, data, conn, query)
+    prepare_url(resources, conn, query)
   end
 
   def url_for(
-        resource,
-        data,
+        resources,
         %Conn{query_params: query_params} = conn,
         params
       ) do
     url_for(
-      resource,
-      data,
+      resources,
       %Conn{conn | query_params: Map.put(query_params, "page", params)},
       nil
     )
   end
 
-  defp prepare_url(resource, data, conn, "" = _query),
-    do: Resource.url_for(resource, data, conn)
+  defp prepare_url(resources, conn, "" = _query),
+    do: JSONAPIPlug.url_for(resources, conn)
 
-  defp prepare_url(resource, data, conn, query) do
-    resource
-    |> Resource.url_for(data, conn)
-    |> URI.parse()
-    |> struct(query: query)
-    |> URI.to_string()
-  end
+  defp prepare_url(resources, conn, query),
+    do: JSONAPIPlug.url_for(resources, conn) <> "?" <> query
 
   defp to_list_of_query_string_components(map) when is_map(map),
     do: Enum.flat_map(map, &do_to_list_of_query_string_components/1)

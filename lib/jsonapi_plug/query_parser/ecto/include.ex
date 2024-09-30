@@ -26,12 +26,12 @@ defmodule JSONAPIPlug.QueryParser.Ecto.Include do
   end
 
   def parse(%JSONAPIPlug{resource: resource}, include) do
-    raise InvalidQuery, type: resource.type(), param: "include", value: include
+    raise InvalidQuery, type: Resource.type(resource), param: "include", value: include
   end
 
   defp valid_includes(includes, resource, allowed_includes) do
-    relationships = resource.relationships()
-    valid_relationships_includes = Enum.map(relationships, &to_string(Resource.field_name(&1)))
+    relationships = Resource.relationships(resource)
+    valid_relationships_includes = Enum.map(relationships, &to_string/1)
 
     Enum.reduce(
       relationships,
@@ -56,7 +56,7 @@ defmodule JSONAPIPlug.QueryParser.Ecto.Include do
          valid_relationships_includes,
          allowed_includes
        ) do
-    name = Resource.field_option(relationship, :name) || Resource.field_name(relationship)
+    name = Resource.field_option(resource, relationship, :name) || relationship
     include_name = to_string(name)
 
     Enum.reduce(includes, [], fn
@@ -72,7 +72,7 @@ defmodule JSONAPIPlug.QueryParser.Ecto.Include do
           is_list(allowed_includes) &&
             get_in(allowed_includes, [String.to_existing_atom(include_name)])
 
-        case Resource.field_option(relationship, :resource) do
+        case Resource.field_option(resource, relationship, :resource) do
           nil ->
             relationship_includes
 
@@ -82,7 +82,7 @@ defmodule JSONAPIPlug.QueryParser.Ecto.Include do
               [name],
               &Keyword.merge(
                 &1 || [],
-                valid_includes([rest], related_resource, related_allowed_includes)
+                valid_includes([rest], struct(related_resource), related_allowed_includes)
               )
             )
         end
@@ -119,7 +119,7 @@ defmodule JSONAPIPlug.QueryParser.Ecto.Include do
   rescue
     ArgumentError ->
       reraise InvalidQuery.exception(
-                type: resource.type(),
+                type: Resource.type(resource),
                 param: "include",
                 value: Enum.join(path, ".")
               ),

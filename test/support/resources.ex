@@ -1,157 +1,140 @@
 defmodule JSONAPIPlug.TestSupport.Resources do
   @moduledoc false
 
-  alias JSONAPIPlug.TestSupport.Schemas.{Post, User}
-
-  defmodule CarResource do
+  defmodule Tag do
     @moduledoc false
 
-    use JSONAPIPlug.Resource, type: "car", attributes: [:model]
+    @derive {JSONAPIPlug.Resource, type: "tag", attributes: [name: []]}
+    defstruct id: nil, name: nil
   end
 
-  defmodule CommentResource do
+  defmodule Industry do
     @moduledoc false
 
-    alias JSONAPIPlug.TestSupport.Resources.UserResource
+    alias JSONAPIPlug.TestSupport.Resources.Tag
 
-    use JSONAPIPlug.Resource,
-      type: "comment",
-      attributes: [:body, :text],
-      relationships: [user: [resource: UserResource]]
+    @derive {
+      JSONAPIPlug.Resource,
+      type: "industry", attributes: [:name], relationships: [tags: [many: true, resource: Tag]]
+    }
+
+    defstruct id: nil, name: nil, tags: []
   end
 
-  defmodule CompanyResource do
+  defmodule Company do
     @moduledoc false
+    alias JSONAPIPlug.TestSupport.Resources.Industry
 
-    alias JSONAPIPlug.TestSupport.Resources.IndustryResource
-
-    use JSONAPIPlug.Resource,
-      type: "company",
-      attributes: [:name],
-      relationships: [industry: [resource: IndustryResource]]
+    @derive {
+      JSONAPIPlug.Resource,
+      type: "company", attributes: [:name], relationships: [industry: [resource: Industry]]
+    }
+    defstruct id: nil, name: nil, industry: nil
   end
 
-  defmodule ExpensiveResourceResource do
+  defmodule User do
     @moduledoc false
+    alias JSONAPIPlug.TestSupport.Resources.{Company, Post}
 
-    use JSONAPIPlug.Resource,
-      type: "expensive-post",
-      attributes: [:name]
-
-    @impl JSONAPIPlug.Resource
-    def links(nil, _conn), do: %{}
-
-    @impl JSONAPIPlug.Resource
-    def links(resource, _conn) do
-      %{
-        queue: "/expensive-post/queue/#{resource.id}",
-        promotions: %{
-          href: "/promotions?rel=#{resource.id}",
-          meta: %{"title" => "Stuff you might be interested in"}
-        }
-      }
-    end
-  end
-
-  defmodule IndustryResource do
-    @moduledoc false
-
-    alias JSONAPIPlug.TestSupport.Resources.TagResource
-
-    use JSONAPIPlug.Resource,
-      type: "industry",
-      attributes: [:name],
-      relationships: [tags: [many: true, resource: TagResource]]
-  end
-
-  defmodule MyPostResource do
-    @moduledoc false
-
-    alias JSONAPIPlug.TestSupport.Resources.{CommentResource, UserResource}
-
-    use JSONAPIPlug.Resource,
-      type: "my-type",
-      attributes: [:body, :text, :title],
-      relationships: [
-        author: [resource: UserResource],
-        comments: [resource: CommentResource, many: true],
-        best_friends: [resource: UserResource, many: true]
-      ]
-  end
-
-  defmodule NotIncludedResource do
-    @moduledoc false
-
-    alias JSONAPIPlug.TestSupport.Resources.{CommentResource, UserResource}
-
-    use JSONAPIPlug.Resource,
-      type: "not-included",
-      attributes: [:foo],
-      relationships: [
-        author: [resource: UserResource],
-        best_comments: [resource: CommentResource, many: true]
-      ]
-  end
-
-  defmodule PostResource do
-    @moduledoc false
-
-    alias JSONAPIPlug.TestSupport.Resources.{CommentResource, UserResource}
-
-    use JSONAPIPlug.Resource,
-      type: "post",
-      path: "posts",
-      attributes: [
-        text: nil,
-        body: nil,
-        excerpt: [serialize: fn %Post{} = post, _conn -> String.slice(post.text, 0..4) end],
-        first_character: [serialize: {__MODULE__, :slice, [0..0]}],
-        second_character: [serialize: {__MODULE__, :slice, [1..1]}],
-        full_description: nil,
-        inserted_at: nil
-      ],
-      relationships: [
-        author: [resource: UserResource],
-        best_comments: [resource: CommentResource, many: true],
-        other_user: [resource: UserResource]
-      ]
-
-    @impl JSONAPIPlug.Resource
-    def meta(%Post{} = post, _conn),
-      do: %{"meta_text" => "meta_#{String.slice(post.text, 0..4) |> String.downcase()}"}
-
-    @doc false
-    def slice(%Post{} = post, _conn, range), do: String.slice(post.text, range)
-  end
-
-  defmodule TagResource do
-    @moduledoc false
-
-    use JSONAPIPlug.Resource, type: "tag", attributes: [:name]
-  end
-
-  defmodule UserResource do
-    @moduledoc false
-
-    alias JSONAPIPlug.TestSupport.Resources.{CompanyResource, MyPostResource}
-
-    use JSONAPIPlug.Resource,
+    @derive {
+      JSONAPIPlug.Resource,
       type: "user",
-      path: "users",
       attributes: [
         age: nil,
         first_name: nil,
         last_name: nil,
-        full_name: [serialize: &full_name/2],
+        full_name: [deserialize: false],
         username: nil,
         password: nil
       ],
       relationships: [
-        company: [resource: CompanyResource],
-        top_posts: [resource: MyPostResource, many: true]
+        company: [resource: Company],
+        top_posts: [resource: Post, many: true]
       ]
+    }
 
-    defp full_name(%User{} = user, _conn),
-      do: Enum.join([user.first_name, user.last_name], " ")
+    defstruct id: nil,
+              age: nil,
+              username: nil,
+              password: nil,
+              first_name: nil,
+              last_name: nil,
+              company: nil
   end
+
+  defmodule Car do
+    @moduledoc false
+    @derive {JSONAPIPlug.Resource, type: "car", attributes: [:model]}
+    defstruct id: nil, model: nil
+  end
+
+  defmodule Comment do
+    @moduledoc false
+    alias JSONAPIPlug.TestSupport.Resources.User
+
+    @derive {
+      JSONAPIPlug.Resource,
+      type: "comment", attributes: [:body, :text], relationships: [user: [resource: User]]
+    }
+    defstruct id: nil, text: nil, body: nil, user: nil, post: []
+  end
+
+  defmodule Post do
+    @moduledoc false
+
+    alias JSONAPIPlug.TestSupport.Resources.{Comment, User}
+
+    @derive {
+      JSONAPIPlug.Resource,
+      type: "post",
+      attributes: [
+        text: nil,
+        body: nil,
+        title: nil,
+        excerpt: [deserialize: false],
+        first_character: [deserialize: false],
+        second_character: [deserialize: false],
+        full_description: nil,
+        inserted_at: nil
+      ],
+      relationships: [
+        author: [resource: User],
+        best_comments: [resource: Comment, many: true],
+        other_user: [resource: User]
+      ]
+    }
+
+    defstruct id: nil,
+              title: nil,
+              text: nil,
+              body: nil,
+              full_description: nil,
+              inserted_at: nil,
+              author: nil,
+              other_user: nil,
+              best_comments: []
+  end
+end
+
+defimpl JSONAPIPlug.Resource.Attribute, for: JSONAPIPlug.TestSupport.Resources.Post do
+  def serialize(post, :excerpt, _value, _conn), do: slice(post, 0..4)
+  def serialize(post, :first_character, _value, _conn), do: slice(post, 0..0)
+  def serialize(post, :second_character, _value, _conn), do: slice(post, 1..1)
+  def serialize(_post, _attribute, value, _conn), do: value
+  def deserialize(_post, _atribute, value, _conn), do: value
+
+  defp slice(%@for{} = post, range), do: String.slice(post.text, range)
+end
+
+defimpl JSONAPIPlug.Resource.Meta, for: JSONAPIPlug.TestSupport.Resources.Post do
+  def meta(%@for{} = post, _conn),
+    do: %{"meta_text" => "meta_#{String.slice(post.text, 0..4) |> String.downcase()}"}
+end
+
+defimpl JSONAPIPlug.Resource.Attribute, for: JSONAPIPlug.TestSupport.Resources.User do
+  def serialize(%@for{} = user, :full_name, _value, _conn),
+    do: Enum.join([user.first_name, user.last_name], " ")
+
+  def serialize(_resource, _field_name, value, _conn), do: value
+  def deserialize(_resource, _field_name, value, _conn), do: value
 end

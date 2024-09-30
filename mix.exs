@@ -4,7 +4,7 @@ defmodule JSONAPIPlug.Mixfile do
   def project do
     [
       app: :jsonapi_plug,
-      version: "1.0.7",
+      version: "2.0.0",
       package: package(),
       description: "JSON:API library for Plug and Phoenix applications",
       elixir: "~> 1.13",
@@ -41,7 +41,7 @@ defmodule JSONAPIPlug.Mixfile do
       {:dialyxir, "~> 1.0", only: :dev, runtime: false},
       {:ex_doc, "~> 0.20", only: :dev, runtime: false},
       {:jason, "~> 1.0"},
-      {:nimble_options, "~> 0.4 or ~> 0.5 or ~> 1.0"},
+      {:nimble_options, "~> 1.0"},
       {:plug, "~> 1.0"}
     ]
   end
@@ -49,12 +49,13 @@ defmodule JSONAPIPlug.Mixfile do
   defp docs do
     [
       main: "readme",
-      extras: ["README.md"],
+      extras: ["README.md", "guides/upgrading.md"],
       groups_for_modules: [
-        Document: [~r/JSONAPIPlug\.Document\..*/],
+        Document: [~r/JSONAPIPlug\.Document.*/],
+        Resource: [~r/JSONAPIPlug\.Resource.*/],
         Plugs: [~r/JSONAPIPlug\.Plug\..*/],
-        Ecto: [~r/JSONAPIPlug\.(Normalizer|QueryParser)\.Ecto\.*/],
-        Parsers: [~r/JSONAPIPlug\.QueryParser\..*/],
+        Ecto: [~r/JSONAPIPlug\.(Normalizer|QueryParser)\.Ecto.*/],
+        Parsers: [~r/JSONAPIPlug\.QueryParser.*/],
         Behaviours: [~r/JSONAPIPlug\.(Normalizer|Pagination|QueryParser)/]
       ]
     ]
