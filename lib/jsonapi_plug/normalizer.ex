@@ -87,40 +87,33 @@ defmodule JSONAPIPlug.Normalizer do
          %Conn{private: %{jsonapi_plug: %JSONAPIPlug{} = jsonapi_plug}} = conn
        ) do
     jsonapi_plug.config[:normalizer].resource_params()
-    |> denormalize_id(resource_object, resource, conn, jsonapi_plug.config[:normalizer])
+    |> denormalize_id(resource_object, resource, conn)
     |> denormalize_attributes(resource_object, resource, conn)
-    |> denormalize_relationships(
-      resource_object,
-      document,
-      resource,
-      conn,
-      jsonapi_plug.config[:normalizer]
-    )
+    |> denormalize_relationships(resource_object, document, resource, conn)
   end
 
   defp denormalize_id(
          params,
-         %ResourceObject{id: nil},
-         _resource,
-         %Conn{private: %{jsonapi_plug: %JSONAPIPlug{} = jsonapi_plug}},
-         _normalizer
+         %ResourceObject{} = resource_object,
+         resource,
+         %Conn{private: %{jsonapi_plug: %JSONAPIPlug{} = jsonapi_plug}}
        ) do
     if jsonapi_plug.config[:client_generated_ids] do
-      raise InvalidDocument,
-        message: "Resource ID not received in request and API requires Client-Generated IDs",
-        reference: "https://jsonapi.org/format/1.0/#crud-creating-client-ids"
+      if is_nil(resource_object.id) do
+        raise InvalidDocument,
+          message: "Resource ID not received in request and API requires Client-Generated IDs",
+          reference: "https://jsonapi.org/format/1.0/#crud-creating-client-ids"
+      else
+        jsonapi_plug.config[:normalizer].denormalize_attribute(
+          params,
+          Resource.id_attribute(resource),
+          resource_object.id
+        )
+      end
     else
       params
     end
   end
-
-  defp denormalize_id(params, %ResourceObject{} = resource_object, resource, _conn, normalizer),
-    do:
-      normalizer.denormalize_attribute(
-        params,
-        Resource.id_attribute(resource),
-        resource_object.id
-      )
 
   defp denormalize_attributes(params, %ResourceObject{} = resource_object, resource, conn) do
     Enum.reduce(Resource.attributes(resource), params, fn attribute, params ->
@@ -168,8 +161,7 @@ defmodule JSONAPIPlug.Normalizer do
          %ResourceObject{} = resource_object,
          %Document{} = document,
          resource,
-         %Conn{private: %{jsonapi_plug: %JSONAPIPlug{} = jsonapi_plug}} = conn,
-         normalizer
+         %Conn{private: %{jsonapi_plug: %JSONAPIPlug{} = jsonapi_plug}} = conn
        ) do
     Enum.reduce(Resource.relationships(resource), params, fn relationship, params ->
       key = to_string(Resource.field_option(resource, relationship, :name) || relationship)
@@ -187,10 +179,15 @@ defmodule JSONAPIPlug.Normalizer do
           value =
             Enum.map(
               data,
-              &denormalize_relationship(document, &1, related_resource, normalizer, conn)
+              &denormalize_relationship(document, &1, related_resource, conn)
             )
 
-          normalizer.denormalize_relationship(params, relationship_object, key, value)
+          jsonapi_plug.config[:normalizer].denormalize_relationship(
+            params,
+            relationship_object,
+            key,
+            value
+          )
 
         {true, _related_data} ->
           raise InvalidDocument,
@@ -205,10 +202,16 @@ defmodule JSONAPIPlug.Normalizer do
         {false, %RelationshipObject{data: nil} = _relationship_object} ->
           params
 
-        {false,
-         %RelationshipObject{data: %ResourceIdentifierObject{} = data} = relationship_object} ->
-          value = denormalize_relationship(document, data, related_resource, normalizer, conn)
-          normalizer.denormalize_relationship(params, relationship_object, key, value)
+        {false, %RelationshipObject{data: resource_identifier_object} = relationship_object} ->
+          value =
+            denormalize_relationship(document, resource_identifier_object, related_resource, conn)
+
+          jsonapi_plug.config[:normalizer].denormalize_relationship(
+            params,
+            relationship_object,
+            key,
+            value
+          )
       end
     end)
   end
@@ -217,21 +220,24 @@ defmodule JSONAPIPlug.Normalizer do
          document,
          %ResourceIdentifierObject{id: id, lid: lid, type: type},
          related_resource,
-         normalizer,
-         conn
+         %Conn{private: %{jsonapi_plug: %JSONAPIPlug{} = jsonapi_plug}} = conn
        ) do
     Enum.find_value(
       document.included || [],
-      normalizer.denormalize_attribute(%{}, Resource.id_attribute(related_resource), lid || id),
+      jsonapi_plug.config[:normalizer].denormalize_attribute(
+        %{},
+        Resource.id_attribute(related_resource),
+        id
+      ),
       fn
-        %ResourceObject{id: nil, lid: nil} ->
+        %ResourceObject{id: id, lid: lid} when is_nil(id) and is_nil(lid) ->
           nil
 
-        %ResourceObject{id: nil, lid: ^lid, type: ^type} = resource_object ->
-          denormalize_resource(document, resource_object, related_resource, conn)
-
-        %ResourceObject{id: ^id, lid: nil, type: ^type} = resource_object ->
-          denormalize_resource(document, resource_object, related_resource, conn)
+        %ResourceObject{type: ^type} = resource_object ->
+          if (jsonapi_plug.config[:client_generated_ids] and resource_object.id == id) or
+               resource_object.lid == lid do
+            denormalize_resource(document, resource_object, related_resource, conn)
+          end
 
         %ResourceObject{} ->
           nil
