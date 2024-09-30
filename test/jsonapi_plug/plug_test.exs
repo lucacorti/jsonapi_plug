@@ -2,7 +2,7 @@ defmodule JSONAPIPlug.PlugTest do
   use ExUnit.Case
   use Plug.Test
 
-  alias JSONAPIPlug.Exceptions.InvalidQuery
+  alias JSONAPIPlug.Exceptions.{InvalidDocument, InvalidQuery}
   alias JSONAPIPlug.TestSupport.Plugs.{CarResourcePlug, PostResourcePlug, UserResourcePlug}
   alias Plug.Conn
 
@@ -323,6 +323,93 @@ defmodule JSONAPIPlug.PlugTest do
                |> put_req_header("content-type", JSONAPIPlug.mime_type())
                |> put_req_header("accept", JSONAPIPlug.mime_type())
                |> UserResourcePlug.call([])
+    end
+  end
+
+  test "rejects id in resource" do
+    assert_raise InvalidDocument, fn ->
+      conn(
+        :post,
+        "/",
+        Jason.encode!(%{
+          "data" => %{
+            "id" => "1",
+            "type" => "user",
+            "attributes" => %{
+              "firstName" => "Jerome"
+            }
+          }
+        })
+      )
+      |> put_req_header("content-type", JSONAPIPlug.mime_type())
+      |> put_req_header("accept", JSONAPIPlug.mime_type())
+      |> UserResourcePlug.call([])
+    end
+  end
+
+  test "accepts id in relationships" do
+    assert %Conn{private: %{jsonapi_plug: %JSONAPIPlug{params: params}}} =
+             conn(
+               :post,
+               "/",
+               Jason.encode!(%{
+                 "data" => %{
+                   "type" => "user",
+                   "attributes" => %{
+                     "firstName" => "Jerome"
+                   },
+                   "relationships" => %{
+                     "company" => %{
+                       "data" => %{
+                         "id" => "1",
+                         "type" => "company"
+                       }
+                     }
+                   }
+                 }
+               })
+             )
+             |> put_req_header("content-type", JSONAPIPlug.mime_type())
+             |> put_req_header("accept", JSONAPIPlug.mime_type())
+             |> UserResourcePlug.call([])
+
+    assert params["company_id"] == "1"
+  end
+
+  test "rejects id in included resource" do
+    assert_raise InvalidDocument, fn ->
+      conn(
+        :post,
+        "/",
+        Jason.encode!(%{
+          "data" => %{
+            "type" => "user",
+            "attributes" => %{
+              "firstName" => "Jerome"
+            },
+            "relationships" => %{
+              "company" => %{
+                "data" => %{
+                  "id" => "1",
+                  "type" => "company"
+                }
+              }
+            }
+          },
+          "included" => [
+            %{
+              "id" => "1",
+              "type" => "company",
+              "attributes" => %{
+                "name" => "Tara"
+              }
+            }
+          ]
+        })
+      )
+      |> put_req_header("content-type", JSONAPIPlug.mime_type())
+      |> put_req_header("accept", JSONAPIPlug.mime_type())
+      |> UserResourcePlug.call([])
     end
   end
 

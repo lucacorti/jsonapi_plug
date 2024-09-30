@@ -181,10 +181,14 @@ defmodule JSONAPIPlug.Normalizer do
         {_many?, nil} ->
           params
 
-        {true, %RelationshipObject{data: data} = relationship_object} when is_list(data) ->
+        {_many?, %RelationshipObject{data: nil} = _relationship_object} ->
+          params
+
+        {true, %RelationshipObject{data: resource_identifier_object} = relationship_object}
+        when is_list(resource_identifier_object) ->
           value =
             Enum.map(
-              data,
+              resource_identifier_object,
               &denormalize_relationship(document, &1, related_resource, conn)
             )
 
@@ -204,9 +208,6 @@ defmodule JSONAPIPlug.Normalizer do
           raise InvalidDocument,
             message: "List of resources for one-to-one relationship during normalization",
             reference: nil
-
-        {false, %RelationshipObject{data: nil} = _relationship_object} ->
-          params
 
         {false, %RelationshipObject{data: resource_identifier_object} = relationship_object} ->
           value =
