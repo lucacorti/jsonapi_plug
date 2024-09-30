@@ -98,26 +98,26 @@ defmodule JSONAPIPlug.Normalizer do
          resource,
          %Conn{private: %{jsonapi_plug: %JSONAPIPlug{} = jsonapi_plug}}
        ) do
-    if jsonapi_plug.config[:client_generated_ids] do
-      if is_nil(resource_object.id) do
+    case {jsonapi_plug.config[:client_generated_ids], resource_object.id} do
+      {true, nil} ->
         raise InvalidDocument,
           message: "Resource ID not received in request and API requires Client-Generated IDs",
           reference: "https://jsonapi.org/format/1.0/#crud-creating-client-ids"
-      else
+
+      {true, id} ->
         jsonapi_plug.config[:normalizer].denormalize_attribute(
           params,
           Resource.id_attribute(resource),
-          resource_object.id
+          id
         )
-      end
-    else
-      if is_nil(resource_object.id) do
+
+      {false, nil} ->
         params
-      else
+
+      {false, _id} ->
         raise InvalidDocument,
           message: "Resource ID received in request and API forbids Client-Generated IDs",
           reference: "https://jsonapi.org/format/1.0/#crud-creating-client-ids"
-      end
     end
   end
 
