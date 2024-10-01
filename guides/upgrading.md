@@ -1,6 +1,6 @@
 # Upgrading
 
-Upgrade instructions between major versions of `JSONAPIPlug`.
+Instructions to upgrade between major versions of `JSONAPIPlug`.
 
 ## Upgrading from 1.x to 2.0
 
@@ -23,3 +23,8 @@ Upgrade instructions between major versions of `JSONAPIPlug`.
     `JSONAPIPlug.Resource.Meta` protocol for your resource to add per-resource `JSON:API` meta.
   6. If you use phonenix, either call `JSONAPIPlug.render/5` in your controllers or add `use MyAppWeb, :json_api`
      to your `_json.ex` modules and call `render/3`. See the README for complete instructions.
+  7. If you are sending resource `ids` in `included` for resource create requests, this is now forbidden unless
+     the `client_generated_ids` option is configured on your `JSONAPIPlug.API`. You can however use `JSON:API 1.1`
+     `lid` in relationships and included resources if you whish to create resources with included resources atomically.
+     Please note that this works even though the reported `JSON:API` version is still `1.0`, because the library still
+     does not support the full `JSON:API 1.1` specification yet, only `lid` is supported for now.

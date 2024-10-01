@@ -37,8 +37,12 @@ defmodule JSONAPIPlug.Normalizer.Ecto do
         relationship,
         value
       ) do
-    params
-    |> Map.put(to_string(relationship), value)
-    |> Map.put("#{relationship}_id", if(data, do: data.id))
+    params = Map.put(params, to_string(relationship), value)
+
+    if data do
+      Map.put(params, "#{relationship}_id", data.id)
+    else
+      params
+    end
   end
 end
