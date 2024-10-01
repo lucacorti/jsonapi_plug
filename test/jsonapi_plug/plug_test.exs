@@ -413,6 +413,92 @@ defmodule JSONAPIPlug.PlugTest do
     end
   end
 
+  test "accepts id in resource and included for patch" do
+    assert %Conn{private: %{jsonapi_plug: %JSONAPIPlug{params: params}}} =
+             conn(
+               :patch,
+               "/",
+               Jason.encode!(%{
+                 "data" => %{
+                   "id" => "1",
+                   "type" => "user",
+                   "attributes" => %{
+                     "firstName" => "Jerome"
+                   },
+                   "relationships" => %{
+                     "company" => %{
+                       "data" => %{"id" => "1", "type" => "company"}
+                     },
+                     "topPosts" => %{
+                       "data" => [
+                         %{"id" => "1", "type" => "my-type"},
+                         %{"id" => "2", "type" => "my-type"},
+                         %{"id" => "3", "type" => "my-type"}
+                       ]
+                     }
+                   }
+                 },
+                 "included" => [
+                   %{
+                     "attributes" => %{
+                       "name" => "Evil Corp"
+                     },
+                     "id" => "1",
+                     "type" => "company"
+                   },
+                   %{
+                     "attributes" => %{
+                       "title" => "Wild Bill",
+                       "body" => "A wild cowboy.",
+                       "text" => "His rebel life."
+                     },
+                     "id" => "1",
+                     "type" => "my-type"
+                   },
+                   %{
+                     "attributes" => %{
+                       "title" => "Naughty Sean",
+                       "body" => "A petty criminal.",
+                       "text" => "His dangerous life."
+                     },
+                     "id" => "2",
+                     "type" => "my-type"
+                   },
+                   %{
+                     "attributes" => %{
+                       "title" => "Cool Vaughn",
+                       "body" => "A chill dude.",
+                       "text" => "His laid back life."
+                     },
+                     "id" => "3",
+                     "type" => "my-type"
+                   }
+                 ]
+               })
+             )
+             |> put_req_header("content-type", JSONAPIPlug.mime_type())
+             |> put_req_header("accept", JSONAPIPlug.mime_type())
+             |> UserResourcePlug.call([])
+
+    assert params["id"] == "1"
+    assert params["first_name"] == "Jerome"
+    assert params["company_id"] == "1"
+    assert params["company"]["id"] == "1"
+    assert params["company"]["name"] == "Evil Corp"
+    assert get_in(params, ["top_posts", Access.at(0), "id"]) == "1"
+    assert get_in(params, ["top_posts", Access.at(0), "body"]) == "A wild cowboy."
+    assert get_in(params, ["top_posts", Access.at(0), "text"]) == "His rebel life."
+    assert get_in(params, ["top_posts", Access.at(0), "title"]) == "Wild Bill"
+    assert get_in(params, ["top_posts", Access.at(1), "id"]) == "2"
+    assert get_in(params, ["top_posts", Access.at(1), "body"]) == "A petty criminal."
+    assert get_in(params, ["top_posts", Access.at(1), "text"]) == "His dangerous life."
+    assert get_in(params, ["top_posts", Access.at(1), "title"]) == "Naughty Sean"
+    assert get_in(params, ["top_posts", Access.at(2), "id"]) == "3"
+    assert get_in(params, ["top_posts", Access.at(2), "body"]) == "A chill dude."
+    assert get_in(params, ["top_posts", Access.at(2), "text"]) == "His laid back life."
+    assert get_in(params, ["top_posts", Access.at(2), "title"]) == "Cool Vaughn"
+  end
+
   describe "query parameters" do
     test "parse_sort/2 turns sorts into valid ecto sorts" do
       assert %Conn{private: %{jsonapi_plug: %JSONAPIPlug{sort: [asc: :body, asc: :title]}}} =

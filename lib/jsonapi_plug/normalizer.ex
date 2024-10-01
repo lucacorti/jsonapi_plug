@@ -96,6 +96,19 @@ defmodule JSONAPIPlug.Normalizer do
          params,
          %ResourceObject{} = resource_object,
          resource,
+         %Conn{method: "PATCH", private: %{jsonapi_plug: %JSONAPIPlug{} = jsonapi_plug}}
+       ) do
+    jsonapi_plug.config[:normalizer].denormalize_attribute(
+      params,
+      Resource.id_attribute(resource),
+      resource_object.id
+    )
+  end
+
+  defp denormalize_id(
+         params,
+         %ResourceObject{} = resource_object,
+         resource,
          %Conn{private: %{jsonapi_plug: %JSONAPIPlug{} = jsonapi_plug}}
        ) do
     case {jsonapi_plug.config[:client_generated_ids], resource_object.id} do
@@ -241,8 +254,10 @@ defmodule JSONAPIPlug.Normalizer do
           nil
 
         %ResourceObject{type: ^type} = resource_object ->
-          if (jsonapi_plug.config[:client_generated_ids] and resource_object.id == id) or
-               resource_object.lid == lid do
+          if ((conn.method == "PATCH" or jsonapi_plug.config[:client_generated_ids]) and
+                not is_nil(resource_object.id) and resource_object.id == id) or
+               (conn.method != "PATCH" and is_nil(resource_object.lid) and
+                  resource_object.lid == lid) do
             denormalize_resource(document, resource_object, related_resource, conn)
           end
 
