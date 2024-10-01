@@ -11,12 +11,13 @@ defmodule JSONAPIPlug.Document.ResourceObject do
 
   @type id :: String.t()
   @type type :: String.t()
+  @type attributes :: %{String.t() => Document.value()}
 
   @type t :: %__MODULE__{
           id: id(),
           lid: id(),
           type: type(),
-          attributes: %{String.t() => Document.value()} | nil,
+          attributes: attributes() | nil,
           links: Document.links() | nil,
           meta: Document.meta() | nil,
           relationships: %{String.t() => [RelationshipObject.t()]} | nil
@@ -65,6 +66,7 @@ defmodule JSONAPIPlug.Document.ResourceObject do
           title: "Resource object type (#{type}) is invalid",
           detail: "https://jsonapi.org/format/#document-resource-objects"
         }
+      ]
   end
 
   defp deserialize_attributes(_resource_object, %{"attributes" => %{"id" => _id}}) do

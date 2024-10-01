@@ -31,8 +31,12 @@ defmodule JSONAPIPlug.Normalizer do
   any point in your normalizer code.
   """
 
+  alias JSONAPIPlug.Resource.ErrorFormatter
+
   alias JSONAPIPlug.{
     Document,
+    Document,
+    Document.ErrorObject,
     Document.RelationshipObject,
     Document.ResourceIdentifierObject,
     Document.ResourceObject,
@@ -146,29 +150,31 @@ defmodule JSONAPIPlug.Normalizer do
     end
   end
 
-  defp denormalize_attributes(params, %ResourceObject{} = resource_object, resource, conn) do
-    Enum.reduce(Resource.attributes(resource), params, &denormalize_attribute(&2, resource_object, resource, &1, conn))
-    |> validate_params(resource, case)
+  defp denormalize_attributes(
+         params,
+         %ResourceObject{} = resource_object,
+         resource,
+         conn
+       ) do
+    Enum.reduce(
+      Resource.attributes(resource),
+      params,
+      &denormalize_attribute(&2, resource_object, resource, &1, conn)
+    )
+    |> validate_params(resource, conn)
   end
 
-  defp validate_params(params, resource, case) do
-    case resource.validate(params) do
+  defp validate_params(params, resource, %Conn{
+         private: %{jsonapi_plug: %JSONAPIPlug{} = jsonapi_plug}
+       }) do
+    case Resource.validate(resource, params) do
       :ok ->
         params
 
       {:error, errors} ->
         raise InvalidAttributes,
-          message: "Resource '#{resource.type()}' is invalid.",
-          errors:
-            Enum.map(errors, fn {msg, "#/" <> pointer} ->
-              name = resource.recase_field(pointer, case)
-
-              %ErrorObject{
-                title: "Attribute '#{name}' is invalid.",
-                detail: msg,
-                source: %{pointer: "/data/attributes/" <> name}
-              }
-            end)
+          message: "Resource '#{Resource.type(resource)}' is invalid.",
+          errors: ErrorFormatter.format(errors, resource, jsonapi_plug.config[:case])
     end
   end
 
@@ -404,21 +410,21 @@ defmodule JSONAPIPlug.Normalizer do
       case {related_many, related_resource} do
         {false, related_resources} when is_list(related_resources) ->
           raise InvalidDocument,
-            message: "Invalid value for '#{resource.type()}' relationship '#{name}'",
+            message: "Invalid value for '#{Resource.type(resource)}' relationship '#{key}'",
             errors: [
               %ErrorObject{
-                title: "Invalid value for '#{resource.type()}' relationship '#{name}'",
-                detail: "Relationship '#{name}' is one-to-one but a list was received."
+                title: "Invalid value for '#{Resource.type(resource)}' relationship '#{key}'",
+                detail: "Relationship '#{key}' is one-to-one but a list was received."
               }
             ]
 
         {true, _related_resource} when not is_list(related_resource) ->
           raise InvalidDocument,
-            message: "Invalid value for '#{resource.type()}' relationship '#{name}'",
+            message: "Invalid value for '#{Resource.type(resource)}' relationship '#{key}'",
             errors: [
               %ErrorObject{
-                title: "Invalid value for '#{resource.type()}' relationship '#{name}'",
-                detail: "Relationship '#{name}' is one-to-many but a single value was received."
+                title: "Invalid value for '#{Resource.type(resource)}' relationship '#{key}'",
+                detail: "Relationship '#{key}' is one-to-many but a single value was received."
               }
             ]
 
@@ -513,6 +519,7 @@ defmodule JSONAPIPlug.Normalizer do
     related_data = Map.get(resource, relationship)
     related_loaded? = relationship_loaded?(related_data)
     related_many = Resource.field_option(resource, relationship, :many)
+    related_resource = struct(Resource.field_option(resource, relationship, :resource))
 
     case {related_loaded?, related_many, related_data} do
       {true, true, related_data} when is_list(related_data) ->
@@ -523,21 +530,26 @@ defmodule JSONAPIPlug.Normalizer do
 
       {true, _related_many, related_data} when is_list(related_data) ->
         raise InvalidDocument,
-          message: "Invalid value for '#{related_resource.type()}' relationship '#{name}'",
+          message:
+            "Invalid value for '#{Resource.type(related_resource)}' relationship '#{relationship}'",
           errors: [
             %ErrorObject{
-              title: "Invalid value for '#{related_resource.type()}' relationship '#{name}'",
-              detail: "Relationship '#{name}' is one-to-one but a list was received."
+              title:
+                "Invalid value for '#{Resource.type(related_resource)}' relationship '#{relationship}'",
+              detail: "Relationship '#{relationship}' is one-to-one but a list was received."
             }
           ]
 
       {true, true, _related_data} ->
         raise InvalidDocument,
-          message: "Invalid value for '#{related_resource.type()}' relationship '#{name}'",
+          message:
+            "Invalid value for '#{Resource.type(related_resource)}' relationship '#{relationship}'",
           errors: [
             %ErrorObject{
-              title: "Invalid value for '#{related_resource.type()}' relationship '#{name}'",
-              detail: "Relationship '#{name}' is one-to-many but a single value was received."
+              title:
+                "Invalid value for '#{Resource.type(related_resource)}' relationship '#{relationship}'",
+              detail:
+                "Relationship '#{relationship}' is one-to-many but a single value was received."
             }
           ]
 
