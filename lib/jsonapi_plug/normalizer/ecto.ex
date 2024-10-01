@@ -2,7 +2,7 @@ defmodule JSONAPIPlug.Normalizer.Ecto do
   @moduledoc """
   JSON:API Document normalizer implementation for Ecto
 
-  Translating `JSON:API` resources to and from an Ecto friendly format in conn params.
+  Translates `JSON:API` resources to an Ecto friendly format in conn params.
   Deserialization produces attributes and relationships in a way that directly translates
   to attributes that can be passed to an `Ecto.Changeset` for validation and later to
   `Ecto.Repo` for database operations.
@@ -37,11 +37,12 @@ defmodule JSONAPIPlug.Normalizer.Ecto do
         relationship,
         value
       ) do
-    params
-    |> Map.put(to_string(relationship), value)
-    |> Map.put("#{relationship}_id", if(data, do: data.id, else: nil))
-  end
+    params = Map.put(params, to_string(relationship), value)
 
-  @impl Normalizer
-  def normalize_attribute(params, attribute), do: Map.get(params, attribute)
+    if data do
+      Map.put(params, "#{relationship}_id", data.id)
+    else
+      params
+    end
+  end
 end

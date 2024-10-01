@@ -59,13 +59,12 @@ defmodule JSONAPIPlug.Document.ResourceObject do
 
   defp deserialize_type(_resource_object, %{"type" => type}) do
     raise InvalidDocument,
-      message: "Resource object type (#{type}) is invalid",
+      message: "Resource object type '#{type}' is invalid",
       errors: [
         %ErrorObject{
           title: "Resource object type (#{type}) is invalid",
           detail: "https://jsonapi.org/format/#document-resource-objects"
         }
-      ]
   end
 
   defp deserialize_attributes(_resource_object, %{"attributes" => %{"id" => _id}}) do

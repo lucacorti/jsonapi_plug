@@ -11,32 +11,19 @@ defmodule JSONAPIPlug.Document.ResourceIdentifierObject do
 
   @type t :: %__MODULE__{
           id: ResourceObject.id(),
+          lid: ResourceObject.id(),
           type: ResourceObject.type(),
           meta: Document.meta() | nil
         }
-  defstruct [:id, :type, :meta]
+  defstruct [:id, :lid, :meta, :type]
 
   @spec deserialize(Document.payload()) :: t() | no_return()
   def deserialize(data) do
     %__MODULE__{}
     |> deserialize_id(data)
-    |> deserialize_type(data)
+    |> deserialize_lid(data)
     |> deserialize_meta(data)
-  end
-
-  defp deserialize_type(resource_identifier_object, %{"type" => type})
-       when is_binary(type) and byte_size(type) > 0,
-       do: %__MODULE__{resource_identifier_object | type: type}
-
-  defp deserialize_type(_resource_identifier_object, type) do
-    raise InvalidDocument,
-      message: "Resource Identifier object type '#{type}' is invalid",
-      errors: [
-        %ErrorObject{
-          title: "Resource Identifier object type '#{type}' is invalid",
-          detail: "https://jsonapi.org/format/#document-resource-objects"
-        }
-      ]
+    |> deserialize_type(data)
   end
 
   defp deserialize_id(resource_identifier_object, %{"id" => id})
@@ -45,6 +32,12 @@ defmodule JSONAPIPlug.Document.ResourceIdentifierObject do
 
   defp deserialize_id(resource_identifier_object, _data),
     do: resource_identifier_object
+
+  defp deserialize_lid(resource_object, %{"lid" => lid})
+       when is_binary(lid) and byte_size(lid) > 0,
+       do: %__MODULE__{resource_object | lid: lid}
+
+  defp deserialize_lid(resource_object, _data), do: resource_object
 
   defp deserialize_meta(resource_identifier_object, %{"meta" => meta})
        when is_map(meta),
@@ -63,4 +56,19 @@ defmodule JSONAPIPlug.Document.ResourceIdentifierObject do
 
   defp deserialize_meta(resource_identifier_object, _payload),
     do: resource_identifier_object
+
+  defp deserialize_type(resource_identifier_object, %{"type" => type})
+       when is_binary(type) and byte_size(type) > 0,
+       do: %__MODULE__{resource_identifier_object | type: type}
+
+  defp deserialize_type(_resource_identifier_object, type) do
+    raise InvalidDocument,
+      message: "Resource Identifier object type '#{type}' is invalid",
+      errors: [
+        %ErrorObject{
+          title: "Resource Identifier object type '#{type}' is invalid",
+          detail: "https://jsonapi.org/format/#document-resource-objects"
+        }
+      ]
+  end
 end

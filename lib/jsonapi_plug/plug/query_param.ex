@@ -9,7 +9,6 @@ defmodule JSONAPIPlug.Plug.QueryParam do
   assigns under the `jsonapi_plug` key.
   """
 
-  alias JSONAPIPlug.API
   alias Plug.Conn
 
   @behaviour Plug
@@ -23,7 +22,7 @@ defmodule JSONAPIPlug.Plug.QueryParam do
           conn,
         query_param
       ) do
-    parser = API.get_config(jsonapi_plug.api, [:query_parsers, query_param])
+    parser = jsonapi_plug.config[:query_parsers][query_param]
     value = Map.get(query_params, to_string(query_param))
 
     Conn.put_private(

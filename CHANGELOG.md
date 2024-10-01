@@ -1,5 +1,40 @@
 # Changelog
 
+## 2.0.0 "Protocols" (TBA)
+
+`JSOAPIPlug` 2.0 has moved to a protocol based approach to resource definition.
+This is the result of a big refactoring, cleaning up internals and providing a more
+stable foundation for the library moving forward. This means there are a number of
+breaking changes that require changes to applications using `JSONAPIPlug`.
+
+See the [upgrade guide][upgrade] in the docs for detailed upgrade instructions from 1.0.
+
+- `JSONAPIPlug.Resource` is now a protocol instead of a behaviour.
+  Using structs as resource data is now mandatory.
+- Moved `path` option from `JSONAPI.Resource` to `JSONAPIPlug.Plug`.
+- Passing functions to `JSONAPIPlug.Resource` attribute `serialize`
+  and `deserialize` to customize attribute value serialization and
+  deserialization has been replaced by `JSONAPIPlug.Resource.Attribute`.
+- Generating per-resource `JSON:API` links and meta with `JSONAPIPlug.Resource`
+  callbacks has been replaces by the `JSONAPIPlug.Resource.Links` and
+  `JSONAPIPlug.Resource.Meta` protocols.
+- Removed `links` option to `JSONAPIPlug.API`. Resource links are always generated.
+- Moved the Phoenix render function to a component module in the library, thiis can
+  be added to the phoenix `MyAppWeb` module and imported in the phoenix `_json.ex`
+  module via `use MyAppWeb, :jsonapi` as per phoenix conventions.
+- Enforce `client_generated_ids` option. This prevents sending ids in resources and
+  included resources when `client_generated_ids` is turned off. If you were sending
+  ids to support resource creation with included atomically, this is now supported
+  by sending `JSON:API 1.1` `lid` in relationships and included resources. This
+  is supported even though the reported jsonapi vesion is still `1.0` becasuse the
+  library still doesn't have full `JSON:API 1.1` support. Only `lid` is supported.
+
+Contributors: @lucacorti
+
+## 1.0.7 (2024-09-23)
+
+- Fix case in deserialization of relationships (@treere)
+
 ## 1.0.6 (2024-05-24)
 
 - Fix deserialization of many relationships (@lucacorti, @alexgolasibill)
@@ -42,3 +77,5 @@ What `jsonapi_plug` has to offer to users of Phoenix/Plug for building `JSON:API
 - A declarative resource system allowing users to control rendering, rename fields between `JSON:API` payloads and internal data, customize (de)serialization of fields values and more without writing additional business logic code.
 
 Contributors: @lucacorti
+
+[upgrade]: https://hexdocs.pm/jsonapi_plug/upgrading.html

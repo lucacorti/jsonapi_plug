@@ -64,7 +64,7 @@ defmodule JSONAPIPlug.Document do
   https://jsonapi.org/format/#document-structure
   """
   @type t :: %__MODULE__{
-          data: data() | Resource.data() | nil,
+          data: Resource.t() | [Resource.t()] | nil,
           errors: errors() | nil,
           included: included() | nil,
           jsonapi: jsonapi() | nil,
