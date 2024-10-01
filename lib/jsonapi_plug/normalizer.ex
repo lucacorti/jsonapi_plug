@@ -254,11 +254,21 @@ defmodule JSONAPIPlug.Normalizer do
           nil
 
         %ResourceObject{type: ^type} = resource_object ->
-          if ((conn.method == "PATCH" or jsonapi_plug.config[:client_generated_ids]) and
-                not is_nil(resource_object.id) and resource_object.id == id) or
-               (conn.method != "PATCH" and is_nil(resource_object.lid) and
-                  resource_object.lid == lid) do
-            denormalize_resource(document, resource_object, related_resource, conn)
+          case {
+            conn.method,
+            jsonapi_plug.config[:client_generated_ids],
+            resource_object
+          } do
+            {method, c_g_ids, %ResourceObject{id: ^id}}
+            when (method == "PATCH" or c_g_ids) and not is_nil(id) ->
+              denormalize_resource(document, resource_object, related_resource, conn)
+
+            {method, _c_g_ids, %ResourceObject{lid: ^lid}}
+            when method != "PATCH" and not is_nil(lid) ->
+              denormalize_resource(document, resource_object, related_resource, conn)
+
+            _other ->
+              nil
           end
 
         %ResourceObject{} ->
