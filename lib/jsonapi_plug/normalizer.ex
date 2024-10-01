@@ -238,7 +238,7 @@ defmodule JSONAPIPlug.Normalizer do
 
   defp denormalize_relationship(
          document,
-         %ResourceIdentifierObject{id: id, lid: lid, type: type},
+         %ResourceIdentifierObject{} = resource_identifier_object,
          related_resource,
          %Conn{private: %{jsonapi_plug: %JSONAPIPlug{} = jsonapi_plug}} = conn
        ) do
@@ -247,38 +247,45 @@ defmodule JSONAPIPlug.Normalizer do
       jsonapi_plug.config[:normalizer].denormalize_attribute(
         %{},
         Resource.id_attribute(related_resource),
-        id
+        resource_identifier_object.id
       ),
-      fn
-        %ResourceObject{id: nil, lid: nil} ->
-          nil
-
-        %ResourceObject{type: ^type} = resource_object ->
-          case {
-            conn.method,
-            jsonapi_plug.config[:client_generated_ids],
-            resource_object
-          } do
-            {method, client_generated_ids, %ResourceObject{id: ^id}}
-            when (method == "PATCH" or client_generated_ids) and not is_nil(id) ->
-              denormalize_resource(document, resource_object, related_resource, conn)
-
-            {method, _client_generated_ids, %ResourceObject{id: ^id}}
-            when method != "PATCH" and not is_nil(id) ->
-              denormalize_resource(document, resource_object, related_resource, conn)
-
-            {method, _client_generated_ids, %ResourceObject{lid: ^lid}}
-            when method != "PATCH" and not is_nil(lid) ->
-              denormalize_resource(document, resource_object, related_resource, conn)
-
-            _other ->
-              nil
-          end
-
-        %ResourceObject{} ->
-          nil
-      end
+      &maybe_denormalize_relationship(
+        document,
+        resource_identifier_object,
+        &1,
+        related_resource,
+        conn
+      )
     )
+  end
+
+  defp maybe_denormalize_relationship(
+         document,
+         %ResourceIdentifierObject{id: id, lid: lid, type: type},
+         resource_object,
+         related_resource,
+         %Conn{private: %{jsonapi_plug: %JSONAPIPlug{} = jsonapi_plug}} = conn
+       ) do
+    case {
+      conn.method,
+      jsonapi_plug.config[:client_generated_ids],
+      resource_object
+    } do
+      {method, client_generated_ids, %ResourceObject{id: ^id, type: ^type}}
+      when (method == "PATCH" or client_generated_ids) and not is_nil(id) ->
+        denormalize_resource(document, resource_object, related_resource, conn)
+
+      {method, _client_generated_ids, %ResourceObject{id: ^id, type: ^type}}
+      when method != "PATCH" and not is_nil(id) ->
+        denormalize_resource(document, resource_object, related_resource, conn)
+
+      {method, _client_generated_ids, %ResourceObject{lid: ^lid, type: ^type}}
+      when method != "PATCH" and not is_nil(lid) ->
+        denormalize_resource(document, resource_object, related_resource, conn)
+
+      _other ->
+        nil
+    end
   end
 
   @doc "Transforms user data into a JSON:API Document"
