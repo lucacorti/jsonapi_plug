@@ -39,9 +39,7 @@ defimpl JSONAPIPlug.Resource.Validator, for: Any do
   def validate(resource, attributes, %Conn{
         private: %{jsonapi_plug: %JSONAPIPlug{} = jsonapi_plug}
       }) do
-    schema = Resource.schema(resource)
-
-    case Validator.validate(schema, attributes, error_formatter: false) do
+    case Validator.validate(Resource.schema(resource), attributes, error_formatter: false) do
       :ok ->
         :ok
 
