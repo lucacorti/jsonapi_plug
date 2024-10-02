@@ -161,12 +161,12 @@ defmodule JSONAPIPlug.Normalizer do
       params,
       &denormalize_attribute(&2, resource_object, resource, &1, conn)
     )
-    |> validate_params(resource, conn)
+    |> validate_attributes(resource, conn)
   end
 
-  defp validate_params(params, resource, %Conn{
-         private: %{jsonapi_plug: %JSONAPIPlug{} = jsonapi_plug}
-       }) do
+  defp validate_attributes(params, _resource, %Conn{method: "PATCH"}), do: params
+
+  defp validate_attributes(params, resource, %Conn{private: %{jsonapi_plug: %JSONAPIPlug{} = jsonapi_plug}}) do
     case Resource.validate(resource, params) do
       :ok ->
         params
