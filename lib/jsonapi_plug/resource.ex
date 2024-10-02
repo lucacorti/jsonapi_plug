@@ -142,18 +142,20 @@ defprotocol JSONAPIPlug.Resource do
   def relationships(resource)
 
   @doc """
+  Resource schema
+
+  Returns an ExJsonSchema used to validate resource attributes.
+  """
+  @spec schema(t()) :: term()
+  def schema(resource)
+
+  @doc """
   Resource Type
 
   Returns the Resource Type of resources for the
   """
   @spec type(t()) :: ResourceObject.type()
   def type(resource)
-
-  @doc """
-  Validates the resource
-  """
-  @spec validate(t(), ResourceObject.attributes()) :: :ok | {:error, term()}
-  def validate(resource, attributes)
 end
 
 defimpl JSONAPIPlug.Resource, for: Any do
@@ -196,11 +198,8 @@ defimpl JSONAPIPlug.Resource, for: Any do
         def path(_resource), do: unquote(options[:path])
         unquote(recase_field)
         def relationships(_resource), do: unquote(relationships)
+        def schema(_resource), do: unquote(schema)
         def type(_resource), do: unquote(options[:type])
-
-        def validate(_resource, params) do
-          ExJsonSchema.Validator.validate(unquote(schema), params, error_formatter: false)
-        end
       end
     end
   end
@@ -282,6 +281,6 @@ defimpl JSONAPIPlug.Resource, for: Any do
   def path(_resource), do: nil
   def recase_field(_resource, field, _case), do: field
   def relationships(_resource), do: []
+  def schema(_resource), do: nil
   def type(_resource), do: ""
-  def validate(_resource, _params), do: :ok
 end

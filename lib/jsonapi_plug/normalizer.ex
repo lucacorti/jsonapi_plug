@@ -31,24 +31,16 @@ defmodule JSONAPIPlug.Normalizer do
   any point in your normalizer code.
   """
 
-  alias JSONAPIPlug.Resource.ErrorFormatter
-
-  alias JSONAPIPlug.{
-    Document,
-    Document,
-    Document.ErrorObject,
-    Document.RelationshipObject,
-    Document.ResourceIdentifierObject,
-    Document.ResourceObject,
-    Exceptions.InvalidDocument,
-    Pagination,
-    Resource,
-    Resource.Attribute,
-    Resource.Links,
-    Resource.Meta
-  }
-
+  alias JSONAPIPlug.{Document, Pagination, Resource}
   alias JSONAPIPlug.Exceptions.{InvalidAttributes, InvalidDocument}
+  alias JSONAPIPlug.Resource.{Attribute, Links, Meta, Validator}
+
+  alias JSONAPIPlug.Document.{
+    ErrorObject,
+    RelationshipObject,
+    ResourceIdentifierObject,
+    ResourceObject
+  }
 
   alias Plug.Conn
 
@@ -156,27 +148,21 @@ defmodule JSONAPIPlug.Normalizer do
          resource,
          conn
        ) do
-    Enum.reduce(
-      Resource.attributes(resource),
-      params,
-      &denormalize_attribute(&2, resource_object, resource, &1, conn)
-    )
-    |> validate_attributes(resource, conn)
-  end
+    params =
+      Enum.reduce(
+        Resource.attributes(resource),
+        params,
+        &denormalize_attribute(&2, resource_object, resource, &1, conn)
+      )
 
-  defp validate_attributes(params, _resource, %Conn{method: "PATCH"}), do: params
-
-  defp validate_attributes(params, resource, %Conn{
-         private: %{jsonapi_plug: %JSONAPIPlug{} = jsonapi_plug}
-       }) do
-    case Resource.validate(resource, params) do
+    case Validator.validate(resource, params, conn) do
       :ok ->
         params
 
       {:error, errors} ->
         raise InvalidAttributes,
           message: "Resource '#{Resource.type(resource)}' is invalid.",
-          errors: ErrorFormatter.format(errors, resource, jsonapi_plug.config[:case])
+          errors: errors
     end
   end
 
