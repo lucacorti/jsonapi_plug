@@ -33,16 +33,23 @@ defmodule JSONAPIPlug.Normalizer.Ecto do
 
   def denormalize_relationship(
         params,
+        %RelationshipObject{data: nil},
+        relationship,
+        nil
+      ) do
+    params
+    |> Map.put(to_string(relationship), nil)
+    |> Map.put("#{relationship}_id", nil)
+  end
+
+  def denormalize_relationship(
+        params,
         %RelationshipObject{data: data},
         relationship,
         value
       ) do
-    params = Map.put(params, to_string(relationship), value)
-
-    if data do
-      Map.put(params, "#{relationship}_id", data.id)
-    else
-      params
-    end
+    params
+    |> Map.put(to_string(relationship), value)
+    |> Map.put("#{relationship}_id", data.id)
   end
 end
