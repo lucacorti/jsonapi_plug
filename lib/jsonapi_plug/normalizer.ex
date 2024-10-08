@@ -194,8 +194,13 @@ defmodule JSONAPIPlug.Normalizer do
         {_many?, nil} ->
           params
 
-        {_many?, %RelationshipObject{data: nil} = _relationship_object} ->
-          params
+        {_many?, %RelationshipObject{data: nil} = relationship_object} ->
+          jsonapi_plug.config[:normalizer].denormalize_relationship(
+            params,
+            relationship_object,
+            key,
+            nil
+          )
 
         {true, %RelationshipObject{data: resource_identifier_object} = relationship_object}
         when is_list(resource_identifier_object) ->

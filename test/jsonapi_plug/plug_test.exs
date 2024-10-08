@@ -67,6 +67,50 @@ defmodule JSONAPIPlug.PlugTest do
       assert params["model"] == "panda"
     end
 
+    test "deserializes relationships when present and have a value id" do
+      assert %Conn{private: %{jsonapi_plug: %JSONAPIPlug{params: params}}} =
+               conn(
+                 :patch,
+                 "/",
+                 Jason.encode!(%{
+                   "data" => %{
+                     "id" => "1",
+                     "type" => "user",
+                     "relationships" => %{
+                       "company" => %{"data" => %{"id" => "2", "type" => "company"}}
+                     }
+                   }
+                 })
+               )
+               |> put_req_header("content-type", JSONAPIPlug.mime_type())
+               |> put_req_header("accept", JSONAPIPlug.mime_type())
+               |> UserResourcePlug.call([])
+
+      assert %{"company" => %{"id" => "2"}, "company_id" => "2", "id" => "1"} == params
+    end
+
+    test "deserializes relationships when present and are nil" do
+      assert %Conn{private: %{jsonapi_plug: %JSONAPIPlug{params: params}}} =
+               conn(
+                 :patch,
+                 "/",
+                 Jason.encode!(%{
+                   "data" => %{
+                     "id" => "1",
+                     "type" => "user",
+                     "relationships" => %{
+                       "company" => %{"data" => nil}
+                     }
+                   }
+                 })
+               )
+               |> put_req_header("content-type", JSONAPIPlug.mime_type())
+               |> put_req_header("accept", JSONAPIPlug.mime_type())
+               |> UserResourcePlug.call([])
+
+      assert %{"company" => nil, "company_id" => nil, "id" => "1"} == params
+    end
+
     test "converts to many relationship" do
       assert %Conn{private: %{jsonapi_plug: %JSONAPIPlug{params: params}}} =
                conn(
