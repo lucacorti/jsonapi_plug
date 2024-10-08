@@ -5,7 +5,9 @@ defmodule JSONAPIPlug.Document.ResourceIdentifierObject do
   https://jsonapi.org/format/#document-resource-object-linkage
   """
 
-  alias JSONAPIPlug.{Document, Document.ResourceObject, Exceptions.InvalidDocument}
+  alias JSONAPIPlug.Document
+  alias JSONAPIPlug.Document.{ErrorObject, ResourceObject}
+  alias JSONAPIPlug.Exceptions.InvalidDocument
 
   @type t :: %__MODULE__{
           id: ResourceObject.id(),
@@ -44,7 +46,12 @@ defmodule JSONAPIPlug.Document.ResourceIdentifierObject do
   defp deserialize_meta(_resource_identifier_object, %{"meta" => _meta}) do
     raise InvalidDocument,
       message: "Resource Identifier object 'meta' must be an object",
-      reference: "https://jsonapi.org/format/#document-resource-identifier-objects"
+      errors: [
+        %ErrorObject{
+          title: "Resource Identifier object 'meta' must be an object",
+          detail: "https://jsonapi.org/format/#document-resource-identifier-objects"
+        }
+      ]
   end
 
   defp deserialize_meta(resource_identifier_object, _payload),
@@ -56,7 +63,12 @@ defmodule JSONAPIPlug.Document.ResourceIdentifierObject do
 
   defp deserialize_type(_resource_identifier_object, type) do
     raise InvalidDocument,
-      message: "Resource Identifier object type (#{type}) is invalid",
-      reference: "https://jsonapi.org/format/#document-resource-objects"
+      message: "Resource Identifier object type '#{type}' is invalid",
+      errors: [
+        %ErrorObject{
+          title: "Resource Identifier object type '#{type}' is invalid",
+          detail: "https://jsonapi.org/format/#document-resource-objects"
+        }
+      ]
   end
 end
