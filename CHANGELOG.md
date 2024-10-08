@@ -26,7 +26,7 @@ See the [upgrade guide][upgrade] in the docs for detailed upgrade instructions f
   included resources when `client_generated_ids` is turned off. If you were sending
   ids to support resource creation with included atomically, this is now supported
   by sending `JSON:API 1.1` `lid` in relationships and included resources. This
-  is supported even though the reported jsonapi vesion is still `1.0` becasuse the
+  is supported even though the reported jsonapi vesion is still `1.0` because the
   library still doesn't have full `JSON:API 1.1` support. Only `lid` is supported.
 
 Contributors: @lucacorti
