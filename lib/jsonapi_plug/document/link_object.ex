@@ -7,7 +7,7 @@ defmodule JSONAPIPlug.Document.LinkObject do
 
   alias JSONAPIPlug.Document
 
-  @type t :: %__MODULE__{href: String.t(), meta: Document.meta() | nil} | String.t()
+  @type t :: %__MODULE__{href: String.t() | nil, meta: Document.meta() | nil} | String.t()
   defstruct [:href, :meta]
 
   @spec deserialize(Document.payload()) :: t() | no_return()

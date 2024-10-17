@@ -16,13 +16,13 @@ defmodule JSONAPIPlug.Document.ResourceObject do
   @type type :: String.t()
 
   @type t :: %__MODULE__{
-          id: id(),
-          lid: id(),
+          id: id() | nil,
+          lid: id() | nil,
           type: type(),
-          attributes: %{String.t() => Document.value()} | nil,
+          attributes: %{String.t() => Document.value()},
           links: Document.links() | nil,
           meta: Document.meta() | nil,
-          relationships: %{String.t() => [RelationshipObject.t()]} | nil
+          relationships: %{String.t() => [RelationshipObject.t()]}
         }
   defstruct id: nil,
             lid: nil,

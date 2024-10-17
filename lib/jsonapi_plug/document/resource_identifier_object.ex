@@ -8,8 +8,8 @@ defmodule JSONAPIPlug.Document.ResourceIdentifierObject do
   alias JSONAPIPlug.{Document, Document.ResourceObject, Exceptions.InvalidDocument}
 
   @type t :: %__MODULE__{
-          id: ResourceObject.id(),
-          lid: ResourceObject.id(),
+          id: ResourceObject.id() | nil,
+          lid: ResourceObject.id() | nil,
           type: ResourceObject.type(),
           meta: Document.meta() | nil
         }

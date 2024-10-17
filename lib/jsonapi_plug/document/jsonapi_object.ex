@@ -5,9 +5,9 @@ defmodule JSONAPIPlug.Document.JSONAPIObject do
 
   alias JSONAPIPlug.{Document, Exceptions.InvalidDocument}
 
-  @type version :: :"1.0"
+  @type version :: :"1.0" | :"1.1"
 
-  @type t :: %__MODULE__{meta: Document.meta() | nil, version: version()}
+  @type t :: %__MODULE__{meta: Document.meta() | nil, version: version() | nil}
   defstruct meta: nil, version: nil
 
   @spec deserialize(Document.payload()) :: t() | no_return()
