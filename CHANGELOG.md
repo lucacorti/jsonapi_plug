@@ -2,7 +2,7 @@
 
 ## 2.0.0 "Protocols" (TBA)
 
-`JSOAPIPlug` 2.0 has moved to a protocol based approach to resource definition.
+`JSONAPIPlug` 2.0 has moved to a protocol based approach to resource definition.
 This is the result of a big refactoring, cleaning up internals and providing a more
 stable foundation for the library moving forward. This means there are a number of
 breaking changes that require changes to applications using `JSONAPIPlug`.
