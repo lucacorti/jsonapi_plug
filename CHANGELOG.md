@@ -1,6 +1,6 @@
 # Changelog
 
-## 2.0.0 "Protocols" (TBA)
+## 2.0.0 "Protocols" (2024-11-09)
 
 `JSONAPIPlug` 2.0 has moved to a protocol based approach to resource definition.
 This is the result of a big refactoring, cleaning up internals and providing a more
