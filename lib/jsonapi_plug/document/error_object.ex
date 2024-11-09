@@ -28,20 +28,16 @@ defmodule JSONAPIPlug.Document.ErrorObject do
 
   @spec deserialize(Document.payload()) :: t() | no_return()
   def deserialize(data) do
-    error = %__MODULE__{}
-
-    attrs =
-      error
-      |> Map.from_struct()
-      |> Map.keys()
-      |> Enum.reduce([], fn key, attrs ->
-        case Map.fetch(data, Atom.to_string(key)) do
-          {:ok, value} -> Map.put(attrs, key, value)
-          :error -> attrs
-        end
-      end)
-
-    struct(%__MODULE__{}, attrs)
+    %__MODULE__{
+      code: data["code"],
+      detail: data["detail"],
+      id: data["id"],
+      links: data["links"],
+      meta: data["meta"],
+      source: data["source"],
+      status: data["status"],
+      title: data["title"]
+    }
   end
 
   @spec serialize(t()) :: t()

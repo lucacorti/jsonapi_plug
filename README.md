@@ -176,7 +176,7 @@ alternatively you can skip these steps by calling `JSONAPIPlug.render/4` directl
 
 ### Usage with Plug
 
-If you have a `Plug` application, assuming you already set up routingm you can call `JSONAPIPlug.render/4` in your
+If you have a `Plug` application, assuming you already set up routing you can call `JSONAPIPlug.render/4` in your
 pipeline to generate a `JSONAPI.Document` with your data for the client.
 
 ```elixir

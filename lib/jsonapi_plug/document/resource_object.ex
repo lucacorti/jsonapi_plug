@@ -14,13 +14,13 @@ defmodule JSONAPIPlug.Document.ResourceObject do
   @type attributes :: %{String.t() => Document.value()}
 
   @type t :: %__MODULE__{
-          id: id(),
-          lid: id(),
+          id: id() | nil,
+          lid: id() | nil,
           type: type(),
           attributes: attributes() | nil,
           links: Document.links() | nil,
           meta: Document.meta() | nil,
-          relationships: %{String.t() => [RelationshipObject.t()]} | nil
+          relationships: %{String.t() => [RelationshipObject.t()]}
         }
   defstruct id: nil,
             lid: nil,
@@ -32,33 +32,26 @@ defmodule JSONAPIPlug.Document.ResourceObject do
 
   @spec deserialize(Document.payload()) :: t() | no_return()
   def deserialize(data) do
-    %__MODULE__{}
-    |> deserialize_id(data)
-    |> deserialize_lid(data)
-    |> deserialize_type(data)
-    |> deserialize_attributes(data)
-    |> deserialize_links(data)
-    |> deserialize_relationships(data)
-    |> deserialize_meta(data)
+    %__MODULE__{
+      id: deserialize_id(data),
+      lid: deserialize_lid(data),
+      type: deserialize_type(data),
+      attributes: deserialize_attributes(data),
+      links: deserialize_links(data),
+      relationships: deserialize_relationships(data),
+      meta: deserialize_meta(data)
+    }
   end
 
-  defp deserialize_id(resource_object, %{"id" => id})
-       when is_binary(id) and byte_size(id) > 0,
-       do: %__MODULE__{resource_object | id: id}
+  defp deserialize_id(%{"id" => id}) when is_binary(id) and byte_size(id) > 0, do: id
+  defp deserialize_id(_data), do: nil
 
-  defp deserialize_id(resource_object, _data), do: resource_object
+  defp deserialize_lid(%{"lid" => lid}) when is_binary(lid) and byte_size(lid) > 0, do: lid
+  defp deserialize_lid(_data), do: nil
 
-  defp deserialize_lid(resource_object, %{"lid" => lid})
-       when is_binary(lid) and byte_size(lid) > 0,
-       do: %__MODULE__{resource_object | lid: lid}
+  defp deserialize_type(%{"type" => type}) when is_binary(type) and byte_size(type) > 0, do: type
 
-  defp deserialize_lid(resource_object, _data), do: resource_object
-
-  defp deserialize_type(resource_object, %{"type" => type})
-       when is_binary(type) and byte_size(type) > 0,
-       do: %__MODULE__{resource_object | type: type}
-
-  defp deserialize_type(_resource_object, %{"type" => type}) do
+  defp deserialize_type(%{"type" => type}) do
     raise InvalidDocument,
       message: "Resource object type '#{type}' is invalid",
       errors: [
@@ -69,7 +62,7 @@ defmodule JSONAPIPlug.Document.ResourceObject do
       ]
   end
 
-  defp deserialize_attributes(_resource_object, %{"attributes" => %{"id" => _id}}) do
+  defp deserialize_attributes(%{"attributes" => %{"id" => _id}}) do
     raise InvalidDocument,
       message: "Resource object cannot have an attribute named 'id'",
       errors: [
@@ -80,7 +73,7 @@ defmodule JSONAPIPlug.Document.ResourceObject do
       ]
   end
 
-  defp deserialize_attributes(_resource_object, %{"attributes" => %{"type" => _type}}) do
+  defp deserialize_attributes(%{"attributes" => %{"type" => _type}}) do
     raise InvalidDocument,
       message: "Resource object cannot have an attribute named 'type'",
       errors: [
@@ -91,24 +84,21 @@ defmodule JSONAPIPlug.Document.ResourceObject do
       ]
   end
 
-  defp deserialize_attributes(resource_object, %{"attributes" => attributes})
+  defp deserialize_attributes(%{"attributes" => attributes})
        when is_map(attributes),
-       do: %__MODULE__{resource_object | attributes: attributes}
+       do: attributes
 
-  defp deserialize_attributes(resource_object, _data), do: resource_object
+  defp deserialize_attributes(_data), do: %{}
 
-  defp deserialize_links(resource_object, %{"links" => links}),
-    do: %__MODULE__{
-      resource_object
-      | links:
-          Enum.into(links, %{}, fn {name, link} ->
-            {name, LinkObject.deserialize(link)}
-          end)
-    }
+  defp deserialize_links(%{"links" => links}),
+    do:
+      Enum.into(links, %{}, fn {name, link} ->
+        {name, LinkObject.deserialize(link)}
+      end)
 
-  defp deserialize_links(resource_object, _data), do: resource_object
+  defp deserialize_links(_data), do: nil
 
-  defp deserialize_relationships(_resource_object, %{"relationships" => %{"id" => _id}}) do
+  defp deserialize_relationships(%{"relationships" => %{"id" => _id}}) do
     raise InvalidDocument,
       message: "Resource object cannot have a relationship named 'id'",
       errors: [
@@ -119,7 +109,7 @@ defmodule JSONAPIPlug.Document.ResourceObject do
       ]
   end
 
-  defp deserialize_relationships(_resource_object, %{"relationships" => %{"type" => _type}}) do
+  defp deserialize_relationships(%{"relationships" => %{"type" => _type}}) do
     raise InvalidDocument,
       message: "Resource object cannot have a relationship named 'type'",
       errors: [
@@ -130,25 +120,18 @@ defmodule JSONAPIPlug.Document.ResourceObject do
       ]
   end
 
-  defp deserialize_relationships(
-         resource_object,
-         %{"relationships" => relationships}
-       )
+  defp deserialize_relationships(%{"relationships" => relationships})
        when is_map(relationships) do
-    %__MODULE__{
-      resource_object
-      | relationships:
-          Enum.into(relationships, %{}, fn
-            {name, data} when is_list(data) ->
-              {name, Enum.map(data, &RelationshipObject.deserialize/1)}
+    Enum.into(relationships, %{}, fn
+      {name, data} when is_list(data) ->
+        {name, Enum.map(data, &RelationshipObject.deserialize/1)}
 
-            {name, data} ->
-              {name, RelationshipObject.deserialize(data)}
-          end)
-    }
+      {name, data} ->
+        {name, RelationshipObject.deserialize(data)}
+    end)
   end
 
-  defp deserialize_relationships(_resource_object, %{
+  defp deserialize_relationships(%{
          "relationships" => _relationships
        }) do
     raise InvalidDocument,
@@ -161,12 +144,11 @@ defmodule JSONAPIPlug.Document.ResourceObject do
       ]
   end
 
-  defp deserialize_relationships(relationships, _data), do: relationships
+  defp deserialize_relationships(_data), do: %{}
 
-  defp deserialize_meta(resource_object, %{"meta" => meta}) when is_map(meta),
-    do: %__MODULE__{resource_object | meta: meta}
+  defp deserialize_meta(%{"meta" => meta}) when is_map(meta), do: meta
 
-  defp deserialize_meta(_resource_object, %{"meta" => _meta}) do
+  defp deserialize_meta(%{"meta" => _meta}) do
     raise InvalidDocument,
       message: "Resource object 'meta' must be an object",
       errors: [
@@ -177,7 +159,7 @@ defmodule JSONAPIPlug.Document.ResourceObject do
       ]
   end
 
-  defp deserialize_meta(resource_object, _data), do: resource_object
+  defp deserialize_meta(_data), do: nil
 
   @spec serialize(t()) :: t()
   def serialize(resource_object), do: resource_object
