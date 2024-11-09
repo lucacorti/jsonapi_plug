@@ -19,7 +19,7 @@ See the [upgrade guide][upgrade] in the docs for detailed upgrade instructions f
   callbacks has been replaces by the `JSONAPIPlug.Resource.Links` and
   `JSONAPIPlug.Resource.Meta` protocols.
 - Removed `links` option to `JSONAPIPlug.API`. Resource links are always generated.
-- Moved the Phoenix render function to a component module in the library, thiis can
+- Moved the Phoenix render function to a component module in the library, this can
   be added to the phoenix `MyAppWeb` module and imported in the phoenix `_json.ex`
   module via `use MyAppWeb, :jsonapi` as per phoenix conventions.
 - Enforce `client_generated_ids` option. This prevents sending ids in resources and
