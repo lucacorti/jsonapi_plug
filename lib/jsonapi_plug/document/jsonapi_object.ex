@@ -3,7 +3,9 @@ defmodule JSONAPIPlug.Document.JSONAPIObject do
   JSON:API Document JSON:API Object
   """
 
-  alias JSONAPIPlug.{Document, Exceptions.InvalidDocument}
+  alias JSONAPIPlug.Document
+  alias JSONAPIPlug.Document.ErrorObject
+  alias JSONAPIPlug.Exceptions.InvalidDocument
 
   @type version :: :"1.0" | :"1.1"
 
@@ -19,8 +21,14 @@ defmodule JSONAPIPlug.Document.JSONAPIObject do
 
   defp deserialize_meta(%{"meta" => _meta}) do
     raise InvalidDocument,
-      message: "JSON:API object 'meta' must be an object",
-      reference: "https://jsonapi.org/format/#document-jsonapi-object"
+      message: "JSON:API Object 'meta' must be an object",
+      errors: [
+        %ErrorObject{
+          title: "JSON:API object 'meta' must be an object",
+          detail: "https://jsonapi.org/format/#document-jsonapi-object",
+          source: %{pointer: "/jsonapi/meta"}
+        }
+      ]
   end
 
   defp deserialize_meta(_data), do: nil
@@ -30,7 +38,13 @@ defmodule JSONAPIPlug.Document.JSONAPIObject do
   defp deserialize_version(%{"version" => version}) do
     raise InvalidDocument,
       message: "JSON:API Object has invalid version (#{version})",
-      reference: "https://jsonapi.org/format/#document-jsonapi-object"
+      errors: [
+        %ErrorObject{
+          title: "JSON:API Object has invalid version (#{version})",
+          detail: "https://jsonapi.org/format/#document-jsonapi-object",
+          source: %{pointer: "/jsonapi/version"}
+        }
+      ]
   end
 
   defp deserialize_version(_data), do: nil
