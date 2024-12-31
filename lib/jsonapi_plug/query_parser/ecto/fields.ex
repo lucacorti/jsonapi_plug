@@ -77,7 +77,7 @@ defmodule JSONAPIPlug.QueryParser.Ecto.Fields do
     |> Enum.find_value(fn relationship ->
       related_resource_module = Resource.field_option(resource, relationship, :resource)
 
-      unless is_nil(related_resource_module) do
+      if not is_nil(related_resource_module) do
         related_resource = struct(related_resource_module)
         Resource.type(related_resource) == type && related_resource
       end

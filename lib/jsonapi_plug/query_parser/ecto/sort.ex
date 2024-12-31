@@ -41,7 +41,7 @@ defmodule JSONAPIPlug.QueryParser.Ecto.Sort do
         &to_string(Resource.field_option(resource, &1, :name) || &1)
       )
 
-    unless field_name in valid_attributes do
+    if field_name not in valid_attributes do
       raise InvalidQuery, type: Resource.type(resource), param: "sort", value: field_name
     end
 
@@ -60,7 +60,7 @@ defmodule JSONAPIPlug.QueryParser.Ecto.Sort do
         &to_string(Resource.field_option(resource, &1, :name) || &1)
       )
 
-    unless field_name in valid_relationships do
+    if field_name not in valid_relationships do
       raise InvalidQuery, type: Resource.type(resource), param: "sort", value: field_name
     end
 
