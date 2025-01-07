@@ -3,22 +3,40 @@ defmodule JSONAPIPlug.Exceptions do
 
   defmodule InvalidDocument do
     @moduledoc """
-    Defines a generic exception for when an invalid document is received.
+    Exception for when an invalid document is received.
     """
-    defexception message: nil, reference: nil
+    alias JSONAPIPlug.Document.ErrorObject
+    defexception message: nil, errors: nil
+
+    @default_error %ErrorObject{
+      status: "500",
+      title: "An error occurred while processing the request.",
+      detail: "Contact the system administrator for assitance."
+    }
 
     @spec exception(keyword()) :: Exception.t()
     def exception(options) do
-      message = Keyword.fetch!(options, :message)
-      reference = Keyword.fetch!(options, :reference)
+      message = List.first(options[:errors], @default_error).title
 
-      %__MODULE__{message: message, reference: reference}
+      %__MODULE__{message: message, errors: options[:errors] || [@default_error]}
+    end
+  end
+
+  defmodule InvalidAttributes do
+    @moduledoc """
+    Exception for when invalid resource attributes are received.
+    """
+    defexception message: nil, errors: nil
+
+    @spec exception(keyword()) :: Exception.t()
+    def exception(options) do
+      %__MODULE__{message: options[:message], errors: options[:errors]}
     end
   end
 
   defmodule InvalidHeader do
     @moduledoc """
-    Defines a generic exception for when an invalid header is received.
+    Exception for when an invalid header is received.
     """
     defexception header: nil, message: nil, reference: nil, status: nil
 
@@ -35,7 +53,7 @@ defmodule JSONAPIPlug.Exceptions do
 
   defmodule InvalidQuery do
     @moduledoc """
-    Defines a generic exception for when an invalid query parameter is received.
+    Exception for when an invalid query parameter is received.
     """
     defexception message: "invalid query",
                  type: nil,

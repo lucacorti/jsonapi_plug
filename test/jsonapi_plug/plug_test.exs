@@ -224,7 +224,8 @@ defmodule JSONAPIPlug.PlugTest do
                    "data" => %{
                      "type" => "user",
                      "attributes" => %{
-                       "firstName" => "Jerome"
+                       "firstName" => "Jerome",
+                       "lastName" => "Finch"
                      },
                      "relationships" => %{
                        "company" => %{
@@ -261,7 +262,8 @@ defmodule JSONAPIPlug.PlugTest do
                      "lid" => "1",
                      "type" => "user",
                      "attributes" => %{
-                       "firstName" => "Jerome"
+                       "firstName" => "Jerome",
+                       "lastName" => "Finch"
                      },
                      "relationships" => %{
                        "company" => %{
