@@ -274,23 +274,15 @@ defmodule JSONAPIPlug.Normalizer do
          %ResourceIdentifierObject{id: id, lid: lid, type: type},
          resource_object,
          related_resource,
-         %Conn{private: %{jsonapi_plug: %JSONAPIPlug{} = jsonapi_plug}} = conn
+         %Conn{private: %{jsonapi_plug: %JSONAPIPlug{}}} = conn
        ) do
-    case {
-      conn.method,
-      jsonapi_plug.config[:client_generated_ids],
-      resource_object
-    } do
-      {method, client_generated_ids, %ResourceObject{id: ^id, type: ^type}}
-      when (method == "PATCH" or client_generated_ids) and not is_nil(id) ->
+    case resource_object do
+      %ResourceObject{id: ^id, type: ^type}
+      when not is_nil(id) ->
         denormalize_resource(document, resource_object, related_resource, conn)
 
-      {method, _client_generated_ids, %ResourceObject{id: ^id, type: ^type}}
-      when method != "PATCH" and not is_nil(id) ->
-        denormalize_resource(document, resource_object, related_resource, conn)
-
-      {method, _client_generated_ids, %ResourceObject{lid: ^lid, type: ^type}}
-      when method != "PATCH" and not is_nil(lid) ->
+      %ResourceObject{lid: ^lid, type: ^type}
+      when not is_nil(lid) ->
         denormalize_resource(document, resource_object, related_resource, conn)
 
       _other ->
