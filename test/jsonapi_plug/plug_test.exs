@@ -1,6 +1,8 @@
 defmodule JSONAPIPlug.PlugTest do
   use ExUnit.Case
-  use Plug.Test
+
+  import Plug.Conn
+  import Plug.Test
 
   alias JSONAPIPlug.Exceptions.{InvalidDocument, InvalidQuery}
   alias JSONAPIPlug.TestSupport.Plugs.{CarResourcePlug, PostResourcePlug, UserResourcePlug}

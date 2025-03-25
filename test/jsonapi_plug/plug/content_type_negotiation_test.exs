@@ -1,6 +1,6 @@
 defmodule JSONAPIPlug.Plug.ContentTypeNegotiationTest do
   use ExUnit.Case
-  use Plug.Test
+  import Plug.Test
 
   alias JSONAPIPlug.Exceptions.InvalidHeader
   alias JSONAPIPlug.Plug.ContentTypeNegotiation
