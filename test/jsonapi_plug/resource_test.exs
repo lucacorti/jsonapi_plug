@@ -1,6 +1,6 @@
 defmodule JSONAPIPlug.ResourceTest do
   use ExUnit.Case
-  use Plug.Test
+  import Plug.Test
 
   alias JSONAPIPlug.TestSupport.Plugs.{
     MyPostPlug,

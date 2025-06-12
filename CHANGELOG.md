@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.0.1 (2025-03-13)
+
+- Allow included resources in patch for now.
+
+Contributors: @davidgarra92
+
 ## 2.0.0 "Protocols" (2024-11-09)
 
 `JSONAPIPlug` 2.0 has moved to a protocol based approach to resource definition.

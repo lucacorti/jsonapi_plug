@@ -220,6 +220,6 @@ defmodule JSONAPIPlug.Plug do
 
   defp port(%Conn{private: %{jsonapi_plug: %JSONAPIPlug{} = jsonapi_plug}} = conn) do
     port = jsonapi_plug.config[:port] || conn.port
-    unless port == URI.default_port(scheme(conn)), do: port
+    if port != URI.default_port(scheme(conn)), do: port
   end
 end
