@@ -142,6 +142,14 @@ defprotocol JSONAPIPlug.Resource do
   def relationships(resource)
 
   @doc """
+  Resource schema
+
+  Returns an ExJsonSchema used to validate resource attributes.
+  """
+  @spec schema(t()) :: term()
+  def schema(resource)
+
+  @doc """
   Resource Type
 
   Returns the Resource Type of resources for the
@@ -155,6 +163,13 @@ defimpl JSONAPIPlug.Resource, for: Any do
     options =
       options
       |> Macro.prewalk(&Macro.expand(&1, __CALLER__))
+      |> Keyword.update(:attributes, [], fn attributes ->
+        Enum.map(attributes, fn
+          {field_name, nil} -> {field_name, []}
+          {field_name, field_options} -> {field_name, field_options}
+          field_name -> {field_name, []}
+        end)
+      end)
       |> NimbleOptions.validate!(JSONAPIPlug.resource_options_schema())
 
     attributes = generate_attributes(options)
@@ -163,7 +178,8 @@ defimpl JSONAPIPlug.Resource, for: Any do
     check_fields(attributes, relationships, options)
 
     field_option = generate_field_option(options)
-    recase_field = generate_recase_field(options)
+    recase_field = generate_recase_field(attributes, relationships)
+    schema = generate_schema(options)
 
     quote do
       defimpl JSONAPIPlug.Resource, for: unquote(module) do
@@ -182,23 +198,18 @@ defimpl JSONAPIPlug.Resource, for: Any do
         def path(_resource), do: unquote(options[:path])
         unquote(recase_field)
         def relationships(_resource), do: unquote(relationships)
+        def schema(_resource), do: unquote(schema)
         def type(_resource), do: unquote(options[:type])
       end
     end
   end
 
   defp generate_attributes(options) do
-    Enum.map(options[:attributes] || [], fn
-      {field_name, _field_options} -> field_name
-      field_name -> field_name
-    end)
+    Enum.map(options[:attributes] || [], fn {attribute, _options} -> attribute end)
   end
 
   defp generate_relationships(options) do
-    Enum.map(options[:relationships] || [], fn
-      {field_name, _field_options} -> field_name
-      field_name -> field_name
-    end)
+    Enum.map(options[:relationships] || [], fn {relationship, _options} -> relationship end)
   end
 
   defp check_fields(attributes, relationships, options) do
@@ -217,11 +228,6 @@ defimpl JSONAPIPlug.Resource, for: Any do
 
   defp generate_field_option(options) do
     Stream.concat(options[:attributes], options[:relationships])
-    |> Stream.map(fn
-      {field_name, nil} -> {field_name, []}
-      {field_name, field_options} -> {field_name, field_options}
-      field_name -> {field_name, []}
-    end)
     |> Enum.flat_map(fn {field_name, field_options} ->
       Enum.map(field_options, fn {field_option, value} ->
         quote do
@@ -232,20 +238,40 @@ defimpl JSONAPIPlug.Resource, for: Any do
     end)
   end
 
-  defp generate_recase_field(options) do
-    Stream.concat(options[:attributes], options[:relationships])
-    |> Stream.map(fn
-      {field_name, _field_options} -> field_name
-      field_name -> field_name
-    end)
+  defp generate_recase_field(attributes, relationships) do
+    Stream.concat(attributes, relationships)
     |> Enum.flat_map(fn field_name ->
       Enum.map([:camelize, :dasherize, :underscore], fn field_case ->
+        recased = JSONAPIPlug.recase(field_name, field_case)
+
         quote do
           def recase_field(_resource, unquote(field_name), unquote(field_case)),
-            do: unquote(JSONAPIPlug.recase(field_name, field_case))
+            do: unquote(recased)
+
+          def recase_field(_resource, unquote(to_string(field_name)), unquote(field_case)),
+            do: unquote(recased)
         end
       end)
     end)
+  end
+
+  def generate_schema(options) do
+    %{
+      "type" => "object",
+      "required" =>
+        Enum.reduce(options[:attributes], [], fn {attribute, options}, required ->
+          (options[:required] && [to_string(options[:name] || attribute) | required]) || required
+        end),
+      "properties" =>
+        Enum.into(options[:attributes], %{}, fn {attribute, options} ->
+          {
+            to_string(options[:name] || attribute),
+            %{"type" => to_string(options[:type] || :string)}
+          }
+        end)
+    }
+    |> ExJsonSchema.Schema.resolve()
+    |> Macro.escape()
   end
 
   def id_attribute(_resource), do: :id
@@ -255,5 +281,6 @@ defimpl JSONAPIPlug.Resource, for: Any do
   def path(_resource), do: nil
   def recase_field(_resource, field, _case), do: field
   def relationships(_resource), do: []
+  def schema(_resource), do: nil
   def type(_resource), do: ""
 end
