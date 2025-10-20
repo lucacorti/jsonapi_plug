@@ -196,7 +196,7 @@ defmodule JSONAPIPlug.Plug do
     Conn.put_private(conn, :jsonapi_plug, %JSONAPIPlug{
       jsonapi_plug
       | base_url:
-          URI.to_string(%URI{
+          to_string(%URI{
             scheme: scheme(conn),
             host: host(conn),
             path: Enum.join([namespace(conn), path || Resource.type(jsonapi_plug.resource)], "/"),
