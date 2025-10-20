@@ -11,8 +11,8 @@ defmodule JSONAPIPlug.ResourceTest do
     UnderscoringPostPlug
   }
 
-  alias JSONAPIPlug.TestSupport.Resources.{Comment, Post, User}
   alias JSONAPIPlug.{Document, Document.ResourceObject, Pagination, Resource}
+  alias JSONAPIPlug.TestSupport.Resources.{Comment, Post, User}
 
   setup do
     {:ok, conn: conn(:get, "/") |> MyPostPlug.call([])}
