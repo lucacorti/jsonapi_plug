@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.0.2 (2025-10-20)
+
+ - Fix minor typos in README.md by @camatcode in #102
+ - Bug Fix: Change unsupported_content_type to unsupported_media_type by @camatcode in #103
+ - Fix elixir 1.19 compilation warnings and update test matrix by @lucacorti
+
 ## 2.0.1 (2025-03-13)
 
 - Allow included resources in patch for now.
