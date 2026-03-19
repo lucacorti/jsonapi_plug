@@ -673,6 +673,55 @@ defmodule JSONAPIPlug.PlugTest do
       assert [] = get_in(include, [:author, :company])
     end
 
+    test "parse_include/2 retains all sibling sub-includes under the same parent" do
+      assert %Conn{private: %{jsonapi_plug: %JSONAPIPlug{include: include}}} =
+               conn(:get, "/?include=bestComments.user.company,bestComments.user.topPosts")
+               |> PostResourcePlug.call([])
+
+      assert [] = get_in(include, [:best_comments, :user, :company])
+      assert [] = get_in(include, [:best_comments, :user, :top_posts])
+    end
+
+    test "parse_include/2 retains all sibling sub-includes when parent is also requested explicitly" do
+      assert %Conn{private: %{jsonapi_plug: %JSONAPIPlug{include: include}}} =
+               conn(
+                 :get,
+                 "/?include=bestComments,bestComments.user,bestComments.user.company,bestComments.user.topPosts"
+               )
+               |> PostResourcePlug.call([])
+
+      assert Keyword.has_key?(include, :best_comments)
+      assert Keyword.has_key?(get_in(include, [:best_comments]), :user)
+      assert [] = get_in(include, [:best_comments, :user, :company])
+      assert [] = get_in(include, [:best_comments, :user, :top_posts])
+    end
+
+    test "parse_include/2 retains sibling sub-includes across multiple top-level relationships" do
+      assert %Conn{private: %{jsonapi_plug: %JSONAPIPlug{include: include}}} =
+               conn(
+                 :get,
+                 "/?include=author.company,author.topPosts,bestComments.user.company,bestComments.user.topPosts"
+               )
+               |> PostResourcePlug.call([])
+
+      assert [] = get_in(include, [:author, :company])
+      assert [] = get_in(include, [:author, :top_posts])
+      assert [] = get_in(include, [:best_comments, :user, :company])
+      assert [] = get_in(include, [:best_comments, :user, :top_posts])
+    end
+
+    test "parse_include/2 retains four sub-paths sharing intermediate nodes at multiple depths" do
+      assert %Conn{private: %{jsonapi_plug: %JSONAPIPlug{include: include}}} =
+               conn(
+                 :get,
+                 "/?include=bestComments.user,bestComments.user.company,bestComments.user.company.industry,bestComments.user.topPosts"
+               )
+               |> PostResourcePlug.call([])
+
+      assert [] = get_in(include, [:best_comments, :user, :top_posts])
+      assert [] = get_in(include, [:best_comments, :user, :company, :industry])
+    end
+
     test "parse_include/2 errors with invalid includes" do
       assert_raise InvalidQuery, "invalid parameter include=user for type post", fn ->
         conn(:get, "/?include=user,comments.author")
