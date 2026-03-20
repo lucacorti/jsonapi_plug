@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.0.3 (2026-03-20)
+
+ - Fix include parser dropping sibling sub-includes under a shared intermediate relationship by @albertoforcato in https://github.com/lucacorti/jsonapi_plug/pull/127
+ - Update dependencies by @lucacorti in https://github.com/lucacorti/jsonapi_plug/pull/128
+
 ## 2.0.2 (2025-10-20)
 
  - Fix minor typos in README.md by @camatcode in #102
