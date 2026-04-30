@@ -472,9 +472,7 @@ defmodule JSONAPIPlug.Normalizer do
 
     case {related_loaded?, related_many, related_data} do
       {true, true, related_data} when is_list(related_data) ->
-        related_data
-        |> Enum.map(&normalize_resource(conn, &1, options))
-        |> MapSet.new()
+        MapSet.new(related_data, &normalize_resource(conn, &1, options))
         |> MapSet.union(included)
 
       {true, _related_many, related_data} when is_list(related_data) ->

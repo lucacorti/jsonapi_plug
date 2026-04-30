@@ -25,10 +25,7 @@ defmodule JSONAPIPlug.QueryParser.Ecto.Fields do
         try do
           value
           |> String.split(",", trim: true)
-          |> Enum.into(
-            MapSet.new(),
-            &String.to_existing_atom(JSONAPIPlug.recase(&1, :underscore))
-          )
+          |> MapSet.new(&String.to_existing_atom(JSONAPIPlug.recase(&1, :underscore)))
         rescue
           ArgumentError ->
             reraise InvalidQuery.exception(
