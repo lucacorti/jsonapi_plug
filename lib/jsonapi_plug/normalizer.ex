@@ -33,6 +33,7 @@ defmodule JSONAPIPlug.Normalizer do
 
   alias JSONAPIPlug.{
     Document,
+    Document.JSONAPIObject,
     Document.RelationshipObject,
     Document.ResourceIdentifierObject,
     Document.ResourceObject,
@@ -299,8 +300,15 @@ defmodule JSONAPIPlug.Normalizer do
           Resource.options()
         ) ::
           Document.t() | no_return()
-  def normalize(conn, resource_or_resources, links, meta, options) do
+  def normalize(
+        %Conn{private: %{jsonapi_plug: %JSONAPIPlug{} = jsonapi_plug}} = conn,
+        resource_or_resources,
+        links,
+        meta,
+        options
+      ) do
     %Document{
+      jsonapi: normalize_jsonapi(jsonapi_plug.config),
       meta: meta,
       data: normalize_data(conn, resource_or_resources, options),
       links: normalize_links(conn, resource_or_resources, links || %{}, options),
@@ -309,6 +317,17 @@ defmodule JSONAPIPlug.Normalizer do
         |> MapSet.to_list()
     }
   end
+
+  defp normalize_jsonapi(config) do
+    %JSONAPIObject{
+      version: config[:version],
+      ext: nonempty_list(config[:extensions]),
+      profile: nonempty_list(config[:profiles])
+    }
+  end
+
+  defp nonempty_list([_ | _] = list), do: list
+  defp nonempty_list(_), do: nil
 
   defp normalize_data(_conn, nil, _options), do: nil
 

@@ -1,5 +1,17 @@
 # Changelog
 
+## 2.1.0 (2026-05-22)
+
+JSON:API 1.1 compliance additions. All changes are backwards-compatible with existing 1.0 configurations.
+
+- **API config**: Added `version: :"1.1"` as a valid value. Added `extensions: [String.t()]` and `profiles: [String.t()]` configuration options.
+- **Content-Type negotiation**: `ext` and `profile` media type parameters are now accepted per JSON:API 1.1. Unknown `ext` URIs return 415. An `Accept` header where all JSON:API entries have unsupported `ext` URIs returns 406. Other media type parameters (e.g. `charset`) still return 415.
+- **Response headers**: When `extensions` or `profiles` are configured, the response `Content-Type` header includes the corresponding `ext` and/or `profile` parameters. A `Vary: Accept` header is added automatically in that case.
+- **`jsonapi` document member**: The outbound `jsonapi` object now includes `version`, `ext`, and `profile` fields populated from the API configuration.
+- **Link objects**: `LinkObject` gains five new optional fields from JSON:API 1.1: `rel`, `describedby`, `title`, `type`, and `hreflang`.
+- **Error objects**: `ErrorObject.links` now passes through the `type` key introduced in JSON:API 1.1.
+- **`@`-members**: `@`-prefixed keys in `attributes`, `relationships`, and `meta` objects are silently ignored during deserialization, as specified in JSON:API 1.1.
+
 ## 2.0.3 (2026-03-20)
 
  - Fix include parser dropping sibling sub-includes under a shared intermediate relationship by @albertoforcato in https://github.com/lucacorti/jsonapi_plug/pull/127
