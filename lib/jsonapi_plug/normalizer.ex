@@ -2,7 +2,7 @@ defmodule JSONAPIPlug.Normalizer do
   @moduledoc """
   Transforms user data to and from a `JSON:API` Document.
 
-  The default implementation transforms `JSON:API`documents in requests to an ecto
+  The default implementation transforms `JSON:API` documents in requests to an ecto
   friendly format and expects `Ecto.Schema` instances when rendering data in responses.
   The data it produces is stored under the `:params` key of the `JSONAPIPlug` struct
   that will be stored in the `Plug.Conn` private assign `:jsonapi_plug`.
@@ -307,8 +307,69 @@ defmodule JSONAPIPlug.Normalizer do
       included:
         normalize_included(MapSet.new(), conn, resource_or_resources, options)
         |> MapSet.to_list()
+        |> dedupe_included()
     }
   end
+
+  defp dedupe_included(included) do
+    {order, by_identity} =
+      Enum.reduce(included, {[], %{}}, fn %ResourceObject{} = resource_object, {order, acc} ->
+        key = {resource_object.type, resource_object.id || resource_object.lid}
+
+        case acc do
+          %{^key => existing} ->
+            {order, Map.put(acc, key, merge_resource_objects(existing, resource_object))}
+
+          _ ->
+            {[key | order], Map.put(acc, key, resource_object)}
+        end
+      end)
+
+    order
+    |> Enum.reverse()
+    |> Enum.map(&Map.fetch!(by_identity, &1))
+  end
+
+  defp merge_resource_objects(%ResourceObject{} = base, %ResourceObject{} = incoming) do
+    %ResourceObject{
+      base
+      | attributes: Map.merge(base.attributes || %{}, incoming.attributes || %{}),
+        relationships: merge_relationships(base.relationships, incoming.relationships),
+        links: merge_optional(base.links, incoming.links),
+        meta: merge_optional(base.meta, incoming.meta)
+    }
+  end
+
+  defp merge_relationships(base, incoming) do
+    Map.merge(base || %{}, incoming || %{}, fn _name, base_relationship, incoming_relationship ->
+      merge_relationship(base_relationship, incoming_relationship)
+    end)
+  end
+
+  defp merge_relationship(
+         %RelationshipObject{data: base_data} = base_relationship,
+         %RelationshipObject{data: incoming_data}
+       )
+       when is_list(base_data) and is_list(incoming_data) do
+    %RelationshipObject{base_relationship | data: Enum.uniq(base_data ++ incoming_data)}
+  end
+
+  defp merge_relationship(
+         %RelationshipObject{data: nil},
+         %RelationshipObject{} = incoming_relationship
+       ),
+       do: incoming_relationship
+
+  defp merge_relationship(%RelationshipObject{} = base_relationship, %RelationshipObject{}),
+    do: base_relationship
+
+  defp merge_optional(nil, other), do: other
+  defp merge_optional(value, nil), do: value
+
+  defp merge_optional(base, incoming) when is_map(base) and is_map(incoming),
+    do: Map.merge(base, incoming)
+
+  defp merge_optional(_base, incoming), do: incoming
 
   defp normalize_data(_conn, nil, _options), do: nil
 
