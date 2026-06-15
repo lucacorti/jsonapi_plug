@@ -305,29 +305,14 @@ defmodule JSONAPIPlug.Normalizer do
       data: normalize_data(conn, resource_or_resources, options),
       links: normalize_links(conn, resource_or_resources, links || %{}, options),
       included:
-        normalize_included(MapSet.new(), conn, resource_or_resources, options)
-        |> MapSet.to_list()
-        |> dedupe_included()
+        normalize_included(%{}, conn, resource_or_resources, options)
+        |> Map.values()
     }
   end
 
-  defp dedupe_included(included) do
-    {order, by_identity} =
-      Enum.reduce(included, {[], %{}}, fn %ResourceObject{} = resource_object, {order, acc} ->
-        key = {resource_object.type, resource_object.id || resource_object.lid}
-
-        case acc do
-          %{^key => existing} ->
-            {order, Map.put(acc, key, merge_resource_objects(existing, resource_object))}
-
-          _ ->
-            {[key | order], Map.put(acc, key, resource_object)}
-        end
-      end)
-
-    order
-    |> Enum.reverse()
-    |> Enum.map(&Map.fetch!(by_identity, &1))
+  defp put_included(included, %ResourceObject{} = resource_object) do
+    key = {resource_object.type, resource_object.id || resource_object.lid}
+    Map.update(included, key, resource_object, &merge_resource_objects(&1, resource_object))
   end
 
   defp merge_resource_objects(%ResourceObject{} = base, %ResourceObject{} = incoming) do
@@ -533,8 +518,9 @@ defmodule JSONAPIPlug.Normalizer do
 
     case {related_loaded?, related_many, related_data} do
       {true, true, related_data} when is_list(related_data) ->
-        MapSet.new(related_data, &normalize_resource(conn, &1, options))
-        |> MapSet.union(included)
+        Enum.reduce(related_data, included, fn related, included ->
+          put_included(included, normalize_resource(conn, related, options))
+        end)
 
       {true, _related_many, related_data} when is_list(related_data) ->
         raise InvalidDocument,
@@ -547,10 +533,7 @@ defmodule JSONAPIPlug.Normalizer do
           reference: nil
 
       {true, _related_many, _related_data} ->
-        MapSet.put(
-          included,
-          normalize_resource(conn, related_data, options)
-        )
+        put_included(included, normalize_resource(conn, related_data, options))
 
       {false, _related_many, _related_data} ->
         included
