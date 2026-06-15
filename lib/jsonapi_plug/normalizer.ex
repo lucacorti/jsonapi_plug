@@ -318,10 +318,7 @@ defmodule JSONAPIPlug.Normalizer do
   defp merge_resource_objects(%ResourceObject{} = base, %ResourceObject{} = incoming) do
     %ResourceObject{
       base
-      | attributes: Map.merge(base.attributes || %{}, incoming.attributes || %{}),
-        relationships: merge_relationships(base.relationships, incoming.relationships),
-        links: merge_optional(base.links, incoming.links),
-        meta: merge_optional(base.meta, incoming.meta)
+      | relationships: merge_relationships(base.relationships, incoming.relationships)
     }
   end
 
