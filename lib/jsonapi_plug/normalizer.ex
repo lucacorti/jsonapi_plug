@@ -345,14 +345,6 @@ defmodule JSONAPIPlug.Normalizer do
   defp merge_relationship(%RelationshipObject{} = base_relationship, %RelationshipObject{}),
     do: base_relationship
 
-  defp merge_optional(nil, other), do: other
-  defp merge_optional(value, nil), do: value
-
-  defp merge_optional(base, incoming) when is_map(base) and is_map(incoming),
-    do: Map.merge(base, incoming)
-
-  defp merge_optional(_base, incoming), do: incoming
-
   defp normalize_data(_conn, nil, _options), do: nil
 
   defp normalize_data(conn, resources, options) when is_list(resources),
