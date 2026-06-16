@@ -13,7 +13,6 @@ defmodule JSONAPIPlug.Mixfile do
       start_permanent: Mix.env() == :prod,
       source_url: "https://github.com/lucacorti/jsonapi_plug",
       deps: deps(),
-      dialyzer: dialyzer(),
       docs: docs()
     ]
   end
@@ -28,17 +27,9 @@ defmodule JSONAPIPlug.Mixfile do
     ]
   end
 
-  defp dialyzer do
-    [
-      plt_file: {:no_warn, "priv/plts/dialyzer.plt"},
-      plt_add_deps: :app_tree
-    ]
-  end
-
   defp deps do
     [
       {:credo, "~> 1.0", only: :dev, runtime: false},
-      {:dialyxir, "~> 1.0", only: :dev, runtime: false},
       {:ex_doc, "~> 0.20", only: :dev, runtime: false},
       {:jason, "~> 1.0"},
       {:nimble_options, "~> 1.0"},
