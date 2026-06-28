@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.0.4 (2026-06-28)
+
+* Deduplicate resource objects in `included`s by @ivan-sibilla in https://github.com/lucacorti/jsonapi_plug/pull/136
+* Update to elixir 1.20 and erlang 29 by @lucacorti in https://github.com/lucacorti/jsonapi_plug/pull/130
+* Bump actions/checkout from 6 to 7 in /.github/workflows by @dependabot[bot] in https://github.com/lucacorti/jsonapi_plug/pull/137
+
 ## 2.0.3 (2026-03-20)
 
  - Fix include parser dropping sibling sub-includes under a shared intermediate relationship by @albertoforcato in https://github.com/lucacorti/jsonapi_plug/pull/127
