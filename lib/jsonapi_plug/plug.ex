@@ -111,6 +111,7 @@ defmodule JSONAPIPlug.Plug do
   require Logger
 
   alias JSONAPIPlug.{API, Document, Exceptions, Resource}
+  alias JSONAPIPlug.Document.ErrorObject
   alias JSONAPIPlug.Plug.{ContentTypeNegotiation, Params, QueryParam, ResponseContentType}
   alias Plug.Conn
 
@@ -161,7 +162,7 @@ defmodule JSONAPIPlug.Plug do
         %{kind: :error, reason: %Exceptions.InvalidHeader{} = exception, stack: _stack}
       ) do
     send_errors(conn, exception.status, [
-      %Document.ErrorObject{
+      %ErrorObject{
         detail: "#{exception.message}. See #{exception.reference} for more information.",
         source: %{pointer: "/header/#{exception.header}"}
       }
@@ -173,7 +174,7 @@ defmodule JSONAPIPlug.Plug do
         %{kind: :error, reason: %Exceptions.InvalidQuery{} = exception, stack: _stack}
       ) do
     send_errors(conn, :bad_request, [
-      %Document.ErrorObject{
+      %ErrorObject{
         detail: exception.message,
         source: %{pointer: "/query/#{exception.param}"}
       }

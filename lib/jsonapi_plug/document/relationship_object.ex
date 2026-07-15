@@ -55,8 +55,7 @@ defmodule JSONAPIPlug.Document.RelationshipObject do
       errors: [
         %ErrorObject{
           title: "Relationship Object 'meta' must be an object",
-          detail: "https://jsonapi.org/format/#document-resource-object-relationships",
-          source: %{pointer: "/meta"}
+          detail: "https://jsonapi.org/format/#document-resource-object-relationships"
         }
       ]
   end
