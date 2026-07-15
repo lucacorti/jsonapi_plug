@@ -40,7 +40,7 @@ defmodule JSONAPIPlug.TestSupport.Resources do
       JSONAPIPlug.Resource,
       type: "user",
       attributes: [
-        age: nil,
+        age: [type: :number],
         first_name: nil,
         last_name: nil,
         full_name: [deserialize: false],

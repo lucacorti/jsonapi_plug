@@ -8,14 +8,9 @@ defmodule JSONAPIPlug.Document do
   https://jsonapi.org/format/#document-structure
   """
 
-  alias JSONAPIPlug.{
-    Document.ErrorObject,
-    Document.JSONAPIObject,
-    Document.LinkObject,
-    Document.ResourceObject,
-    Exceptions.InvalidDocument,
-    Resource
-  }
+  alias JSONAPIPlug.Document.{ErrorObject, JSONAPIObject, LinkObject, ResourceObject}
+  alias JSONAPIPlug.Exceptions.InvalidDocument
+  alias JSONAPIPlug.Resource
 
   @type value :: String.t() | integer() | float() | [value()] | %{String.t() => value()} | nil
 
@@ -99,7 +94,12 @@ defmodule JSONAPIPlug.Document do
   defp deserialize_data(%{"data" => _data, "errors" => _errors}) do
     raise InvalidDocument,
       message: "Document cannot contain both 'data' and 'errors' members",
-      reference: "https://jsonapi.org/format/#document-top-level"
+      errors: [
+        %ErrorObject{
+          title: "Document cannot contain both 'data' and 'errors' members",
+          detail: "https://jsonapi.org/format/#document-top-level"
+        }
+      ]
   end
 
   defp deserialize_data(%{"data" => resources}) when is_list(resources),
@@ -124,14 +124,24 @@ defmodule JSONAPIPlug.Document do
        when is_list(included) do
     raise InvalidDocument,
       message: "Document 'included' cannot be present if 'data' isn't also present",
-      reference: "https://jsonapi.org/format/#document-top-level"
+      errors: [
+        %ErrorObject{
+          title: "Document 'included' cannot be present if 'data' isn't also present",
+          detail: "https://jsonapi.org/format/#document-top-level"
+        }
+      ]
   end
 
   defp deserialize_included(%{"included" => included})
        when not is_nil(included) do
     raise InvalidDocument,
       message: "Document 'included' must be a list",
-      reference: "https://jsonapi.org/format/#document-top-level"
+      errors: [
+        %ErrorObject{
+          title: "Document 'included' must be a list",
+          detail: "https://jsonapi.org/format/#document-top-level"
+        }
+      ]
   end
 
   defp deserialize_included(_data), do: nil
@@ -152,7 +162,12 @@ defmodule JSONAPIPlug.Document do
   defp deserialize_meta(%{"meta" => meta}) when not is_nil(meta) do
     raise InvalidDocument,
       message: "Document 'meta' must be an object",
-      reference: "https://jsonapi.org/format/#document-meta"
+      errors: [
+        %ErrorObject{
+          title: "Document 'meta' must be an object",
+          detail: "https://jsonapi.org/format/#document-meta"
+        }
+      ]
   end
 
   defp deserialize_meta(_data), do: nil
@@ -183,11 +198,15 @@ defmodule JSONAPIPlug.Document do
 
   defp serialize_data(nil), do: nil
 
-  defp serialize_errors(errors)
-       when not is_nil(errors) and not is_list(errors) do
+  defp serialize_errors(errors) when not is_nil(errors) and not is_list(errors) do
     raise InvalidDocument,
       message: "Document 'errors' must be a list",
-      reference: "https://jsonapi.org/format/#document-top-level"
+      errors: [
+        %ErrorObject{
+          title: "Document 'errors' must be a list",
+          detail: "https://jsonapi.org/format/#document-top-level"
+        }
+      ]
   end
 
   defp serialize_errors(errors) when is_list(errors),
@@ -199,7 +218,12 @@ defmodule JSONAPIPlug.Document do
        when not is_nil(included) and not is_list(included) do
     raise InvalidDocument,
       message: "Document 'included' must be a list resource objects",
-      reference: "https://jsonapi.org/format/#document-top-level"
+      errors: [
+        %ErrorObject{
+          title: "Document 'included' must be a list resource objects",
+          detail: "https://jsonapi.org/format/#document-top-level"
+        }
+      ]
   end
 
   defp serialize_included(included) when is_list(included),
@@ -210,7 +234,12 @@ defmodule JSONAPIPlug.Document do
   defp serialize_meta(meta) when not is_nil(meta) and not is_map(meta) do
     raise InvalidDocument,
       message: "Document 'meta' must be a map",
-      reference: "https://jsonapi.org/format/#document-top-level"
+      errors: [
+        %ErrorObject{
+          title: "Document 'meta' must be a map",
+          detail: "https://jsonapi.org/format/#document-top-level"
+        }
+      ]
   end
 
   defp serialize_meta(meta), do: meta

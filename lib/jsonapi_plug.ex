@@ -200,6 +200,16 @@ defmodule JSONAPIPlug do
       doc: "Controls wether the attribute is deserialized in requests.",
       type: :boolean,
       default: true
+    ],
+    required: [
+      doc: "Attribute is required.",
+      type: :boolean,
+      default: false
+    ],
+    type: [
+      doc: "Attribute type",
+      type: {:in, [:string, :number]},
+      default: :string
     ]
   ]
 
@@ -225,12 +235,8 @@ defmodule JSONAPIPlug do
               doc:
                 "Resource attributes. This will be used to (de)serialize requests/responses:\n\n" <>
                   NimbleOptions.docs(@attribute_schema, nest_level: 1),
-              type:
-                {:or,
-                 [
-                   {:list, :atom},
-                   {:keyword_list, [*: [type: [keyword_list: [keys: @attribute_schema]]]]}
-                 ]},
+              type: :keyword_list,
+              keys: [*: [type: :keyword_list, keys: @attribute_schema]],
               default: []
             ],
             id_attribute: [
