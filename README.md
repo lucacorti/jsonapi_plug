@@ -33,7 +33,7 @@ defp deps do [
 
 ### Upgrading
 
-Upgrading the library should be safe for minor and patch vesion upgrades, it's still a good practice
+Upgrading the library should be safe for minor and patch version upgrades, it's still a good practice
 to check the [changelog][changelog] for more information on the release content. For major version
 upgrades, breaking changes should be expected, and the [upgrade guide][upgrade] contains instructions
 on upgrading between major releases of the library.
@@ -130,7 +130,7 @@ Once you receive a request in your controller and load data, you just call rende
       render(conn, "show.json", %{data: post})
     end
 
-    def udate(%Conn{private: %{jsonapi_plug: %JSONAPIPlug{} = jsonapi_plug}} = conn, params) do
+    def update(%Conn{private: %{jsonapi_plug: %JSONAPIPlug{} = jsonapi_plug}} = conn, params) do
       post = ...update a post using jsonapi_plug parsed parameters...
       render(conn, "update.json", %{data: post})
     end

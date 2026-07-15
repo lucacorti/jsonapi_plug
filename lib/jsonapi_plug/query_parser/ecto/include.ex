@@ -1,9 +1,22 @@
 defmodule JSONAPIPlug.QueryParser.Ecto.Include do
   @moduledoc """
-  JSON:API 'include' query parameter parser implementation for Ecto
+  JSON:API `include` query parameter parser implementation for Ecto
 
-  Expects `include` parameter to be in the [JSON:API include](https://jsonapi.org/format/#fetching-includes)
-  format and converts them to Ecto `preload` option to `Ecto.Repo` functions.
+  Parses a comma-separated [JSON:API include](https://jsonapi.org/format/#fetching-includes)
+  string and converts it into a nested keyword list suitable for use as the `:preload`
+  option to `Ecto.Repo` functions.
+
+  For example, the query string:
+
+      ?include=author,bestComments.user.company,bestComments.user.topPosts
+
+  is parsed into:
+
+      [author: [], best_comments: [user: [company: [], top_posts: []]]]
+
+  Relationship names are converted from camelCase to snake_case. Paths that share
+  an intermediate relationship node are deep-merged so that all leaf preloads are
+  preserved.
   """
 
   alias JSONAPIPlug.{Exceptions.InvalidQuery, QueryParser, Resource}
@@ -80,7 +93,7 @@ defmodule JSONAPIPlug.QueryParser.Ecto.Include do
             update_in(
               relationship_includes,
               [name],
-              &Keyword.merge(
+              &deep_merge(
                 &1 || [],
                 valid_includes([rest], struct(related_resource), related_allowed_includes)
               )
@@ -98,6 +111,16 @@ defmodule JSONAPIPlug.QueryParser.Ecto.Include do
         )
     end)
     |> Keyword.merge(valid_includes, fn _k, a, b -> Keyword.merge(a, b) end)
+  end
+
+  defp deep_merge(kw1, kw2) do
+    Keyword.merge(kw1, kw2, fn _key, v1, v2 ->
+      if is_list(v1) and is_list(v2) do
+        deep_merge(v1, v2)
+      else
+        v2
+      end
+    end)
   end
 
   def check_relationship_include(

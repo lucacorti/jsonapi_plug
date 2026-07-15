@@ -4,16 +4,15 @@ defmodule JSONAPIPlug.Mixfile do
   def project do
     [
       app: :jsonapi_plug,
-      version: "2.0.1",
+      version: "2.0.4",
       package: package(),
       description: "JSON:API library for Plug and Phoenix applications",
-      elixir: "~> 1.13",
+      elixir: "~> 1.16",
       elixirc_paths: elixirc_paths(Mix.env()),
       build_embedded: Mix.env() == :prod,
       start_permanent: Mix.env() == :prod,
       source_url: "https://github.com/lucacorti/jsonapi_plug",
       deps: deps(),
-      dialyzer: dialyzer(),
       docs: docs()
     ]
   end
@@ -28,17 +27,9 @@ defmodule JSONAPIPlug.Mixfile do
     ]
   end
 
-  defp dialyzer do
-    [
-      plt_file: {:no_warn, "priv/plts/dialyzer.plt"},
-      plt_add_deps: :app_tree
-    ]
-  end
-
   defp deps do
     [
       {:credo, "~> 1.0", only: :dev, runtime: false},
-      {:dialyxir, "~> 1.0", only: :dev, runtime: false},
       {:ex_doc, "~> 0.20", only: :dev, runtime: false},
       {:ex_json_schema, "~> 0.10"},
       {:jason, "~> 1.0"},

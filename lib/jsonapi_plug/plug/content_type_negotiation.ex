@@ -27,7 +27,7 @@ defmodule JSONAPIPlug.Plug.ContentTypeNegotiation do
       conn
     else
       raise InvalidHeader,
-        status: :unsupported_content_type,
+        status: :unsupported_media_type,
         message:
           "The 'content-type' request header must contain the JSON:API mime type (#{JSONAPIPlug.mime_type()})",
         reference: "https://jsonapi.org/format/#content-negotiation.",

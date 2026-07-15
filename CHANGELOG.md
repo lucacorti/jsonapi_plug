@@ -1,5 +1,22 @@
 # Changelog
 
+## 2.0.4 (2026-06-28)
+
+* Deduplicate resource objects in `included`s by @ivan-sibilla in https://github.com/lucacorti/jsonapi_plug/pull/136
+* Update to elixir 1.20 and erlang 29 by @lucacorti in https://github.com/lucacorti/jsonapi_plug/pull/130
+* Bump actions/checkout from 6 to 7 in /.github/workflows by @dependabot[bot] in https://github.com/lucacorti/jsonapi_plug/pull/137
+
+## 2.0.3 (2026-03-20)
+
+ - Fix include parser dropping sibling sub-includes under a shared intermediate relationship by @albertoforcato in https://github.com/lucacorti/jsonapi_plug/pull/127
+ - Update dependencies by @lucacorti in https://github.com/lucacorti/jsonapi_plug/pull/128
+
+## 2.0.2 (2025-10-20)
+
+ - Fix minor typos in README.md by @camatcode in #102
+ - Bug Fix: Change unsupported_content_type to unsupported_media_type by @camatcode in #103
+ - Fix elixir 1.19 compilation warnings and update test matrix by @lucacorti
+
 ## 2.0.1 (2025-03-13)
 
 - Allow included resources in patch for now.

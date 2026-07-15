@@ -2,7 +2,7 @@ defmodule JSONAPIPlug.Normalizer do
   @moduledoc """
   Transforms user data to and from a `JSON:API` Document.
 
-  The default implementation transforms `JSON:API`documents in requests to an ecto
+  The default implementation transforms `JSON:API` documents in requests to an ecto
   friendly format and expects `Ecto.Schema` instances when rendering data in responses.
   The data it produces is stored under the `:params` key of the `JSONAPIPlug` struct
   that will be stored in the `Plug.Conn` private assign `:jsonapi_plug`.
@@ -335,10 +335,45 @@ defmodule JSONAPIPlug.Normalizer do
       data: normalize_data(conn, resource_or_resources, options),
       links: normalize_links(conn, resource_or_resources, links || %{}, options),
       included:
-        normalize_included(MapSet.new(), conn, resource_or_resources, options)
-        |> MapSet.to_list()
+        normalize_included(%{}, conn, resource_or_resources, options)
+        |> Map.values()
     }
   end
+
+  defp put_included(included, %ResourceObject{} = resource_object) do
+    key = {resource_object.type, resource_object.id || resource_object.lid}
+    Map.update(included, key, resource_object, &merge_resource_objects(&1, resource_object))
+  end
+
+  defp merge_resource_objects(%ResourceObject{} = base, %ResourceObject{} = incoming) do
+    %ResourceObject{
+      base
+      | relationships: merge_relationships(base.relationships, incoming.relationships)
+    }
+  end
+
+  defp merge_relationships(base, incoming) do
+    Map.merge(base || %{}, incoming || %{}, fn _name, base_relationship, incoming_relationship ->
+      merge_relationship(base_relationship, incoming_relationship)
+    end)
+  end
+
+  defp merge_relationship(
+         %RelationshipObject{data: base_data} = base_relationship,
+         %RelationshipObject{data: incoming_data}
+       )
+       when is_list(base_data) and is_list(incoming_data) do
+    %RelationshipObject{base_relationship | data: Enum.uniq(base_data ++ incoming_data)}
+  end
+
+  defp merge_relationship(
+         %RelationshipObject{data: nil},
+         %RelationshipObject{} = incoming_relationship
+       ),
+       do: incoming_relationship
+
+  defp merge_relationship(%RelationshipObject{} = base_relationship, %RelationshipObject{}),
+    do: base_relationship
 
   defp normalize_data(_conn, nil, _options), do: nil
 
@@ -513,10 +548,9 @@ defmodule JSONAPIPlug.Normalizer do
 
     case {related_loaded?, related_many, related_data} do
       {true, true, related_data} when is_list(related_data) ->
-        related_data
-        |> Enum.map(&normalize_resource(conn, &1, options))
-        |> MapSet.new()
-        |> MapSet.union(included)
+        Enum.reduce(related_data, included, fn related, included ->
+          put_included(included, normalize_resource(conn, related, options))
+        end)
 
       {true, _related_many, related_data} when is_list(related_data) ->
         raise InvalidDocument,
@@ -544,10 +578,7 @@ defmodule JSONAPIPlug.Normalizer do
           ]
 
       {true, _related_many, _related_data} ->
-        MapSet.put(
-          included,
-          normalize_resource(conn, related_data, options)
-        )
+        put_included(included, normalize_resource(conn, related_data, options))
 
       {false, _related_many, _related_data} ->
         included

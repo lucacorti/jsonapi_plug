@@ -15,17 +15,20 @@ jobs:
     name: Test (OTP ${{ matrix.otp }} / Elixir ${{ matrix.elixir }})
     strategy:
       matrix:
-        elixir: ["1.18", "1.17", "1.16", "1.15", "1.14"]
-        otp: ["27", "26", "25", "24"]
+        elixir: ["1.20", "1.19", "1.18", "1.17", "1.16"]
+        otp: ["29", "28", "27", "26"]
         exclude:
-          - { otp: "24", elixir: "1.18" }
-          - { otp: "24", elixir: "1.17" }
+          - { otp: "26", elixir: "1.20" }
           - { otp: "27", elixir: "1.16" }
-          - { otp: "27", elixir: "1.15" }
-          - { otp: "27", elixir: "1.14" }
-          - { otp: "26", elixir: "1.14" }
+          - { otp: "28", elixir: "1.18" }
+          - { otp: "28", elixir: "1.17" }
+          - { otp: "28", elixir: "1.16" }
+          - { otp: "29", elixir: "1.19" }
+          - { otp: "29", elixir: "1.18" }
+          - { otp: "29", elixir: "1.17" }
+          - { otp: "29", elixir: "1.16" }
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: erlef/setup-beam@v1
         with:
           otp-version: ${{ matrix.otp }}
@@ -36,29 +39,15 @@ jobs:
   lint:
     runs-on: ubuntu-latest
     name: Linting
-    strategy:
-      matrix:
-        elixir: ["1.18"]
-        otp: ["27"]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: erlef/setup-beam@v1
         id: beam
         with:
-          otp-version: ${{ matrix.otp }}
-          elixir-version: ${{ matrix.elixir }}
-      - name: PLT cache
-        uses: actions/cache@v4
-        with:
-          key: |
-            ${{ runner.os }}-${{ steps.beam.outputs.elixir-version }}-${{ steps.beam.outputs.otp-version }}-plt
-          restore-keys: |
-            ${{ runner.os }}-${{ steps.beam.outputs.elixir-version }}-${{ steps.beam.outputs.otp-version }}-plt
-          path: |
-            priv/plts
+          version-file: .tool-versions
+          version-type: strict
       - run: mix deps.get
       - run: mix deps.unlock --check-unused
       - run: mix compile --warnings-as-errors
       - run: mix format --check-formatted
       - run: mix credo --strict --all
-      - run: mix dialyzer --halt-exit-status
