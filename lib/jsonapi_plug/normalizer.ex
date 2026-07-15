@@ -244,20 +244,20 @@ defmodule JSONAPIPlug.Normalizer do
 
         {true, _related_data} ->
           raise InvalidDocument,
-            message: "Invalid value for '#{resource.type()}' relationship '#{name}'",
+            message: "Invalid value for '#{Resource.type(resource)}' relationship '#{name}'",
             errors: [
               %ErrorObject{
-                title: "Invalid value for '#{resource.type()}' relationship '#{name}'",
+                title: "Invalid value for '#{Resource.type(resource)}' relationship '#{name}'",
                 detail: "Relationship '#{name}' is one-to-many but a single value was received."
               }
             ]
 
         {false, %RelationshipObject{data: data}} when is_list(data) ->
           raise InvalidDocument,
-            message: "Invalid value for '#{resource.type()}' relationship '#{name}'",
+            message: "Invalid value for '#{Resource.type(resource)}' relationship '#{name}'",
             errors: [
               %ErrorObject{
-                title: "Invalid value for '#{resource.type()}' relationship '#{name}'",
+                title: "Invalid value for '#{Resource.type(resource)}' relationship '#{name}'",
                 detail: "Relationship '#{name}' is one-to-one but a list was received."
               }
             ]
