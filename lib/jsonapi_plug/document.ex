@@ -147,7 +147,8 @@ defmodule JSONAPIPlug.Document do
 
   defp deserialize_links(_data), do: nil
 
-  defp deserialize_meta(%{"meta" => meta}) when is_map(meta), do: meta
+  defp deserialize_meta(%{"meta" => meta}) when is_map(meta),
+    do: Map.reject(meta, fn {key, _value} -> String.starts_with?(key, "@") end)
 
   defp deserialize_meta(%{"meta" => meta}) when not is_nil(meta) do
     raise InvalidDocument,
