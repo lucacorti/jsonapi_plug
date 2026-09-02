@@ -123,14 +123,14 @@ defmodule JSONAPIPlug.QueryParser.Ecto.Include do
     end)
   end
 
-  def check_relationship_include(
-        resource,
-        valid_relationships_includes,
-        allowed_includes,
-        include_name,
-        path,
-        relationship_includes
-      ) do
+  defp check_relationship_include(
+         resource,
+         valid_relationships_includes,
+         allowed_includes,
+         include_name,
+         path,
+         relationship_includes
+       ) do
     name = String.to_existing_atom(include_name)
 
     if include_name in valid_relationships_includes and
