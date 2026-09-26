@@ -144,7 +144,7 @@ defprotocol JSONAPIPlug.Resource do
   @doc """
   Resource schema
 
-  Returns an ExJsonSchema used to validate resource attributes.
+  Returns the schema used to validate resource attributes.
   """
   @spec schema(t()) :: term()
   def schema(resource)
@@ -270,7 +270,7 @@ defimpl JSONAPIPlug.Resource, for: Any do
           }
         end)
     }
-    |> ExJsonSchema.Schema.resolve()
+    |> JSV.build!(atoms: false)
     |> Macro.escape()
   end
 
