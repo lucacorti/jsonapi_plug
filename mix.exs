@@ -31,6 +31,7 @@ defmodule JSONAPIPlug.Mixfile do
     [
       {:credo, "~> 1.0", only: :dev, runtime: false},
       {:ex_doc, "~> 0.20", only: :dev, runtime: false},
+      {:jsv, "~> 0.25"},
       {:jason, "~> 1.0"},
       {:nimble_options, "~> 1.0"},
       {:plug, "~> 1.0"}

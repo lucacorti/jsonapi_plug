@@ -5,12 +5,9 @@ defmodule JSONAPIPlug.Document.RelationshipObject do
   https://jsonapi.org/format/#document-resource-object-relationships
   """
 
-  alias JSONAPIPlug.{
-    Document,
-    Document.LinkObject,
-    Document.ResourceIdentifierObject,
-    Exceptions.InvalidDocument
-  }
+  alias JSONAPIPlug.Document
+  alias JSONAPIPlug.Document.{ErrorObject, LinkObject, ResourceIdentifierObject}
+  alias JSONAPIPlug.Exceptions.InvalidDocument
 
   @type links :: %{atom() => LinkObject.t()}
 
@@ -54,8 +51,13 @@ defmodule JSONAPIPlug.Document.RelationshipObject do
 
   defp deserialize_meta(%{"meta" => _meta}) do
     raise InvalidDocument,
-      message: "Relationship object 'meta' must be an object",
-      reference: "https://jsonapi.org/format/#document-resource-object-relationships"
+      message: "Relationship Object 'meta' must be an object",
+      errors: [
+        %ErrorObject{
+          title: "Relationship Object 'meta' must be an object",
+          detail: "https://jsonapi.org/format/#document-resource-object-relationships"
+        }
+      ]
   end
 
   defp deserialize_meta(_data), do: nil
