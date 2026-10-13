@@ -73,7 +73,7 @@ defmodule JSONAPIPlug.Document.ResourceObject do
 
   defp deserialize_attributes(%{"attributes" => attributes})
        when is_map(attributes),
-       do: attributes
+       do: reject_at_members(attributes)
 
   defp deserialize_attributes(_data), do: %{}
 
@@ -99,7 +99,9 @@ defmodule JSONAPIPlug.Document.ResourceObject do
 
   defp deserialize_relationships(%{"relationships" => relationships})
        when is_map(relationships) do
-    Enum.into(relationships, %{}, fn
+    relationships
+    |> reject_at_members()
+    |> Enum.into(%{}, fn
       {name, data} when is_list(data) ->
         {name, Enum.map(data, &RelationshipObject.deserialize/1)}
 
@@ -118,7 +120,7 @@ defmodule JSONAPIPlug.Document.ResourceObject do
 
   defp deserialize_relationships(_data), do: %{}
 
-  defp deserialize_meta(%{"meta" => meta}) when is_map(meta), do: meta
+  defp deserialize_meta(%{"meta" => meta}) when is_map(meta), do: reject_at_members(meta)
 
   defp deserialize_meta(%{"meta" => _meta}) do
     raise InvalidDocument,
@@ -127,6 +129,9 @@ defmodule JSONAPIPlug.Document.ResourceObject do
   end
 
   defp deserialize_meta(_data), do: nil
+
+  defp reject_at_members(map),
+    do: Map.reject(map, fn {key, _value} -> String.starts_with?(key, "@") end)
 
   @spec serialize(t()) :: t()
   def serialize(resource_object), do: resource_object

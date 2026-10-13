@@ -107,9 +107,21 @@ defmodule JSONAPIPlug.API do
       doc: "Scheme used for link generation instead of deriving it from the connection.",
       type: {:in, [:http, :https]}
     ],
+    extensions: [
+      doc:
+        "List of JSON:API extension URIs supported by this API. Used for content negotiation and advertised in the `jsonapi` document member.",
+      type: {:list, :string},
+      default: []
+    ],
+    profiles: [
+      doc:
+        "List of JSON:API profile URIs applied by this API. Advertised in the `jsonapi` document member and in the response `Content-Type` header.",
+      type: {:list, :string},
+      default: []
+    ],
     version: [
       doc: "`JSON:API` version advertised in the document",
-      type: {:in, [:"1.0"]},
+      type: {:in, [:"1.0", :"1.1"]},
       default: :"1.0"
     ]
   ]
