@@ -792,4 +792,54 @@ defmodule JSONAPIPlug.PlugTest do
                |> PostResourcePlug.call([])
     end
   end
+
+  describe "@-member filtering" do
+    test "silently drops @-prefixed keys from attributes" do
+      assert %Conn{private: %{jsonapi_plug: %JSONAPIPlug{params: params}}} =
+               conn(
+                 :post,
+                 "/",
+                 Jason.encode!(%{
+                   "data" => %{
+                     "type" => "post",
+                     "attributes" => %{
+                       "text" => "Hello",
+                       "@context" => "https://schema.org",
+                       "@type" => "Article"
+                     }
+                   }
+                 })
+               )
+               |> put_req_header("content-type", JSONAPIPlug.mime_type())
+               |> put_req_header("accept", JSONAPIPlug.mime_type())
+               |> PostResourcePlug.call([])
+
+      assert params["text"] == "Hello"
+      refute Map.has_key?(params, "@context")
+    end
+
+    test "regular attributes are preserved alongside @-members" do
+      assert %Conn{private: %{jsonapi_plug: %JSONAPIPlug{params: params}}} =
+               conn(
+                 :post,
+                 "/",
+                 Jason.encode!(%{
+                   "data" => %{
+                     "type" => "post",
+                     "attributes" => %{
+                       "text" => "Hello",
+                       "body" => "World",
+                       "@context" => "https://schema.org"
+                     }
+                   }
+                 })
+               )
+               |> put_req_header("content-type", JSONAPIPlug.mime_type())
+               |> put_req_header("accept", JSONAPIPlug.mime_type())
+               |> PostResourcePlug.call([])
+
+      assert params["text"] == "Hello"
+      assert params["body"] == "World"
+    end
+  end
 end
